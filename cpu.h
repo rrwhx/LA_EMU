@@ -430,4 +430,6 @@ int get_physical_address(CPULoongArchState *env, hwaddr *physical,
                                 int *prot, target_ulong address,
                                 MMUAccessType access_type, int mmu_idx);
 
+bool interpreter(CPULoongArchState *env, uint32_t insn);
+
 #endif /* LOONGARCH_CPU_H */

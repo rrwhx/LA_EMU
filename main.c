@@ -191,13 +191,17 @@ static uint32_t fetch(uint64_t addr) {
     int prot;
     int mmu_idx = FIELD_EX64(env.CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = get_physical_address(&env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
-
+    printf("va:%lx,pa:%lx\n", addr, ha);
     return *(uint32_t*)(ram + ha);
 }
 
 static void exec_env() {
-    uint32_t insn = fetch(env.pc);
-    printf("%x\n", insn);
+    uint32_t insn;
+    while(1) {
+        insn = fetch(env.pc);
+        printf("pa:%lx,insn:%x\n", env.pc, insn);
+        interpreter(&env, insn);
+    }
 }
 
 int main(int argc, char** argv) {
