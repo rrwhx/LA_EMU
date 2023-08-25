@@ -58,4 +58,16 @@
  * because it is redefined there. */
 #include <setjmp.h>
 #include <signal.h>
+
+/*
+ * &(x)[0] is always a pointer - if it's same type as x then the argument is a
+ * pointer, not an array.
+ */
+#define QEMU_IS_ARRAY(x) (!__builtin_types_compatible_p(typeof(x), \
+                                                        typeof(&(x)[0])))
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) ((sizeof(x) / sizeof((x)[0])) + \
+                       QEMU_BUILD_BUG_ON_ZERO(!QEMU_IS_ARRAY(x)))
+#endif
+
 #endif
