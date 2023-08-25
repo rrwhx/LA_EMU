@@ -30,6 +30,7 @@
 #ifndef HOST_UTILS_H
 #define HOST_UTILS_H
 
+#include "osdep.h"
 #include "bswap.h"
 #include "int128.h"
 

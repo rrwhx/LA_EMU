@@ -27,6 +27,8 @@
 #ifndef QEMU_OSDEP_H
 #define QEMU_OSDEP_H
 
+#define CONFIG_INT128
+
 #include "compiler.h"
 
 #include <stdarg.h>

@@ -1,6 +1,8 @@
 #include "osdep.h"
 #include "cpu.h"
 
+#include "util.h"
+
 
 
 #define DisasContext CPULoongArchState
@@ -28,86 +30,267 @@ static inline int shl_3(DisasContext *ctx, int x)
 
 
 
-static bool trans_add_w(CPULoongArchState *env, arg_add_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_add_d(CPULoongArchState *env, arg_add_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sub_w(CPULoongArchState *env, arg_sub_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sub_d(CPULoongArchState *env, arg_sub_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_slt(CPULoongArchState *env, arg_slt *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sltu(CPULoongArchState *env, arg_sltu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_slti(CPULoongArchState *env, arg_slti *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sltui(CPULoongArchState *env, arg_sltui *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_nor(CPULoongArchState *env, arg_nor *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_and(CPULoongArchState *env, arg_and *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_or(CPULoongArchState *env, arg_or *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_xor(CPULoongArchState *env, arg_xor *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_orn(CPULoongArchState *env, arg_orn *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_andn(CPULoongArchState *env, arg_andn *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_mul_w(CPULoongArchState *env, arg_mul_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_add_w(CPULoongArchState *env, arg_add_w *a) {
+    env->gpr[a->rd] = (int64_t)(int32_t)(env->gpr[a->rj] + env->gpr[a->rk]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_add_d(CPULoongArchState *env, arg_add_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] + env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_sub_w(CPULoongArchState *env, arg_sub_w *a) {
+    env->gpr[a->rd] = (int64_t)(int32_t)(env->gpr[a->rj] - env->gpr[a->rk]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_sub_d(CPULoongArchState *env, arg_sub_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] - env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_slt(CPULoongArchState *env, arg_slt *a) {
+    env->gpr[a->rd] = (int64_t)env->gpr[a->rj] < (int64_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_sltu(CPULoongArchState *env, arg_sltu *a) {
+    env->gpr[a->rd] = (uint64_t)env->gpr[a->rj] < (uint64_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_slti(CPULoongArchState *env, arg_slti *a) {
+    env->gpr[a->rd] = (int64_t)env->gpr[a->rj] < (int64_t)a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_sltui(CPULoongArchState *env, arg_sltui *a) {
+    env->gpr[a->rd] = (uint64_t)env->gpr[a->rj] < (uint64_t)(int64_t)a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_nor(CPULoongArchState *env, arg_nor *a) {
+    env->gpr[a->rd] = ~(env->gpr[a->rj] | env->gpr[a->rk]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_and(CPULoongArchState *env, arg_and *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] & env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_or(CPULoongArchState *env, arg_or *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] | env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_xor(CPULoongArchState *env, arg_xor *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ^ env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+
+static bool trans_orn(CPULoongArchState *env, arg_orn *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] | ~ env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+
+static bool trans_andn(CPULoongArchState *env, arg_andn *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] & ~ env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+
+static bool trans_mul_w(CPULoongArchState *env, arg_mul_w *a) {
+    env->gpr[a->rd] = (int64_t)((int32_t)env->gpr[a->rj] * (int32_t)env->gpr[a->rk]);
+    env->pc += 4;
+    return true;
+}
 static bool trans_mulh_w(CPULoongArchState *env, arg_mulh_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_mulh_wu(CPULoongArchState *env, arg_mulh_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_mul_d(CPULoongArchState *env, arg_mul_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_mul_d(CPULoongArchState *env, arg_mul_d *a) {
+    env->gpr[a->rd] = (int64_t)env->gpr[a->rj] * (int64_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
 static bool trans_mulh_d(CPULoongArchState *env, arg_mulh_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_mulh_du(CPULoongArchState *env, arg_mulh_du *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_mulh_du(CPULoongArchState *env, arg_mulh_du *a) {
+    uint64_t high,low;
+    mulu64(&low, &high, env->gpr[a->rj], env->gpr[a->rk]);
+    env->gpr[a->rd] = high;
+    env->pc += 4;
+    return true;
+}
 static bool trans_mulw_d_w(CPULoongArchState *env, arg_mulw_d_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_mulw_d_wu(CPULoongArchState *env, arg_mulw_d_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_div_w(CPULoongArchState *env, arg_div_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_mod_w(CPULoongArchState *env, arg_mod_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_div_wu(CPULoongArchState *env, arg_div_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_div_wu(CPULoongArchState *env, arg_div_wu *a) {
+    env->gpr[a->rd] = (uint32_t)env->gpr[a->rj] / (uint32_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
 static bool trans_mod_wu(CPULoongArchState *env, arg_mod_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_div_d(CPULoongArchState *env, arg_div_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_mod_d(CPULoongArchState *env, arg_mod_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_div_du(CPULoongArchState *env, arg_div_du *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_mod_du(CPULoongArchState *env, arg_mod_du *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_div_du(CPULoongArchState *env, arg_div_du *a) {
+    env->gpr[a->rd] = (uint64_t)env->gpr[a->rj] / (uint64_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_mod_du(CPULoongArchState *env, arg_mod_du *a) {
+    env->gpr[a->rd] = (uint64_t)env->gpr[a->rj] % (uint64_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
 static bool trans_alsl_w(CPULoongArchState *env, arg_alsl_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_alsl_wu(CPULoongArchState *env, arg_alsl_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_alsl_d(CPULoongArchState *env, arg_alsl_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_lu12i_w(CPULoongArchState *env, arg_lu12i_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_lu32i_d(CPULoongArchState *env, arg_lu32i_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_lu52i_d(CPULoongArchState *env, arg_lu52i_d *a)  {
-    env->gpr[a->rd] = deposit64(env->gpr[a->rj], 52, 12, env->gpr[a->imm]);
+static bool trans_alsl_d(CPULoongArchState *env, arg_alsl_d *a) {
+    env->gpr[a->rd] = (env->gpr[a->rj] << a->sa) + env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_lu12i_w(CPULoongArchState *env, arg_lu12i_w *a) {
+    env->gpr[a->rd] = (int64_t)(a->imm << 12);
+    env->pc += 4;
+    return true;
+}
+static bool trans_lu32i_d(CPULoongArchState *env, arg_lu32i_d *a) {
+    env->gpr[a->rd] = (uint64_t)(uint32_t)env->gpr[a->rd] | ((int64_t)a->imm << 32);
+    env->pc += 4;
+    return true;
+}
+static bool trans_lu52i_d(CPULoongArchState *env, arg_lu52i_d *a) {
+    env->gpr[a->rd] = deposit64(env->gpr[a->rj], 52, 12, a->imm);
     env->pc += 4;
     return true;
 }
 static bool trans_pcaddi(CPULoongArchState *env, arg_pcaddi *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_pcalau12i(CPULoongArchState *env, arg_pcalau12i *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_pcaddu12i(CPULoongArchState *env, arg_pcaddu12i *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_pcaddu18i(CPULoongArchState *env, arg_pcaddu18i *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_addi_w(CPULoongArchState *env, arg_addi_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_addi_d(CPULoongArchState *env, arg_addi_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_addu16i_d(CPULoongArchState *env, arg_addu16i_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_andi(CPULoongArchState *env, arg_andi *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ori(CPULoongArchState *env, arg_ori *a) {
-    env->gpr[a->rd] = env->gpr[a->rj] | env->gpr[a->imm];
+static bool trans_pcaddu12i(CPULoongArchState *env, arg_pcaddu12i *a) {
+    env->gpr[a->rd] = env->pc + (a->imm << 12);
     env->pc += 4;
     return true;
 }
-static bool trans_xori(CPULoongArchState *env, arg_xori *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sll_w(CPULoongArchState *env, arg_sll_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_srl_w(CPULoongArchState *env, arg_srl_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sra_w(CPULoongArchState *env, arg_sra_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sll_d(CPULoongArchState *env, arg_sll_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_srl_d(CPULoongArchState *env, arg_srl_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_sra_d(CPULoongArchState *env, arg_sra_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_pcaddu18i(CPULoongArchState *env, arg_pcaddu18i *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_addi_w(CPULoongArchState *env, arg_addi_w *a) {
+    env->gpr[a->rd] = (int64_t)(int32_t)(env->gpr[a->rj] + a->imm);
+    env->pc += 4;
+    return true;
+}
+static bool trans_addi_d(CPULoongArchState *env, arg_addi_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] + a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_addu16i_d(CPULoongArchState *env, arg_addu16i_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_andi(CPULoongArchState *env, arg_andi *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] & a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_ori(CPULoongArchState *env, arg_ori *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] | a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_xori(CPULoongArchState *env, arg_xori *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ^ a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_sll_w(CPULoongArchState *env, arg_sll_w *a) {
+    env->gpr[a->rd] = (int64_t)((int32_t)env->gpr[a->rj] << (env->gpr[a->rk] & 0x1f));
+    env->pc += 4;
+    return true;
+}
+static bool trans_srl_w(CPULoongArchState *env, arg_srl_w *a) {
+    env->gpr[a->rd] = (int64_t)(int32_t)((uint32_t)env->gpr[a->rj] >> (env->gpr[a->rk] & 0x1f));
+    env->pc += 4;
+    return true;
+}
+static bool trans_sra_w(CPULoongArchState *env, arg_sra_w *a) {
+    env->gpr[a->rd] = (int64_t)((int32_t)env->gpr[a->rj] >> (env->gpr[a->rk] & 0x1f));
+    env->pc += 4;
+    return true;
+}
+static bool trans_sll_d(CPULoongArchState *env, arg_sll_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] << (env->gpr[a->rk] & 0x3f);
+    env->pc += 4;
+    return true;
+}
+static bool trans_srl_d(CPULoongArchState *env, arg_srl_d *a) {
+    env->gpr[a->rd] = (uint64_t)env->gpr[a->rj] >> (env->gpr[a->rk] & 0x3f);
+    env->pc += 4;
+    return true;
+}
+static bool trans_sra_d(CPULoongArchState *env, arg_sra_d *a) {
+    env->gpr[a->rd] = (int64_t)env->gpr[a->rj] >> (env->gpr[a->rk] & 0x3f);
+    env->pc += 4;
+    return true;
+}
 static bool trans_rotr_w(CPULoongArchState *env, arg_rotr_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_rotr_d(CPULoongArchState *env, arg_rotr_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_slli_w(CPULoongArchState *env, arg_slli_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_slli_d(CPULoongArchState *env, arg_slli_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_srli_w(CPULoongArchState *env, arg_srli_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_srli_d(CPULoongArchState *env, arg_srli_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_srai_w(CPULoongArchState *env, arg_srai_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_srai_d(CPULoongArchState *env, arg_srai_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_slli_w(CPULoongArchState *env, arg_slli_w *a) {
+    env->gpr[a->rd] = (int64_t)((int32_t)env->gpr[a->rj] << a->imm);
+    env->pc += 4;
+    return true;
+}
+static bool trans_slli_d(CPULoongArchState *env, arg_slli_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] << a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_srli_w(CPULoongArchState *env, arg_srli_w *a) {
+    env->gpr[a->rd] = (int64_t)((uint32_t)env->gpr[a->rj] >> a->imm);
+    env->pc += 4;
+    return true;
+}
+static bool trans_srli_d(CPULoongArchState *env, arg_srli_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] >> a->imm;
+    env->pc += 4;
+    return true;
+}
+static bool trans_srai_w(CPULoongArchState *env, arg_srai_w *a) {
+    env->gpr[a->rd] = (int64_t)((int32_t)env->gpr[a->rj] >> a->imm);
+    env->pc += 4;
+    return true;
+}
+static bool trans_srai_d(CPULoongArchState *env, arg_srai_d *a) {
+    env->gpr[a->rd] = (int64_t)env->gpr[a->rj] >> a->imm;
+    env->pc += 4;
+    return true;
+}
 static bool trans_rotri_w(CPULoongArchState *env, arg_rotri_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_rotri_d(CPULoongArchState *env, arg_rotri_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ext_w_h(CPULoongArchState *env, arg_ext_w_h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ext_w_b(CPULoongArchState *env, arg_ext_w_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_ext_w_h(CPULoongArchState *env, arg_ext_w_h *a) {
+    env->gpr[a->rd] = (int64_t)(int16_t)env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
+static bool trans_ext_w_b(CPULoongArchState *env, arg_ext_w_b *a) {
+    env->gpr[a->rd] = (int64_t)(int8_t)env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
 static bool trans_clo_w(CPULoongArchState *env, arg_clo_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_clz_w(CPULoongArchState *env, arg_clz_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_cto_w(CPULoongArchState *env, arg_cto_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ctz_w(CPULoongArchState *env, arg_ctz_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_ctz_w(CPULoongArchState *env, arg_ctz_w *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? ctz32(env->gpr[a->rj]) : 32;
+    env->pc += 4;
+    return true;
+}
 static bool trans_clo_d(CPULoongArchState *env, arg_clo_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_clz_d(CPULoongArchState *env, arg_clz_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_cto_d(CPULoongArchState *env, arg_cto_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ctz_d(CPULoongArchState *env, arg_ctz_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_ctz_d(CPULoongArchState *env, arg_ctz_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? ctz64(env->gpr[a->rj]) : 64;
+    env->pc += 4;
+    return true;
+}
 static bool trans_revb_2h(CPULoongArchState *env, arg_revb_2h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_revb_4h(CPULoongArchState *env, arg_revb_4h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_revb_2w(CPULoongArchState *env, arg_revb_2w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
@@ -120,41 +303,244 @@ static bool trans_bitrev_w(CPULoongArchState *env, arg_bitrev_w *a) {fprintf(std
 static bool trans_bitrev_d(CPULoongArchState *env, arg_bitrev_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_bytepick_w(CPULoongArchState *env, arg_bytepick_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_bytepick_d(CPULoongArchState *env, arg_bytepick_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_maskeqz(CPULoongArchState *env, arg_maskeqz *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_masknez(CPULoongArchState *env, arg_masknez *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bstrins_w(CPULoongArchState *env, arg_bstrins_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bstrpick_w(CPULoongArchState *env, arg_bstrpick_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bstrins_d(CPULoongArchState *env, arg_bstrins_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bstrpick_d(CPULoongArchState *env, arg_bstrpick_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_b(CPULoongArchState *env, arg_ld_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_h(CPULoongArchState *env, arg_ld_h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_w(CPULoongArchState *env, arg_ld_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_d(CPULoongArchState *env, arg_ld_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_st_b(CPULoongArchState *env, arg_st_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_st_h(CPULoongArchState *env, arg_st_h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_st_w(CPULoongArchState *env, arg_st_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_st_d(CPULoongArchState *env, arg_st_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_bu(CPULoongArchState *env, arg_ld_bu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_hu(CPULoongArchState *env, arg_ld_hu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ld_wu(CPULoongArchState *env, arg_ld_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_b(CPULoongArchState *env, arg_ldx_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_h(CPULoongArchState *env, arg_ldx_h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_w(CPULoongArchState *env, arg_ldx_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_d(CPULoongArchState *env, arg_ldx_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_stx_b(CPULoongArchState *env, arg_stx_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_stx_h(CPULoongArchState *env, arg_stx_h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_stx_w(CPULoongArchState *env, arg_stx_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_stx_d(CPULoongArchState *env, arg_stx_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_bu(CPULoongArchState *env, arg_ldx_bu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_hu(CPULoongArchState *env, arg_ldx_hu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldx_wu(CPULoongArchState *env, arg_ldx_wu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_maskeqz(CPULoongArchState *env, arg_maskeqz *a) {
+    env->gpr[a->rd] = env->gpr[a->rk] == 0 ? 0 : env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
+static bool trans_masknez(CPULoongArchState *env, arg_masknez *a) {
+    env->gpr[a->rd] = env->gpr[a->rk] != 0 ? 0 : env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
+static bool trans_bstrins_w(CPULoongArchState *env, arg_bstrins_w *a)  {
+    env->gpr[a->rd] = (int64_t)(int32_t)deposit32(env->gpr[a->rd], a->ls, a->ms - a->ls + 1, env->gpr[a->rj]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_bstrpick_w(CPULoongArchState *env, arg_bstrpick_w *a) {
+    if (a->ls > a->ms) {
+        return false;
+    }
+    env->gpr[a->rd] = (int64_t)sextract32(env->gpr[a->rj], a->ls, a->ms - a->ls + 1);
+    env->pc += 4;
+    return true;
+}
+static bool trans_bstrins_d(CPULoongArchState *env, arg_bstrins_d *a) {
+    env->gpr[a->rd] = deposit64(env->gpr[a->rd], a->ls, a->ms - a->ls + 1, env->gpr[a->rj]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_bstrpick_d(CPULoongArchState *env, arg_bstrpick_d *a) {
+    if (a->ls > a->ms) {
+        return false;
+    }
+    env->gpr[a->rd] = sextract64(env->gpr[a->rj], a->ls, a->ms - a->ls + 1);
+    env->pc += 4;
+    return true;
+}
+static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
+    hwaddr ha;
+    int prot;
+    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+    int r = get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
+    // printf("va:%lx,pa:%lx\n", addr, ha);
+    return ha;
+}
+static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
+    hwaddr ha;
+    int prot;
+    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+    int r = get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
+    // printf("va:%lx,pa:%lx\n", addr, ha);
+    return ha;
+}
+static bool is_io(hwaddr ha) {
+    return ha >= 0x10000000 && ha < 0x90000000;
+}
+static void do_io_st(hwaddr ha, uint64_t data, int size) {
+    switch (ha)
+    {
+    case 0x1fe002e0:
+            printf("%c", (char)(data));
+        break;
+    
+    default:
+        assert(0);
+    }
+}
+static uint64_t do_io_ld(hwaddr ha, int size) {
+    uint64_t data;
+    switch (ha)
+    {
+    case 0x1fe00120:
+            data = 'a';
+        break;
+    default:
+        break;
+    }
+    return data;
+}
+static bool trans_ld_b(CPULoongArchState *env, arg_ld_b *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ld_h(CPULoongArchState *env, arg_ld_h *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ld_w(CPULoongArchState *env, arg_ld_w *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ld_d(CPULoongArchState *env, arg_ld_d *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ram, ha);
+    env->pc += 4;
+    return true;
+}
+
+static bool trans_st_b(CPULoongArchState *env, arg_st_b *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 1) : ram_stb(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_st_h(CPULoongArchState *env, arg_st_h *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 2) : ram_sth(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_st_w(CPULoongArchState *env, arg_st_w *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 4) : ram_stw(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_st_d(CPULoongArchState *env, arg_st_d *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 8) : ram_std(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ld_bu(CPULoongArchState *env, arg_ld_bu *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldub(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ld_hu(CPULoongArchState *env, arg_ld_hu *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_lduh(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ld_wu(CPULoongArchState *env, arg_ld_wu *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_lduw(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_b(CPULoongArchState *env, arg_ldx_b *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_h(CPULoongArchState *env, arg_ldx_h *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_w(CPULoongArchState *env, arg_ldx_w *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_d(CPULoongArchState *env, arg_ldx_d *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_stx_b(CPULoongArchState *env, arg_stx_b *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 1) : ram_stb(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_stx_h(CPULoongArchState *env, arg_stx_h *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 2) : ram_sth(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_stx_w(CPULoongArchState *env, arg_stx_w *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 4) : ram_stw(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_stx_d(CPULoongArchState *env, arg_stx_d *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 8) : ram_std(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_bu(CPULoongArchState *env, arg_ldx_bu *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldub(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_hu(CPULoongArchState *env, arg_ldx_hu *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_lduh(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldx_wu(CPULoongArchState *env, arg_ldx_wu *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_lduw(ram, ha);
+    env->pc += 4;
+    return true;
+}
 static bool trans_preld(CPULoongArchState *env, arg_preld *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_dbar(CPULoongArchState *env, arg_dbar *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldptr_w(CPULoongArchState *env, arg_ldptr_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_stptr_w(CPULoongArchState *env, arg_stptr_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_ldptr_d(CPULoongArchState *env, arg_ldptr_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_stptr_d(CPULoongArchState *env, arg_stptr_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_ldptr_w(CPULoongArchState *env, arg_ldptr_w *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_stptr_w(CPULoongArchState *env, arg_stptr_w *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 4) : ram_stw(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldptr_d(CPULoongArchState *env, arg_ldptr_d *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ram, ha);
+    env->pc += 4;
+    return true;
+}
+static bool trans_stptr_d(CPULoongArchState *env, arg_stptr_d *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 8) : ram_std(ram, ha, env->gpr[a->rd]);
+    env->pc += 4;
+    return true;
+}
 static bool trans_ldgt_b(CPULoongArchState *env, arg_ldgt_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_ldgt_h(CPULoongArchState *env, arg_ldgt_h *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_ldgt_w(CPULoongArchState *env, arg_ldgt_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
@@ -225,7 +611,12 @@ static bool trans_asrtle_d(CPULoongArchState *env, arg_asrtle_d *a) {fprintf(std
 static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_rdtimel_w(CPULoongArchState *env, arg_rdtimel_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_rdtimeh_w(CPULoongArchState *env, arg_rdtimeh_w *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_rdtime_d(CPULoongArchState *env, arg_rdtime_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_rdtime_d(CPULoongArchState *env, arg_rdtime_d *a) {
+    env->gpr[a->rd] = get_tsc();
+    env->gpr[a->rj] = 0;
+    env->pc += 4;
+    return true;
+}
 static bool trans_cpucfg(CPULoongArchState *env, arg_cpucfg *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_fadd_s(CPULoongArchState *env, arg_fadd_s *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_fadd_d(CPULoongArchState *env, arg_fadd_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
@@ -330,19 +721,90 @@ static bool trans_fstgt_s(CPULoongArchState *env, arg_fstgt_s *a) {fprintf(stder
 static bool trans_fstgt_d(CPULoongArchState *env, arg_fstgt_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_fstle_s(CPULoongArchState *env, arg_fstle_s *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_fstle_d(CPULoongArchState *env, arg_fstle_d *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_beqz(CPULoongArchState *env, arg_beqz *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bnez(CPULoongArchState *env, arg_bnez *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_beqz(CPULoongArchState *env, arg_beqz *a) {
+    if ((int64_t)env->gpr[a->rj] == 0) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
+static bool trans_bnez(CPULoongArchState *env, arg_bnez *a) {
+    if ((int64_t)env->gpr[a->rj] != 0) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
 static bool trans_bceqz(CPULoongArchState *env, arg_bceqz *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_bcnez(CPULoongArchState *env, arg_bcnez *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_jirl(CPULoongArchState *env, arg_jirl *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_b(CPULoongArchState *env, arg_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bl(CPULoongArchState *env, arg_bl *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_beq(CPULoongArchState *env, arg_beq *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bne(CPULoongArchState *env, arg_bne *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_blt(CPULoongArchState *env, arg_blt *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bge(CPULoongArchState *env, arg_bge *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bltu(CPULoongArchState *env, arg_bltu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
-static bool trans_bgeu(CPULoongArchState *env, arg_bgeu *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
+static bool trans_jirl(CPULoongArchState *env, arg_jirl *a) {
+    uint64_t old_pc = env->pc;
+    env->pc = env->gpr[a->rj] + a->imm;
+    env->gpr[a->rd] = old_pc + 4;
+    return true;
+}
+static bool trans_b(CPULoongArchState *env, arg_b *a) {
+    if (!a->offs) {
+        exit(EXIT_SUCCESS);
+    }
+    env->pc += a->offs;
+    return true;
+}
+static bool trans_bl(CPULoongArchState *env, arg_bl *a) {
+    env->gpr[1] = env->pc + 4;
+    env->pc += a->offs;
+    return true;
+}
+static bool trans_beq(CPULoongArchState *env, arg_beq *a) {
+    if ((int64_t)env->gpr[a->rj] == (int64_t)env->gpr[a->rd]) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
+static bool trans_bne(CPULoongArchState *env, arg_bne *a) {
+    if ((int64_t)env->gpr[a->rj] != (int64_t)env->gpr[a->rd]) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
+static bool trans_blt(CPULoongArchState *env, arg_blt *a) {
+    if ((int64_t)env->gpr[a->rj] < (int64_t)env->gpr[a->rd]) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
+static bool trans_bge(CPULoongArchState *env, arg_bge *a) {
+    if ((int64_t)env->gpr[a->rj] >= (int64_t)env->gpr[a->rd]) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
+static bool trans_bltu(CPULoongArchState *env, arg_bltu *a) {
+    if ((uint64_t)env->gpr[a->rj] < (uint64_t)env->gpr[a->rd]) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
+static bool trans_bgeu(CPULoongArchState *env, arg_bgeu *a) {
+    if ((uint64_t)env->gpr[a->rj] >= (uint64_t)env->gpr[a->rd]) {
+        env->pc += a->offs;
+    } else {
+        env->pc += 4;
+    }
+    return true;
+}
 static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 static bool trans_csrwr(CPULoongArchState *env, arg_csrwr *a) {
     uint64_t old_v;
@@ -1113,8 +1575,14 @@ static bool trans_vstelm_h(CPULoongArchState *env, arg_vstelm_h *a) {fprintf(std
 static bool trans_vstelm_b(CPULoongArchState *env, arg_vstelm_b *a) {fprintf(stderr, "NOT IMPLEMENTED %s\n", __func__); return false;}
 
 bool interpreter(CPULoongArchState *env, uint32_t insn) {
+    // fprintf(stderr, "**************PC:%lx\n", env->pc);
+    // for (int i = 0; i < 32; i++) {
+    //     fprintf(stderr, "r%02d:%lx\n", i, env->gpr[i]);
+    // }
     if (decode(env, insn)) {
         env->gpr[0] = 0;
+
+
         return true;
     } else {
         return false;

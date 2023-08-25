@@ -55,9 +55,9 @@ void usage(void) {
 static char* alloc_ram(uint64_t ram_size) {
     void* start = mmap(NULL, ram_size + SZ_2G, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(start != MAP_FAILED);
-    void* part1 = mmap(start, SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void* part1 = mmap(start, SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part1 != MAP_FAILED);
-    void* part2 = mmap(start + SZ_2G, ram_size - SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void* part2 = mmap(start + SZ_2G, ram_size - SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part2 != MAP_FAILED);
     return part1;
 }
@@ -178,6 +178,7 @@ static void cpu_reset(CPULoongArchState* env) {
 
     // restore_fp_status(env);
     // cs->exception_index = -1;
+    env->CSR_ECFG = 0x7 << 16;
 }
 
 static uint64_t addr_trans(uint64_t addr, int prot) {
@@ -191,7 +192,7 @@ static uint32_t fetch(uint64_t addr) {
     int prot;
     int mmu_idx = FIELD_EX64(env.CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = get_physical_address(&env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
-    printf("va:%lx,pa:%lx\n", addr, ha);
+    // printf("va:%lx,pa:%lx\n", addr, ha);
     return *(uint32_t*)(ram + ha);
 }
 
@@ -199,7 +200,7 @@ static void exec_env() {
     uint32_t insn;
     while(1) {
         insn = fetch(env.pc);
-        printf("pa:%lx,insn:%x\n", env.pc, insn);
+        // printf("pa:%lx,insn:%x\n", env.pc, insn);
         interpreter(&env, insn);
     }
 }

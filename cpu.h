@@ -432,4 +432,18 @@ int get_physical_address(CPULoongArchState *env, hwaddr *physical,
 
 bool interpreter(CPULoongArchState *env, uint32_t insn);
 
+extern char* ram;
+static uint64_t ram_ldb(char* ram, hwaddr addr) {return (int64_t)*(int8_t*)(ram + addr);}
+static uint64_t ram_ldh(char* ram, hwaddr addr) {return (int64_t)*(int16_t*)(ram + addr);}
+static uint64_t ram_ldw(char* ram, hwaddr addr) {return (int64_t)*(int32_t*)(ram + addr);}
+static uint64_t ram_ldd(char* ram, hwaddr addr) {return (int64_t)*(int64_t*)(ram + addr);}
+static uint64_t ram_ldub(char* ram, hwaddr addr) {return *(uint8_t*)(ram + addr);}
+static uint64_t ram_lduh(char* ram, hwaddr addr) {return *(uint16_t*)(ram + addr);}
+static uint64_t ram_lduw(char* ram, hwaddr addr) {return *(uint32_t*)(ram + addr);}
+static uint64_t ram_ldud(char* ram, hwaddr addr) {return *(uint64_t*)(ram + addr);}
+static void ram_stb(char* ram, hwaddr addr, uint64_t data) {*(uint8_t*)(ram + addr) = data;}
+static void ram_sth(char* ram, hwaddr addr, uint64_t data) {*(uint16_t*)(ram + addr) = data;}
+static void ram_stw(char* ram, hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
+static void ram_std(char* ram, hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
+
 #endif /* LOONGARCH_CPU_H */
