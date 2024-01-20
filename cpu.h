@@ -542,4 +542,8 @@ void G_NORETURN do_raise_exception(CPULoongArchState *env, uint32_t exception, u
 uint64_t helper_fclass_s(CPULoongArchState *env, uint64_t fj);
 uint64_t helper_fclass_d(CPULoongArchState *env, uint64_t fj);
 
+
+#include "helper.h"
+
+
 #endif /* LOONGARCH_CPU_H */

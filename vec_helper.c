@@ -3105,13 +3105,13 @@ static uint64_t vfcmp_common(CPULoongArchState *env,
 
 #define VFCMP(NAME, BIT, E, FN)                                          \
 void HELPER(NAME)(CPULoongArchState *env, uint32_t oprsz,                \
-                  void *vd, void *vj, void *vk, uint32_t flags) \
+                  uint32_t vd, uint32_t vj, uint32_t vk, uint32_t flags) \
 {                                                                        \
     int i;                                                               \
     VReg t;                                                              \
-    VReg *Vd = (VReg *)vd;                                  \
-    VReg *Vj = (VReg *)vj;                                  \
-    VReg *Vk = (VReg *)vk;                                  \
+    VReg *Vd = &(env->fpr[vd].vreg);                                     \
+    VReg *Vj = &(env->fpr[vj].vreg);                                     \
+    VReg *Vk = &(env->fpr[vk].vreg);                                     \
                                                                          \
     vec_clear_cause(env);                                                \
     for (i = 0; i < oprsz / (BIT / 8); i++) {                            \
@@ -3801,23 +3801,23 @@ uint64_t get_result_vec(uint8_t cat, uint8_t op, uint8_t size, uint8_t rm, void*
         }
     } else if (cat == SOFTFLOAT_FCMP) {
         uint32_t flags = get_fcmp_flags(op >> 1);
-        if (op & 1) {
-            if (ele_size == SIZE_D) {
-                helper_vfcmp_s_d(&env, oprsz, result, a, b, flags);
-            } else if (ele_size == SIZE_W) {
-                helper_vfcmp_s_s(&env, oprsz, result, a, b, flags);
-            } else {
-                fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
-            }
-        } else {
-            if (ele_size == SIZE_D) {
-                helper_vfcmp_c_d(&env, oprsz, result, a, b, flags);
-            } else if (ele_size == SIZE_W) {
-                helper_vfcmp_c_s(&env, oprsz, result, a, b, flags);
-            } else {
-                fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
-            }
-        }
+        // if (op & 1) {
+        //     if (ele_size == SIZE_D) {
+        //         helper_vfcmp_s_d(&env, oprsz, result, a, b, flags);
+        //     } else if (ele_size == SIZE_W) {
+        //         helper_vfcmp_s_s(&env, oprsz, result, a, b, flags);
+        //     } else {
+        //         fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
+        //     }
+        // } else {
+        //     if (ele_size == SIZE_D) {
+        //         helper_vfcmp_c_d(&env, oprsz, result, a, b, flags);
+        //     } else if (ele_size == SIZE_W) {
+        //         helper_vfcmp_c_s(&env, oprsz, result, a, b, flags);
+        //     } else {
+        //         fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
+        //     }
+        // }
     } else if (cat == SOFTFLOAT_FCVT) {
         switch (op) {
         case VFCVTL_S_H:      helper_vfcvtl_s_h    (result, a,    &env, desc); break;
