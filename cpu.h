@@ -14,6 +14,8 @@
 #include "registerfields.h"
 #include "cpu-csr.h"
 
+# define G_NORETURN __attribute__ ((__noreturn__))
+
 typedef struct CPUNegativeOffsetState {
     // CPUTLB tlb;
     // IcountDecr icount_decr;
@@ -501,7 +503,7 @@ static void ram_sth(char* ram, hwaddr addr, uint64_t data) {*(uint16_t*)(ram + a
 static void ram_stw(char* ram, hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
 static void ram_std(char* ram, hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
 
-void cpu_loop_exit(CPUState *cpu);
+G_NORETURN void cpu_loop_exit(CPUState *cpu);
 
 static target_ulong ldq_phys(void* as, hwaddr addr) {
     return ram_ldd(ram, addr);
@@ -524,6 +526,8 @@ void helper_invtlb_page_asid_or_g(CPULoongArchState *env, target_ulong info, tar
 
 
 void helper_ertn(CPULoongArchState *env);
+
+void G_NORETURN do_raise_exception(CPULoongArchState *env, uint32_t exception, uintptr_t pc);
 
 
 #endif /* LOONGARCH_CPU_H */

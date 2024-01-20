@@ -831,7 +831,9 @@ static bool trans_break(CPULoongArchState *env, arg_break *a) {
 
     __NOT_IMPLEMENTED__
 }
-static bool trans_syscall(CPULoongArchState *env, arg_syscall *a) {__NOT_IMPLEMENTED__}
+static bool trans_syscall(CPULoongArchState *env, arg_syscall *a) {
+    do_raise_exception(env, EXCCODE_SYS, 0);
+}
 static bool trans_asrtle_d(CPULoongArchState *env, arg_asrtle_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_rdtimel_w(CPULoongArchState *env, arg_rdtimel_w *a) {__NOT_IMPLEMENTED__}
