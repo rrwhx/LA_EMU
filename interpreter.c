@@ -1619,7 +1619,12 @@ static bool trans_vmsknz_b(CPULoongArchState *env, arg_vmsknz_b *a) {
 static bool trans_vldi(CPULoongArchState *env, arg_vldi *a) {__NOT_IMPLEMENTED__}
 static bool trans_vand_v(CPULoongArchState *env, arg_vand_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_vor_v(CPULoongArchState *env, arg_vor_v *a) {__NOT_IMPLEMENTED__}
-static bool trans_vxor_v(CPULoongArchState *env, arg_vxor_v *a) {__NOT_IMPLEMENTED__}
+static bool trans_vxor_v(CPULoongArchState *env, arg_vxor_v *a) {
+    env->fpr[a->vd].vreg.D[0] = env->fpr[a->vj].vreg.D[0] ^ env->fpr[a->vk].vreg.D[0];
+    env->fpr[a->vd].vreg.D[1] = env->fpr[a->vj].vreg.D[1] ^ env->fpr[a->vk].vreg.D[1];
+    env->pc += 4;
+    return true;
+}
 static bool trans_vnor_v(CPULoongArchState *env, arg_vnor_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_vandn_v(CPULoongArchState *env, arg_vandn_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_vorn_v(CPULoongArchState *env, arg_vorn_v *a) {__NOT_IMPLEMENTED__}
@@ -2113,14 +2118,60 @@ static bool trans_vstelm_d(CPULoongArchState *env, arg_vstelm_d *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
     assert(!is_io(ha));
     int64_t data = env->fpr[a->vd].vreg.D[a->imm2];
-    ram_stw(ram, ha, data);
-    ram_stw(ram, ha + 8, data);
+    ram_std(ram, ha, data);
+    ram_std(ram, ha + 8, data);
     env->pc += 4;
     return true;
 }
-static bool trans_vstelm_w(CPULoongArchState *env, arg_vstelm_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vstelm_h(CPULoongArchState *env, arg_vstelm_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vstelm_b(CPULoongArchState *env, arg_vstelm_b *a) {__NOT_IMPLEMENTED__}
+static bool trans_vstelm_w(CPULoongArchState *env, arg_vstelm_w *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    assert(!is_io(ha));
+    int64_t data = env->fpr[a->vd].vreg.W[a->imm2];
+    ram_stw(ram, ha, data);
+    ram_stw(ram, ha + 4, data);
+    ram_stw(ram, ha + 8, data);
+    ram_stw(ram, ha + 12, data);
+    env->pc += 4;
+    return true;
+}
+static bool trans_vstelm_h(CPULoongArchState *env, arg_vstelm_h *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    assert(!is_io(ha));
+    int64_t data = env->fpr[a->vd].vreg.H[a->imm2];
+    ram_sth(ram, ha, data);
+    ram_sth(ram, ha + 2, data);
+    ram_sth(ram, ha + 4, data);
+    ram_sth(ram, ha + 6, data);
+    ram_sth(ram, ha + 8, data);
+    ram_sth(ram, ha + 10, data);
+    ram_sth(ram, ha + 12, data);
+    ram_sth(ram, ha + 14, data);
+    env->pc += 4;
+    return true;
+}
+static bool trans_vstelm_b(CPULoongArchState *env, arg_vstelm_b *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    assert(!is_io(ha));
+    int64_t data = env->fpr[a->vd].vreg.B[a->imm2];
+    ram_stb(ram, ha + 0, data);
+    ram_stb(ram, ha + 1, data);
+    ram_stb(ram, ha + 2, data);
+    ram_stb(ram, ha + 3, data);
+    ram_stb(ram, ha + 4, data);
+    ram_stb(ram, ha + 5, data);
+    ram_stb(ram, ha + 6, data);
+    ram_stb(ram, ha + 7, data);
+    ram_stb(ram, ha + 8, data);
+    ram_stb(ram, ha + 9, data);
+    ram_stb(ram, ha + 10, data);
+    ram_stb(ram, ha + 11, data);
+    ram_stb(ram, ha + 12, data);
+    ram_stb(ram, ha + 13, data);
+    ram_stb(ram, ha + 14, data);
+    ram_stb(ram, ha + 15, data);
+    env->pc += 4;
+    return true;
+}
 bool interpreter(CPULoongArchState *env, uint32_t insn) {
     if (env->pc == 0) {
         fprintf(stderr, "**************PC:%lx\n", env->pc);
