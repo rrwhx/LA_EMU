@@ -1,3 +1,6 @@
+#ifndef __UTIL_H__
+#define __UTIL_H__
+
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -121,3 +124,7 @@ static void qemu_log(const char *fmt, ...)
             qemu_log(FMT, ## __VA_ARGS__);              \
         }                                               \
     } while (0)
+
+# define G_NORETURN __attribute__ ((__noreturn__))
+
+#endif
