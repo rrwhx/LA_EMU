@@ -7,15 +7,13 @@
 
 #include "qemu/osdep.h"
 #include "cpu.h"
-// #include "exec/helper-proto.h"
+#include "exec/helper-proto.h"
 #include "fpu/softfloat.h"
 #include "internals.h"
 // #include "tcg/tcg.h"
 #include "vec.h"
 #include "tcg/tcg-gvec-desc.h"
 #include "exec/memop.h"
-
-#include "helper.h"
 
 #define dup_const(VECE, C)                                         \
     (__builtin_constant_p(VECE)                                    \

@@ -7,7 +7,7 @@
 
 #include "qemu/osdep.h"
 #include "cpu.h"
-#include "helper.h"
+#include "include/exec/helper-proto.h"
 // #include "exec/exec-all.h"
 // #include "exec/cpu_ldst.h"
 #include "fpu/softfloat.h"
