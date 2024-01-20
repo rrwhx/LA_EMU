@@ -15,9 +15,7 @@
 #include "tcg/tcg-gvec-desc.h"
 #include "exec/memop.h"
 
-#define HELPER(name) glue(helper_, name)
-# define GETPC() \
-    ((uintptr_t)__builtin_extract_return_addr(__builtin_return_address(0)))
+#include "helper.h"
 
 #define dup_const(VECE, C)                                         \
     (__builtin_constant_p(VECE)                                    \
@@ -43,65 +41,6 @@ uint64_t (dup_const)(unsigned vece, uint64_t c)
     default:
         g_assert_not_reached();
     }
-}
-
-uint64_t helper_fclass_s(CPULoongArchState *env, uint64_t fj)
-{
-    float32 f = fj;
-    bool sign = float32_is_neg(f);
-
-    if (float32_is_infinity(f)) {
-        return sign ? 1 << 2 : 1 << 6;
-    } else if (float32_is_zero(f)) {
-        return sign ? 1 << 5 : 1 << 9;
-    } else if (float32_is_zero_or_denormal(f)) {
-        return sign ? 1 << 4 : 1 << 8;
-    } else if (float32_is_any_nan(f)) {
-        float_status s = { }; /* for snan_bit_is_one */
-        return float32_is_quiet_nan(f, &s) ? 1 << 1 : 1 << 0;
-    } else {
-        return sign ? 1 << 3 : 1 << 7;
-    }
-}
-
-uint64_t helper_fclass_d(CPULoongArchState *env, uint64_t fj)
-{
-    float64 f = fj;
-    bool sign = float64_is_neg(f);
-
-    if (float64_is_infinity(f)) {
-        return sign ? 1 << 2 : 1 << 6;
-    } else if (float64_is_zero(f)) {
-        return sign ? 1 << 5 : 1 << 9;
-    } else if (float64_is_zero_or_denormal(f)) {
-        return sign ? 1 << 4 : 1 << 8;
-    } else if (float64_is_any_nan(f)) {
-        float_status s = { }; /* for snan_bit_is_one */
-        return float64_is_quiet_nan(f, &s) ? 1 << 1 : 1 << 0;
-    } else {
-        return sign ? 1 << 3 : 1 << 7;
-    }
-}
-
-int ieee_ex_to_loongarch(int xcpt)
-{
-    int ret = 0;
-    if (xcpt & float_flag_invalid) {
-        ret |= FP_INVALID;
-    }
-    if (xcpt & float_flag_overflow) {
-        ret |= FP_OVERFLOW;
-    }
-    if (xcpt & float_flag_underflow) {
-        ret |= FP_UNDERFLOW;
-    }
-    if (xcpt & float_flag_divbyzero) {
-        ret |= FP_DIV0;
-    }
-    if (xcpt & float_flag_inexact) {
-        ret |= FP_INEXACT;
-    }
-    return ret;
 }
 
 
