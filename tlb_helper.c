@@ -780,6 +780,24 @@ void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
     env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI, PS, ps);
 }
 
+target_ulong helper_csrrd_pgd(CPULoongArchState *env)
+{
+    int64_t v;
+
+    if (env->CSR_TLBRERA & 0x1) {
+        v = env->CSR_TLBRBADV;
+    } else {
+        v = env->CSR_BADV;
+    }
+
+    if ((v >> 63) & 0x1) {
+        v = env->CSR_PGDH;
+    } else {
+        v = env->CSR_PGDL;
+    }
+
+    return v;
+}
 
 int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
                                 int *prot, target_ulong address,

@@ -1066,7 +1066,7 @@ static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {
         case LOONGARCH_CSR_ASID           :old_v = env->CSR_ASID; break;
         case LOONGARCH_CSR_PGDL           :old_v = env->CSR_PGDL; break;
         case LOONGARCH_CSR_PGDH           :old_v = env->CSR_PGDH; break;
-        case LOONGARCH_CSR_PGD            :old_v = env->CSR_PGD; break;
+        case LOONGARCH_CSR_PGD            :old_v = helper_csrrd_pgd(env); break;
         case LOONGARCH_CSR_PWCL           :old_v = env->CSR_PWCL; break;
         case LOONGARCH_CSR_PWCH           :old_v = env->CSR_PWCH; break;
         case LOONGARCH_CSR_STLBPS         :old_v = env->CSR_STLBPS; break;
@@ -1085,7 +1085,7 @@ static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7]; break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID; break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; break;
-        case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL; break;
+        case LOONGARCH_CSR_TVAL           :old_v = get_tsc(); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; break;
         case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR; break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; break;
@@ -1140,7 +1140,7 @@ static bool trans_csrwr(CPULoongArchState *env, arg_csrwr *a) {
         case LOONGARCH_CSR_ASID           :old_v = env->CSR_ASID; env->CSR_ASID = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_PGDL           :old_v = env->CSR_PGDL; env->CSR_PGDL = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_PGDH           :old_v = env->CSR_PGDH; env->CSR_PGDH = env->gpr[a->rd]; break;
-        case LOONGARCH_CSR_PGD            :old_v = env->CSR_PGD; env->CSR_PGD = env->gpr[a->rd]; break;
+        case LOONGARCH_CSR_PGD            :old_v = helper_csrrd_pgd(env); env->CSR_PGD = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_PWCL           :old_v = env->CSR_PWCL; env->CSR_PWCL = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_PWCH           :old_v = env->CSR_PWCH; env->CSR_PWCH = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_STLBPS         :old_v = env->CSR_STLBPS; env->CSR_STLBPS = env->gpr[a->rd]; break;
@@ -1234,7 +1234,7 @@ static bool trans_csrxchg(CPULoongArchState *env, arg_csrxchg *a) {
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7];     env->CSR_SAVE[7] &= (~mask);     env->CSR_SAVE[7] |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID;         env->CSR_TID &= (~mask);         env->CSR_TID |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG;        env->CSR_TCFG &= (~mask);        env->CSR_TCFG |= (env->gpr[a->rd] & mask); break;
-        case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL;        env->CSR_TVAL &= (~mask);        env->CSR_TVAL |= (env->gpr[a->rd] & mask); break;
+        case LOONGARCH_CSR_TVAL           :old_v = get_tsc();        env->CSR_TVAL &= (~mask);        env->CSR_TVAL |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC;        env->CSR_CNTC &= (~mask);        env->CSR_CNTC |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR;       env->CSR_TICLR &= (~mask);       env->CSR_TICLR |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL;      env->CSR_LLBCTL &= (~mask);      env->CSR_LLBCTL |= (env->gpr[a->rd] & mask); break;
