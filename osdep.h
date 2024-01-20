@@ -83,7 +83,7 @@ static void qemu_log(const char *fmt, ...)
 
 #define qemu_log_mask(MASK, FMT, ...)                   \
     do {                                                \
-        if (1) {       \
+        if (0) {       \
             qemu_log(FMT, ## __VA_ARGS__);              \
         }                                               \
     } while (0)

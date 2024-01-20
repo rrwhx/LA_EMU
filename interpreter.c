@@ -491,6 +491,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
     {
     case 0x1fe002e0:
             printf("%c", (char)(data));
+            fflush(stdout);
         break;
     
     default:
@@ -643,7 +644,10 @@ static bool trans_ldx_wu(CPULoongArchState *env, arg_ldx_wu *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_preld(CPULoongArchState *env, arg_preld *a) {__NOT_IMPLEMENTED__}
+static bool trans_preld(CPULoongArchState *env, arg_preld *a) {
+    env->pc += 4;
+    return true;
+}
 static bool trans_dbar(CPULoongArchState *env, arg_dbar *a) {
     env->pc += 4;
     return true;
@@ -940,7 +944,12 @@ static bool trans_movcf2gr(CPULoongArchState *env, arg_movcf2gr *a) {__NOT_IMPLE
 static bool trans_fld_s(CPULoongArchState *env, arg_fld_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fst_s(CPULoongArchState *env, arg_fst_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fld_d(CPULoongArchState *env, arg_fld_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fst_d(CPULoongArchState *env, arg_fst_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fst_d(CPULoongArchState *env, arg_fst_d *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->fpr[a->fd].vreg.D[0], 8) : ram_std(ram, ha, env->fpr[a->fd].vreg.D[0]);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fldx_s(CPULoongArchState *env, arg_fldx_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fldx_d(CPULoongArchState *env, arg_fldx_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fstx_s(CPULoongArchState *env, arg_fstx_s *a) {__NOT_IMPLEMENTED__}
@@ -1970,8 +1979,22 @@ static bool trans_vextrins_d(CPULoongArchState *env, arg_vextrins_d *a) {__NOT_I
 static bool trans_vextrins_w(CPULoongArchState *env, arg_vextrins_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_vextrins_h(CPULoongArchState *env, arg_vextrins_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_vextrins_b(CPULoongArchState *env, arg_vextrins_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_vld(CPULoongArchState *env, arg_vld *a) {__NOT_IMPLEMENTED__}
-static bool trans_vst(CPULoongArchState *env, arg_vst *a) {__NOT_IMPLEMENTED__}
+static bool trans_vld(CPULoongArchState *env, arg_vld *a) {
+    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    assert(!is_io(ha));
+    env->fpr[a->vd].vreg.D[0] = ram_ldd(ram, ha);
+    env->fpr[a->vd].vreg.D[1] = ram_ldd(ram, ha + 8);
+    env->pc += 4;
+    return true;
+}
+static bool trans_vst(CPULoongArchState *env, arg_vst *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    assert(!is_io(ha));
+    ram_std(ram, ha, env->fpr[a->vd].vreg.D[0]);
+    ram_std(ram, ha + 8, env->fpr[a->vd].vreg.D[1]);
+    env->pc += 4;
+    return true;
+}
 static bool trans_vldx(CPULoongArchState *env, arg_vldx *a) {__NOT_IMPLEMENTED__}
 static bool trans_vstx(CPULoongArchState *env, arg_vstx *a) {__NOT_IMPLEMENTED__}
 static bool trans_vldrepl_d(CPULoongArchState *env, arg_vldrepl_d *a) {__NOT_IMPLEMENTED__}

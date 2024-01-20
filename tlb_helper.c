@@ -734,9 +734,6 @@ target_ulong helper_lddir(CPULoongArchState *env, target_ulong base,
 void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
                   uint32_t mem_idx)
 {
-    printf("base:%lx\n", base);
-
-
     CPUState *cs = env_cpu(env);
     target_ulong phys, tmp0, ptindex, ptoffset0, ptoffset1, ps, badv;
     int shift;
@@ -800,7 +797,7 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
         // qemu_log_mask(CPU_LOG_MMU,
         //               "%s address=%" VADDR_PRIx " ret %d\n", __func__, address,
         //               ret);
-        printf("get_physical_address:%lx type:%d error:%d\n", address, access_type, ret);
+        // printf("get_physical_address:%lx type:%d error:%d\n", address, access_type, ret);
         raise_mmu_exception(env, address, access_type, ret);
         cpu_loop_exit(env);
     }
