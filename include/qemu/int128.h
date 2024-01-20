@@ -1,7 +1,7 @@
 #ifndef INT128_H
 #define INT128_H
 
-#include "bswap.h"
+#include "qemu/bswap.h"
 
 /*
  * With TCI, we need to use libffi for interfacing with TCG helpers.

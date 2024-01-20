@@ -30,9 +30,9 @@
 #ifndef HOST_UTILS_H
 #define HOST_UTILS_H
 
-#include "osdep.h"
-#include "bswap.h"
-#include "int128.h"
+#include "qemu/osdep.h"
+#include "qemu/bswap.h"
+#include "qemu/int128.h"
 
 #ifdef CONFIG_INT128
 static inline void mulu64(uint64_t *plow, uint64_t *phigh,

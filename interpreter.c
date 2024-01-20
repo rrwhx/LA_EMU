@@ -1,4 +1,4 @@
-#include "osdep.h"
+#include "qemu/osdep.h"
 #include "cpu.h"
 
 #include "util.h"

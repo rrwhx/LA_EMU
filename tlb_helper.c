@@ -6,9 +6,8 @@
  *
  */
 
-// #include "qemu/osdep.h"
 // #include "qemu/guest-random.h"
-#include "osdep.h"
+#include "qemu/osdep.h"
 #include "cpu.h"
 // #include "internals.h"
 // #include "exec/helper-proto.h"

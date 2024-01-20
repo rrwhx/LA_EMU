@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 
-#include "bitops.h"
-#include "registerfields.h"
+#include "qemu/bitops.h"
+#include "qemu/registerfields.h"
 #include "cpu-csr.h"
 
 # define G_NORETURN __attribute__ ((__noreturn__))

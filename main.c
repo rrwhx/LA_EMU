@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include "osdep.h"
+#include "qemu/osdep.h"
 
 
 #include <unistd.h>
@@ -494,7 +494,7 @@ static void exec_env(CPULoongArchState *env) {
                 }
             }
         } else {
-            // printf("exception_indeinterx:%d\n", env->exception_index);
+            // printf("exception_index:%d\n", env->exception_index);
             loongarch_cpu_do_interrupt(env);
             ecount ++;
         }
