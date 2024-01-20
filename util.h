@@ -104,3 +104,20 @@ static inline double second(void){
 
 #define __4G (4 * 1024 * 1024 * 1024ULL)
 #define __4K (4 * 1024ULL)
+
+
+static void qemu_log(const char *fmt, ...)
+{
+    FILE *f = stderr;
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(f, fmt, ap);
+    va_end(ap);
+}
+
+#define qemu_log_mask(MASK, FMT, ...)                   \
+    do {                                                \
+        if (0) {       \
+            qemu_log(FMT, ## __VA_ARGS__);              \
+        }                                               \
+    } while (0)

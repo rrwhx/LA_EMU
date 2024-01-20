@@ -8,6 +8,7 @@
 
 // #include "qemu/guest-random.h"
 #include "qemu/osdep.h"
+#include "util.h"
 #include "cpu.h"
 // #include "internals.h"
 // #include "exec/helper-proto.h"

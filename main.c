@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 
 #include "qemu/osdep.h"
-
+#include "util.h"
 
 #include <unistd.h>
 #include <fcntl.h>
