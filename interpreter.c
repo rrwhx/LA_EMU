@@ -141,7 +141,11 @@ static bool trans_div_wu(CPULoongArchState *env, arg_div_wu *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_mod_wu(CPULoongArchState *env, arg_mod_wu *a) {__NOT_IMPLEMENTED__}
+static bool trans_mod_wu(CPULoongArchState *env, arg_mod_wu *a) {
+    env->gpr[a->rd] = (uint32_t)env->gpr[a->rj] % (uint32_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
 static bool trans_div_d(CPULoongArchState *env, arg_div_d *a) {
     env->gpr[a->rd] = (int64_t)env->gpr[a->rj] / (int64_t)env->gpr[a->rk];
     env->pc += 4;
@@ -188,8 +192,17 @@ static bool trans_lu52i_d(CPULoongArchState *env, arg_lu52i_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_pcaddi(CPULoongArchState *env, arg_pcaddi *a) {__NOT_IMPLEMENTED__}
-static bool trans_pcalau12i(CPULoongArchState *env, arg_pcalau12i *a) {__NOT_IMPLEMENTED__}
+static bool trans_pcaddi(CPULoongArchState *env, arg_pcaddi *a) {
+    env->gpr[a->rd] = env->pc + (a->imm << 2);
+    env->pc += 4;
+    return true;
+}
+static bool trans_pcalau12i(CPULoongArchState *env, arg_pcalau12i *a) {
+    env->gpr[a->rd] = env->pc + (a->imm << 12);
+    env->gpr[a->rd] &= ~0xfffull;
+    env->pc += 4;
+    return true;
+}
 static bool trans_pcaddu12i(CPULoongArchState *env, arg_pcaddu12i *a) {
     env->gpr[a->rd] = env->pc + (a->imm << 12);
     env->pc += 4;
@@ -206,7 +219,11 @@ static bool trans_addi_d(CPULoongArchState *env, arg_addi_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_addu16i_d(CPULoongArchState *env, arg_addu16i_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_addu16i_d(CPULoongArchState *env, arg_addu16i_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] + (a->imm << 16);
+    env->pc += 4;
+    return true;
+}
 static bool trans_andi(CPULoongArchState *env, arg_andi *a) {
     env->gpr[a->rd] = env->gpr[a->rj] & a->imm;
     env->pc += 4;
@@ -252,8 +269,20 @@ static bool trans_sra_d(CPULoongArchState *env, arg_sra_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_rotr_w(CPULoongArchState *env, arg_rotr_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_rotr_d(CPULoongArchState *env, arg_rotr_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_rotr_w(CPULoongArchState *env, arg_rotr_w *a) {
+    uint32_t rj = env->gpr[a->rj];
+    int imm = env->gpr[a->rk] & 0x1f;
+    env->gpr[a->rd] = (int64_t)(int32_t)((rj >> imm) | (rj << (32 - imm)));
+    env->pc += 4;
+    return true;
+}
+static bool trans_rotr_d(CPULoongArchState *env, arg_rotr_d *a) {
+    uint64_t rj = env->gpr[a->rj];
+    int imm = env->gpr[a->rk] & 0x3f;
+    env->gpr[a->rd] = (rj >> imm) | (rj << (64 - imm));
+    env->pc += 4;
+    return true;
+}
 static bool trans_slli_w(CPULoongArchState *env, arg_slli_w *a) {
     env->gpr[a->rd] = (int64_t)((int32_t)env->gpr[a->rj] << a->imm);
     env->pc += 4;
@@ -291,7 +320,13 @@ static bool trans_rotri_w(CPULoongArchState *env, arg_rotri_w *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_rotri_d(CPULoongArchState *env, arg_rotri_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_rotri_d(CPULoongArchState *env, arg_rotri_d *a) {
+    uint64_t rj = env->gpr[a->rj];
+    int imm = a->imm & 0x3f;
+    env->gpr[a->rd] = (rj >> imm) | (rj << (64 - imm));
+    env->pc += 4;
+    return true;
+}
 static bool trans_ext_w_h(CPULoongArchState *env, arg_ext_w_h *a) {
     env->gpr[a->rd] = (int64_t)(int16_t)env->gpr[a->rj];
     env->pc += 4;
@@ -302,17 +337,41 @@ static bool trans_ext_w_b(CPULoongArchState *env, arg_ext_w_b *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_clo_w(CPULoongArchState *env, arg_clo_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_clz_w(CPULoongArchState *env, arg_clz_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_cto_w(CPULoongArchState *env, arg_cto_w *a) {__NOT_IMPLEMENTED__}
+static bool trans_clo_w(CPULoongArchState *env, arg_clo_w *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? clo32(env->gpr[a->rj]) : 32;
+    env->pc += 4;
+    return true;
+}
+static bool trans_clz_w(CPULoongArchState *env, arg_clz_w *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? clz32(env->gpr[a->rj]) : 32;
+    env->pc += 4;
+    return true;
+}
+static bool trans_cto_w(CPULoongArchState *env, arg_cto_w *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? cto32(env->gpr[a->rj]) : 32;
+    env->pc += 4;
+    return true;
+}
 static bool trans_ctz_w(CPULoongArchState *env, arg_ctz_w *a) {
     env->gpr[a->rd] = env->gpr[a->rj] ? ctz32(env->gpr[a->rj]) : 32;
     env->pc += 4;
     return true;
 }
-static bool trans_clo_d(CPULoongArchState *env, arg_clo_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_clz_d(CPULoongArchState *env, arg_clz_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_cto_d(CPULoongArchState *env, arg_cto_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_clo_d(CPULoongArchState *env, arg_clo_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? clo64(env->gpr[a->rj]) : 64;
+    env->pc += 4;
+    return true;
+}
+static bool trans_clz_d(CPULoongArchState *env, arg_clz_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? clz64(env->gpr[a->rj]) : 64;
+    env->pc += 4;
+    return true;
+}
+static bool trans_cto_d(CPULoongArchState *env, arg_cto_d *a) {
+    env->gpr[a->rd] = env->gpr[a->rj] ? cto64(env->gpr[a->rj]) : 64;
+    env->pc += 4;
+    return true;
+}
 static bool trans_ctz_d(CPULoongArchState *env, arg_ctz_d *a) {
     env->gpr[a->rd] = env->gpr[a->rj] ? ctz64(env->gpr[a->rj]) : 64;
     env->pc += 4;
@@ -338,7 +397,8 @@ static bool trans_revh_2w(CPULoongArchState *env, arg_revh_2w *a) {__NOT_IMPLEME
 static bool trans_revh_d(CPULoongArchState *env, arg_revh_d *a) {
     uint64_t mask = 0x0000FFFF0000FFFFULL;
     uint64_t rj = env->gpr[a->rj];
-    env->gpr[a->rd] = ((rj >> 16) & mask) | ((rj & mask ) << 16);
+    uint64_t t = ((rj >> 16) & mask) | ((rj & mask ) << 16);
+    env->gpr[a->rd] = (t >> 32) | (t << 32);
     env->pc += 4;
     return true;
 }
@@ -384,20 +444,43 @@ static bool trans_bstrpick_d(CPULoongArchState *env, arg_bstrpick_d *a) {
     env->pc += 4;
     return true;
 }
+
+
+
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     hwaddr ha;
     int prot;
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-    int r = get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
+    int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
     // printf("va:%lx,pa:%lx\n", addr, ha);
+        if (addr == 0xfffffefffe0510b0) {
+        printf("load:va:%lx,pa:%lx\n", addr, ha);
+    }
     return ha;
 }
 static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
+    if (addr == 0xfffffefffe0510b0) {
+        printf("store_pa1 %lx addr:%lx\n", env->pc, addr);
+    }
+
+    if ((addr & ~0xf) == 0xfffffefffe0510b0) {
+        printf("store_pa2 %lx addr:%lx\n", env->pc, addr);
+    }
+
+    if ((addr & ~0xf) == 0xfffffefffe0510a0) {
+        printf("store_pa3 %lx addr:%lx\n", env->pc, addr);
+    }
+
     hwaddr ha;
     int prot;
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-    int r = get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
-    // printf("va:%lx,pa:%lx\n", addr, ha);
+    int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
+    if (addr == 0xfffffefffe0510b0) {
+        printf("store:va:%lx,pa:%lx\n", addr, ha);
+    }
+    if (ha == 0x15e0510b0) {
+        printf("store:va:%lx,pa:%lx\n", addr, ha);
+    }
     return ha;
 }
 static bool is_io(hwaddr ha) {
@@ -411,7 +494,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
         break;
     
     default:
-        fprintf(stderr, "lllllllllllllllllllllllllll,addr:%lx, data:%lx, size:%d", ha, data, size);
+        fprintf(stderr, "do_io_st, addr:%lx, data:%lx, size:%d", ha, data, size);
         // assert(0);
     }
 }
@@ -741,7 +824,13 @@ static bool trans_crcc_w_b_w(CPULoongArchState *env, arg_crcc_w_b_w *a) {__NOT_I
 static bool trans_crcc_w_h_w(CPULoongArchState *env, arg_crcc_w_h_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_crcc_w_w_w(CPULoongArchState *env, arg_crcc_w_w_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_crcc_w_d_w(CPULoongArchState *env, arg_crcc_w_d_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_break(CPULoongArchState *env, arg_break *a) {__NOT_IMPLEMENTED__}
+static bool trans_break(CPULoongArchState *env, arg_break *a) {
+
+    printf("trans_break\n");
+    exit(0);
+
+    __NOT_IMPLEMENTED__
+}
 static bool trans_syscall(CPULoongArchState *env, arg_syscall *a) {__NOT_IMPLEMENTED__}
 static bool trans_asrtle_d(CPULoongArchState *env, arg_asrtle_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *a) {__NOT_IMPLEMENTED__}
@@ -1177,10 +1266,26 @@ static bool trans_iocsrwr_b(CPULoongArchState *env, arg_iocsrwr_b *a) {__NOT_IMP
 static bool trans_iocsrwr_h(CPULoongArchState *env, arg_iocsrwr_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_iocsrwr_w(CPULoongArchState *env, arg_iocsrwr_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_iocsrwr_d(CPULoongArchState *env, arg_iocsrwr_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_tlbsrch(CPULoongArchState *env, arg_tlbsrch *a) {__NOT_IMPLEMENTED__}
-static bool trans_tlbrd(CPULoongArchState *env, arg_tlbrd *a) {__NOT_IMPLEMENTED__}
-static bool trans_tlbwr(CPULoongArchState *env, arg_tlbwr *a) {__NOT_IMPLEMENTED__}
-static bool trans_tlbfill(CPULoongArchState *env, arg_tlbfill *a) {__NOT_IMPLEMENTED__}
+static bool trans_tlbsrch(CPULoongArchState *env, arg_tlbsrch *a) {
+    helper_tlbsrch(env);
+    env->pc += 4;
+    return true;
+}
+static bool trans_tlbrd(CPULoongArchState *env, arg_tlbrd *a) {
+    helper_tlbrd(env);
+    env->pc += 4;
+    return true;
+}
+static bool trans_tlbwr(CPULoongArchState *env, arg_tlbwr *a) {
+    helper_tlbwr(env);
+    env->pc += 4;
+    return true;
+}
+static bool trans_tlbfill(CPULoongArchState *env, arg_tlbfill *a) {
+    helper_tlbfill(env);
+    env->pc += 4;
+    return true;
+}
 static bool trans_tlbclr(CPULoongArchState *env, arg_tlbclr *a) {__NOT_IMPLEMENTED__}
 static bool trans_tlbflush(CPULoongArchState *env, arg_tlbflush *a) {__NOT_IMPLEMENTED__}
 static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *a) {
@@ -1189,9 +1294,20 @@ static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *a) {
     return true;
 }
 static bool trans_cacop(CPULoongArchState *env, arg_cacop *a) {__NOT_IMPLEMENTED__}
-static bool trans_lddir(CPULoongArchState *env, arg_lddir *a) {__NOT_IMPLEMENTED__}
-static bool trans_ldpte(CPULoongArchState *env, arg_ldpte *a) {__NOT_IMPLEMENTED__}
-static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {__NOT_IMPLEMENTED__}
+static bool trans_lddir(CPULoongArchState *env, arg_lddir *a) {
+    env->gpr[a->rd] = helper_lddir(env, env->gpr[a->rj], a->imm, 0);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ldpte(CPULoongArchState *env, arg_ldpte *a) {
+    helper_ldpte(env, env->gpr[a->rj], a->imm, 0);
+    env->pc += 4;
+    return true;
+}
+static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {
+    helper_ertn(env);
+    return true;
+}
 static bool trans_idle(CPULoongArchState *env, arg_idle *a) {__NOT_IMPLEMENTED__}
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}
 static bool trans_vadd_b(CPULoongArchState *env, arg_vadd_b *a) {__NOT_IMPLEMENTED__}

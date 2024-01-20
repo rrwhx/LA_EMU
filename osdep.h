@@ -70,4 +70,22 @@
                        QEMU_BUILD_BUG_ON_ZERO(!QEMU_IS_ARRAY(x)))
 #endif
 
+
+static void qemu_log(const char *fmt, ...)
+{
+    FILE *f = stderr;
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfprintf(f, fmt, ap);
+    va_end(ap);
+}
+
+#define qemu_log_mask(MASK, FMT, ...)                   \
+    do {                                                \
+        if (1) {       \
+            qemu_log(FMT, ## __VA_ARGS__);              \
+        }                                               \
+    } while (0)
+
 #endif

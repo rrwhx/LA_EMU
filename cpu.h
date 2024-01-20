@@ -14,6 +14,12 @@
 #include "registerfields.h"
 #include "cpu-csr.h"
 
+typedef struct CPUNegativeOffsetState {
+    // CPUTLB tlb;
+    // IcountDecr icount_decr;
+    bool can_do_io;
+} CPUNegativeOffsetState;
+
 typedef enum MMUAccessType {
     MMU_DATA_LOAD  = 0,
     MMU_DATA_STORE = 1,
@@ -32,7 +38,31 @@ typedef enum MMUAccessType {
 #define TARGET_PHYS_ADDR_SPACE_BITS 48
 #define TARGET_VIRT_ADDR_SPACE_BITS 48
 
-#define TARGET_PAGE_BITS 14
+#define TARGET_PAGE_BITS 12
+
+#define TARGET_PAGE_SIZE   (1 << TARGET_PAGE_BITS)
+#define TARGET_PAGE_MASK   ((target_long)-1 << TARGET_PAGE_BITS)
+
+#define TARGET_LONG_SIZE (TARGET_LONG_BITS / 8)
+
+/* target_ulong is the type of a virtual address */
+#if TARGET_LONG_SIZE == 4
+typedef int32_t target_long;
+typedef uint32_t target_ulong;
+#define TARGET_FMT_lx "%08x"
+#define TARGET_FMT_ld "%d"
+#define TARGET_FMT_lu "%u"
+#define MO_TL MO_32
+#elif TARGET_LONG_SIZE == 8
+typedef int64_t target_long;
+typedef uint64_t target_ulong;
+#define TARGET_FMT_lx "%016" PRIx64
+#define TARGET_FMT_ld "%" PRId64
+#define TARGET_FMT_lu "%" PRIu64
+#define MO_TL MO_64
+#else
+#error TARGET_LONG_SIZE undefined
+#endif
 
 #define TARGET_PHYS_MASK MAKE_64BIT_MASK(0, TARGET_PHYS_ADDR_SPACE_BITS)
 #define TARGET_VIRT_MASK MAKE_64BIT_MASK(0, TARGET_VIRT_ADDR_SPACE_BITS)
@@ -383,7 +413,20 @@ typedef struct CPUArchState {
 //     /* Store ipistate to access from this struct */
 //     DeviceState *ipistate;
 // #endif
+
+    int32_t exception_index;
+    CPUNegativeOffsetState neg;
+    sigjmp_buf jmp_env;
+    struct CPUArchState* env;
+    int cpu_index;
+    void* as;
+    int halted;
 } CPULoongArchState;
+
+typedef CPULoongArchState CPUState;
+typedef CPULoongArchState LoongArchCPU;
+#define env_cpu(env) env
+#define LOONGARCH_CPU(env) env
 
 /*
  * LoongArch CPUs has 4 privilege levels.
@@ -426,7 +469,19 @@ static inline void cpu_get_tb_cpu_state(CPULoongArchState *env, vaddr *pc,
     *flags |= FIELD_EX64(env->CSR_EUEN, CSR_EUEN, SXE) * HW_FLAGS_EUEN_SXE;
 }
 
+static inline void set_pc(CPULoongArchState *env, uint64_t value)
+{
+    // if (is_va32(env)) {
+    //     env->pc = (uint32_t)value;
+    // } else {
+        env->pc = value;
+    // }
+}
+
 int get_physical_address(CPULoongArchState *env, hwaddr *physical,
+                                int *prot, target_ulong address,
+                                MMUAccessType access_type, int mmu_idx);
+int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
                                 int *prot, target_ulong address,
                                 MMUAccessType access_type, int mmu_idx);
 
@@ -445,5 +500,30 @@ static void ram_stb(char* ram, hwaddr addr, uint64_t data) {*(uint8_t*)(ram + ad
 static void ram_sth(char* ram, hwaddr addr, uint64_t data) {*(uint16_t*)(ram + addr) = data;}
 static void ram_stw(char* ram, hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
 static void ram_std(char* ram, hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
+
+void cpu_loop_exit(CPUState *cpu);
+
+static target_ulong ldq_phys(void* as, hwaddr addr) {
+    return ram_ldd(ram, addr);
+}
+
+target_ulong helper_lddir(CPULoongArchState *env, target_ulong base, target_ulong level, uint32_t mem_idx);
+void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd, uint32_t mem_idx);
+
+void helper_tlbsrch(CPULoongArchState *env);
+void helper_tlbrd(CPULoongArchState *env);
+void helper_tlbwr(CPULoongArchState *env);
+void helper_tlbfill(CPULoongArchState *env);
+void helper_tlbclr(CPULoongArchState *env);
+void helper_tlbflush(CPULoongArchState *env);
+void helper_invtlb_all(CPULoongArchState *env);
+void helper_invtlb_all_g(CPULoongArchState *env, uint32_t g);
+void helper_invtlb_all_asid(CPULoongArchState *env, target_ulong info);
+void helper_invtlb_page_asid(CPULoongArchState *env, target_ulong info, target_ulong addr);
+void helper_invtlb_page_asid_or_g(CPULoongArchState *env, target_ulong info, target_ulong addr);
+
+
+void helper_ertn(CPULoongArchState *env);
+
 
 #endif /* LOONGARCH_CPU_H */

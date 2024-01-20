@@ -14,6 +14,49 @@
 
 // # define ELF_CLASS  ELFCLASS64
 
+const char * const regnames[32] = {
+    "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
+    "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
+    "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
+    "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31",
+};
+
+const char * const fregnames[32] = {
+    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+    "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15",
+    "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23",
+    "f24", "f25", "f26", "f27", "f28", "f29", "f30", "f31",
+};
+
+static const char * const excp_names[] = {
+    [EXCCODE_INT] = "Interrupt",
+    [EXCCODE_PIL] = "Page invalid exception for load",
+    [EXCCODE_PIS] = "Page invalid exception for store",
+    [EXCCODE_PIF] = "Page invalid exception for fetch",
+    [EXCCODE_PME] = "Page modified exception",
+    [EXCCODE_PNR] = "Page Not Readable exception",
+    [EXCCODE_PNX] = "Page Not Executable exception",
+    [EXCCODE_PPI] = "Page Privilege error",
+    [EXCCODE_ADEF] = "Address error for instruction fetch",
+    [EXCCODE_ADEM] = "Address error for Memory access",
+    [EXCCODE_SYS] = "Syscall",
+    [EXCCODE_BRK] = "Break",
+    [EXCCODE_INE] = "Instruction Non-Existent",
+    [EXCCODE_IPE] = "Instruction privilege error",
+    [EXCCODE_FPD] = "Floating Point Disabled",
+    [EXCCODE_FPE] = "Floating Point Exception",
+    [EXCCODE_DBP] = "Debug breakpoint",
+    [EXCCODE_BCE] = "Bound Check Exception",
+    [EXCCODE_SXD] = "128 bit vector instructions Disable exception",
+    [EXCCODE_ASXD] = "256 bit vector instructions Disable exception",
+};
+
+const char *loongarch_exception_name(int32_t exception)
+{
+    assert(excp_names[exception]);
+    return excp_names[exception];
+}
+
 
 #if 1
 #define lsassert(cond)                                                  \
@@ -46,7 +89,6 @@ char* ram;
 uint64_t ram_size = SZ_4G;
 const char* kernel_filename;
 
-CPULoongArchState env;
 void usage(void) {
     printf("la_emu -m n[G] -k kernel\n");
     exit(EXIT_SUCCESS);
@@ -260,28 +302,212 @@ static void loongarch_la464_initfn(CPULoongArchState* env) {
     env->CSR_ASID = FIELD_DP64(0, CSR_ASID, ASIDBITS, 0xa);
 }
 
-static uint64_t addr_trans(uint64_t addr, int prot) {
-    if (env.CSR_CRMD) {
+static void loongarch_cpu_do_interrupt(CPUState *cs)
+{
+    LoongArchCPU *cpu = LOONGARCH_CPU(cs);
+    CPULoongArchState *env = cpu->env;
+    bool update_badinstr = 1;
+    int cause = -1;
+    const char *name;
+    bool tlbfill = FIELD_EX64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR);
+    uint32_t vec_size = FIELD_EX64(env->CSR_ECFG, CSR_ECFG, VS);
 
+    if (cs->exception_index != EXCCODE_INT) {
+        if (cs->exception_index < 0 ||
+            cs->exception_index >= ARRAY_SIZE(excp_names)) {
+            name = "unknown";
+        } else {
+            name = excp_names[cs->exception_index];
+        }
+
+        qemu_log_mask(CPU_LOG_INT,
+                     "%s enter: pc " TARGET_FMT_lx " ERA " TARGET_FMT_lx
+                     " TLBRERA " TARGET_FMT_lx " %s exception\n", __func__,
+                     env->pc, env->CSR_ERA, env->CSR_TLBRERA, name);
     }
+
+    switch (cs->exception_index) {
+    case EXCCODE_DBP:
+        env->CSR_DBG = FIELD_DP64(env->CSR_DBG, CSR_DBG, DCL, 1);
+        env->CSR_DBG = FIELD_DP64(env->CSR_DBG, CSR_DBG, ECODE, 0xC);
+        goto set_DERA;
+    set_DERA:
+        env->CSR_DERA = env->pc;
+        env->CSR_DBG = FIELD_DP64(env->CSR_DBG, CSR_DBG, DST, 1);
+        set_pc(env, env->CSR_EENTRY + 0x480);
+        break;
+    case EXCCODE_INT:
+        if (FIELD_EX64(env->CSR_DBG, CSR_DBG, DST)) {
+            env->CSR_DBG = FIELD_DP64(env->CSR_DBG, CSR_DBG, DEI, 1);
+            goto set_DERA;
+        }
+        QEMU_FALLTHROUGH;
+    case EXCCODE_PIF:
+    case EXCCODE_ADEF:
+        cause = cs->exception_index;
+        update_badinstr = 0;
+        break;
+    case EXCCODE_SYS:
+    case EXCCODE_BRK:
+    case EXCCODE_INE:
+    case EXCCODE_IPE:
+    case EXCCODE_FPD:
+    case EXCCODE_FPE:
+    case EXCCODE_SXD:
+    case EXCCODE_ASXD:
+        env->CSR_BADV = env->pc;
+        QEMU_FALLTHROUGH;
+    case EXCCODE_BCE:
+    case EXCCODE_ADEM:
+    case EXCCODE_PIL:
+    case EXCCODE_PIS:
+    case EXCCODE_PME:
+    case EXCCODE_PNR:
+    case EXCCODE_PNX:
+    case EXCCODE_PPI:
+        cause = cs->exception_index;
+        break;
+    default:
+        qemu_log("Error: exception(%d) has not been supported\n",
+                 cs->exception_index);
+        abort();
+    }
+
+    if (update_badinstr) {
+        env->CSR_BADI = 0xbadbad11;
+        // env->CSR_BADI = cpu_ldl_code(env, env->pc);
+    }
+
+    /* Save PLV and IE */
+    if (tlbfill) {
+        env->CSR_TLBRPRMD = FIELD_DP64(env->CSR_TLBRPRMD, CSR_TLBRPRMD, PPLV,
+                                       FIELD_EX64(env->CSR_CRMD,
+                                       CSR_CRMD, PLV));
+        env->CSR_TLBRPRMD = FIELD_DP64(env->CSR_TLBRPRMD, CSR_TLBRPRMD, PIE,
+                                       FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE));
+        /* set the DA mode */
+        env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, DA, 1);
+        env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PG, 0);
+        env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA,
+                                      PC, (env->pc >> 2));
+    } else {
+        env->CSR_ESTAT = FIELD_DP64(env->CSR_ESTAT, CSR_ESTAT, ECODE,
+                                    EXCODE_MCODE(cause));
+        env->CSR_ESTAT = FIELD_DP64(env->CSR_ESTAT, CSR_ESTAT, ESUBCODE,
+                                    EXCODE_SUBCODE(cause));
+        env->CSR_PRMD = FIELD_DP64(env->CSR_PRMD, CSR_PRMD, PPLV,
+                                   FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV));
+        env->CSR_PRMD = FIELD_DP64(env->CSR_PRMD, CSR_PRMD, PIE,
+                                   FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE));
+        env->CSR_ERA = env->pc;
+    }
+
+    env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PLV, 0);
+    env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, IE, 0);
+
+    if (vec_size) {
+        vec_size = (1 << vec_size) * 4;
+    }
+
+    if  (cs->exception_index == EXCCODE_INT) {
+        /* Interrupt */
+        uint32_t vector = 0;
+        uint32_t pending = FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS);
+        pending &= FIELD_EX64(env->CSR_ECFG, CSR_ECFG, LIE);
+
+        /* Find the highest-priority interrupt. */
+        vector = 31 - clz32(pending);
+        set_pc(env, env->CSR_EENTRY + \
+               (EXCCODE_EXTERNAL_INT + vector) * vec_size);
+        qemu_log_mask(CPU_LOG_INT,
+                      "%s: PC " TARGET_FMT_lx " ERA " TARGET_FMT_lx
+                      " cause %d\n" "    A " TARGET_FMT_lx " D "
+                      TARGET_FMT_lx " vector = %d ExC " TARGET_FMT_lx "ExS"
+                      TARGET_FMT_lx "\n",
+                      __func__, env->pc, env->CSR_ERA,
+                      cause, env->CSR_BADV, env->CSR_DERA, vector,
+                      env->CSR_ECFG, env->CSR_ESTAT);
+    } else {
+        if (tlbfill) {
+            set_pc(env, env->CSR_TLBRENTRY);
+        } else {
+            set_pc(env, env->CSR_EENTRY + EXCODE_MCODE(cause) * vec_size);
+        }
+        qemu_log_mask(CPU_LOG_INT,
+                      "%s: PC " TARGET_FMT_lx " ERA " TARGET_FMT_lx
+                      " cause %d%s\n, ESTAT " TARGET_FMT_lx
+                      " EXCFG " TARGET_FMT_lx " BADVA " TARGET_FMT_lx
+                      "BADI " TARGET_FMT_lx " SYS_NUM " TARGET_FMT_lu
+                      " cpu %d asid " TARGET_FMT_lx "\n", __func__, env->pc,
+                      tlbfill ? env->CSR_TLBRERA : env->CSR_ERA,
+                      cause, tlbfill ? "(refill)" : "", env->CSR_ESTAT,
+                      env->CSR_ECFG,
+                      tlbfill ? env->CSR_TLBRBADV : env->CSR_BADV,
+                      env->CSR_BADI, env->gpr[11], cs->cpu_index,
+                      env->CSR_ASID);
+    }
+    cs->exception_index = -1;
 }
 
-static uint32_t fetch(uint64_t addr) {
+static uint64_t addr_trans(uint64_t addr, int prot) {
+    // if (env.CSR_CRMD) {
+
+    // }
+}
+
+static uint32_t fetch(CPULoongArchState *env) {
     hwaddr ha;
     int prot;
-    int mmu_idx = FIELD_EX64(env.CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-    int r = get_physical_address(&env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
+    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+    int r = check_get_physical_address(env, &ha, &prot, env->pc, MMU_INST_FETCH, mmu_idx);
     // printf("va:%lx,pa:%lx\n", addr, ha);
     return *(uint32_t*)(ram + ha);
 }
 
-static void exec_env() {
-    uint32_t insn;
-    while(1) {
-        insn = fetch(env.pc);
-        // printf("pa:%lx,insn:%x\n", env.pc, insn);
-        interpreter(&env, insn);
+int val;
+
+static void exec_env(CPULoongArchState *env) {
+    uint64_t icount = 0;
+    uint64_t ecount = 0;
+    int i = 10000;
+    while (i--) {
+        if (sigsetjmp(env->jmp_env, 0) == 0) {
+            uint32_t insn;
+            while(1) {
+                // if (i != 9) {
+
+                //     printf("***** pa:%lx,insn:%x\n", env->pc, insn);
+                // }
+                insn = fetch(env);
+                interpreter(env, insn);
+                icount ++;
+                // if (icount % 10000000 == 0) {
+                //     printf("icount:%ld, pc;%lx\n", icount, env->pc);
+                // }
+                if (env->gpr[0] != 0) {
+                    printf("zero is not zero:%ld, pc;%lx\n", icount, env->pc);
+                    exit(0);
+                }
+                if (val != (int)ram_ldw(ram, 0x15e0510b0)) {
+                    printf("changed :%ld, pc;%lx, old%x, new:%x\n", icount, env->pc, val, (int)ram_ldw(ram, 0x15e0510b0));
+                    val = (int)ram_ldw(ram, 0x15e0510b0);
+                }
+            }
+        } else {
+            printf("exception_index:%d\n", env->exception_index);
+            loongarch_cpu_do_interrupt(env);
+            ecount ++;
+        }
     }
+}
+
+void cpu_loop_exit(CPUState *cpu)
+{
+    /* Undo the setting in cpu_tb_exec.  */
+    cpu->neg.can_do_io = true;
+    /* Undo any setting in generated code.  */
+    // qemu_plugin_disable_mem_helpers(cpu);
+    siglongjmp(cpu->jmp_env, 1);
 }
 
 int main(int argc, char** argv) {
@@ -310,10 +536,13 @@ int main(int argc, char** argv) {
     ram = alloc_ram(ram_size);
     uint64_t entry_addr;
     load_elf(ram, kernel_filename, &entry_addr);
+    fprintf(stderr, "entry_addr:%lx\n", entry_addr);
+    CPULoongArchState env = {};
     cpu_reset(&env);
     loongarch_la464_initfn(&env);
+    env.env = &env;
     env.pc = entry_addr;
-    exec_env();
+    exec_env(&env);
 
     getchar();
 

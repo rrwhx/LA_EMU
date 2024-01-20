@@ -55,6 +55,9 @@ static int loongarch_map_tlb_entry(CPULoongArchState *env, hwaddr *physical,
     tlb_nr = FIELD_EX64(tlb_entry, TLBENTRY, NR);
     tlb_rplv = FIELD_EX64(tlb_entry, TLBENTRY, RPLV);
 
+    /* Remove sw bit between bit12 -- bit PS*/
+    tlb_ppn = tlb_ppn & ~(((0x1UL << (tlb_ps - 12)) -1));
+
     /* Check access rights */
     if (!tlb_v) {
         return TLBRET_INVALID;
@@ -77,12 +80,17 @@ static int loongarch_map_tlb_entry(CPULoongArchState *env, hwaddr *physical,
         return TLBRET_DIRTY;
     }
 
-    /*
-     * tlb_entry contains ppn[47:12] while 16KiB ppn is [47:15]
-     * need adjust.
-     */
+        if (address == 0xfffffefffe0500b0) {
+            printf("aaaaaa index:%d tlbps:%d\n", index, tlb_ps);
+        }
+
     *physical = (tlb_ppn << R_TLBENTRY_PPN_SHIFT) |
                 (address & MAKE_64BIT_MASK(0, tlb_ps));
+
+    if (address == 0xfffffefffe0500b0) {
+        printf("aaaaaa index:%d tlbps:%d %lx %lx\n", index, tlb_ps, *physical, tlb_ppn << R_TLBENTRY_PPN_SHIFT);
+    }
+
     *prot = PAGE_READ;
     if (tlb_d) {
         *prot |= PAGE_WRITE;
@@ -161,6 +169,9 @@ static int loongarch_map_address(CPULoongArchState *env, hwaddr *physical,
 
     match = loongarch_tlb_search(env, address, &index);
     if (match) {
+        if (address == 0xfffffefffe0500b0) {
+            printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa %d\n", index);
+        }
         return loongarch_map_tlb_entry(env, physical, prot,
                                        address, access_type, index, mmu_idx);
     }
@@ -223,67 +234,67 @@ int get_physical_address(CPULoongArchState *env, hwaddr *physical,
 //     return phys_addr;
 // }
 
-// static void raise_mmu_exception(CPULoongArchState *env, target_ulong address,
-//                                 MMUAccessType access_type, int tlb_error)
-// {
-//     CPUState *cs = env_cpu(env);
+static void raise_mmu_exception(CPULoongArchState *env, target_ulong address,
+                                MMUAccessType access_type, int tlb_error)
+{
+    CPUState *cs = env_cpu(env);
 
-//     switch (tlb_error) {
-//     default:
-//     case TLBRET_BADADDR:
-//         cs->exception_index = access_type == MMU_INST_FETCH
-//                               ? EXCCODE_ADEF : EXCCODE_ADEM;
-//         break;
-//     case TLBRET_NOMATCH:
-//         /* No TLB match for a mapped address */
-//         if (access_type == MMU_DATA_LOAD) {
-//             cs->exception_index = EXCCODE_PIL;
-//         } else if (access_type == MMU_DATA_STORE) {
-//             cs->exception_index = EXCCODE_PIS;
-//         } else if (access_type == MMU_INST_FETCH) {
-//             cs->exception_index = EXCCODE_PIF;
-//         }
-//         env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 1);
-//         break;
-//     case TLBRET_INVALID:
-//         /* TLB match with no valid bit */
-//         if (access_type == MMU_DATA_LOAD) {
-//             cs->exception_index = EXCCODE_PIL;
-//         } else if (access_type == MMU_DATA_STORE) {
-//             cs->exception_index = EXCCODE_PIS;
-//         } else if (access_type == MMU_INST_FETCH) {
-//             cs->exception_index = EXCCODE_PIF;
-//         }
-//         break;
-//     case TLBRET_DIRTY:
-//         /* TLB match but 'D' bit is cleared */
-//         cs->exception_index = EXCCODE_PME;
-//         break;
-//     case TLBRET_XI:
-//         /* Execute-Inhibit Exception */
-//         cs->exception_index = EXCCODE_PNX;
-//         break;
-//     case TLBRET_RI:
-//         /* Read-Inhibit Exception */
-//         cs->exception_index = EXCCODE_PNR;
-//         break;
-//     case TLBRET_PE:
-//         /* Privileged Exception */
-//         cs->exception_index = EXCCODE_PPI;
-//         break;
-//     }
+    switch (tlb_error) {
+    default:
+    case TLBRET_BADADDR:
+        cs->exception_index = access_type == MMU_INST_FETCH
+                              ? EXCCODE_ADEF : EXCCODE_ADEM;
+        break;
+    case TLBRET_NOMATCH:
+        /* No TLB match for a mapped address */
+        if (access_type == MMU_DATA_LOAD) {
+            cs->exception_index = EXCCODE_PIL;
+        } else if (access_type == MMU_DATA_STORE) {
+            cs->exception_index = EXCCODE_PIS;
+        } else if (access_type == MMU_INST_FETCH) {
+            cs->exception_index = EXCCODE_PIF;
+        }
+        env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 1);
+        break;
+    case TLBRET_INVALID:
+        /* TLB match with no valid bit */
+        if (access_type == MMU_DATA_LOAD) {
+            cs->exception_index = EXCCODE_PIL;
+        } else if (access_type == MMU_DATA_STORE) {
+            cs->exception_index = EXCCODE_PIS;
+        } else if (access_type == MMU_INST_FETCH) {
+            cs->exception_index = EXCCODE_PIF;
+        }
+        break;
+    case TLBRET_DIRTY:
+        /* TLB match but 'D' bit is cleared */
+        cs->exception_index = EXCCODE_PME;
+        break;
+    case TLBRET_XI:
+        /* Execute-Inhibit Exception */
+        cs->exception_index = EXCCODE_PNX;
+        break;
+    case TLBRET_RI:
+        /* Read-Inhibit Exception */
+        cs->exception_index = EXCCODE_PNR;
+        break;
+    case TLBRET_PE:
+        /* Privileged Exception */
+        cs->exception_index = EXCCODE_PPI;
+        break;
+    }
 
-//     if (tlb_error == TLBRET_NOMATCH) {
-//         env->CSR_TLBRBADV = address;
-//         env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI, VPPN,
-//                                       extract64(address, 13, 35));
-//     } else {
-//         if (!FIELD_EX64(env->CSR_DBG, CSR_DBG, DST)) {
-//             env->CSR_BADV = address;
-//         }
-//         env->CSR_TLBEHI = address & (TARGET_PAGE_MASK << 1);
-//    }
-// }
+    if (tlb_error == TLBRET_NOMATCH) {
+        env->CSR_TLBRBADV = address;
+        env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI, VPPN,
+                                      extract64(address, 13, 35));
+    } else {
+        if (!FIELD_EX64(env->CSR_DBG, CSR_DBG, DST)) {
+            env->CSR_BADV = address;
+        }
+        env->CSR_TLBEHI = address & (TARGET_PAGE_MASK << 1);
+   }
+}
 
 static void invalidate_tlb_entry(CPULoongArchState *env, int index)
 {
@@ -673,95 +684,163 @@ void helper_invtlb_page_asid_or_g(CPULoongArchState *env,
 //     cpu_loop_exit_restore(cs, retaddr);
 // }
 
-// target_ulong helper_lddir(CPULoongArchState *env, target_ulong base,
-//                           target_ulong level, uint32_t mem_idx)
-// {
-//     CPUState *cs = env_cpu(env);
-//     target_ulong badvaddr, index, phys, ret;
-//     int shift;
-//     uint64_t dir_base, dir_width;
-//     bool huge = (base >> LOONGARCH_PAGE_HUGE_SHIFT) & 0x1;
+target_ulong helper_lddir(CPULoongArchState *env, target_ulong base,
+                          target_ulong level, uint32_t mem_idx)
+{
+    CPUState *cs = env_cpu(env);
+    target_ulong badvaddr, index, phys, ret;
+    int shift;
+    uint64_t dir_base, dir_width;
+    bool huge = (base >> LOONGARCH_PAGE_HUGE_SHIFT) & 0x1;
 
-//     badvaddr = env->CSR_TLBRBADV;
-//     base = base & TARGET_PHYS_MASK;
+    badvaddr = env->CSR_TLBRBADV;
+    base = base & TARGET_PHYS_MASK;
 
-//     /* 0:64bit, 1:128bit, 2:192bit, 3:256bit */
-//     shift = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTEWIDTH);
-//     shift = (shift + 1) * 3;
+    /* 0:64bit, 1:128bit, 2:192bit, 3:256bit */
+    shift = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTEWIDTH);
+    shift = (shift + 1) * 3;
 
-//     if (huge) {
-//         return base;
-//     }
-//     switch (level) {
-//     case 1:
-//         dir_base = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR1_BASE);
-//         dir_width = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR1_WIDTH);
-//         break;
-//     case 2:
-//         dir_base = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR2_BASE);
-//         dir_width = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR2_WIDTH);
-//         break;
-//     case 3:
-//         dir_base = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR3_BASE);
-//         dir_width = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR3_WIDTH);
-//         break;
-//     case 4:
-//         dir_base = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR4_BASE);
-//         dir_width = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR4_WIDTH);
-//         break;
-//     default:
-//         do_raise_exception(env, EXCCODE_INE, GETPC());
-//         return 0;
-//     }
-//     index = (badvaddr >> dir_base) & ((1 << dir_width) - 1);
-//     phys = base | index << shift;
-//     ret = ldq_phys(cs->as, phys) & TARGET_PHYS_MASK;
-//     return ret;
-// }
+    if (huge) {
+        return base;
+    }
+    switch (level) {
+    case 1:
+        dir_base = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR1_BASE);
+        dir_width = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR1_WIDTH);
+        break;
+    case 2:
+        dir_base = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR2_BASE);
+        dir_width = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, DIR2_WIDTH);
+        break;
+    case 3:
+        dir_base = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR3_BASE);
+        dir_width = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR3_WIDTH);
+        break;
+    case 4:
+        dir_base = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR4_BASE);
+        dir_width = FIELD_EX64(env->CSR_PWCH, CSR_PWCH, DIR4_WIDTH);
+        break;
+    default:
+        // do_raise_exception(env, EXCCODE_INE, GETPC());
+        abort();
+        return 0;
+    }
+    index = (badvaddr >> dir_base) & ((1 << dir_width) - 1);
+    phys = base | index << shift;
+    ret = ldq_phys(cs->as, phys) & TARGET_PHYS_MASK;
+    return ret;
+}
 
-// void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
-//                   uint32_t mem_idx)
-// {
-//     CPUState *cs = env_cpu(env);
-//     target_ulong phys, tmp0, ptindex, ptoffset0, ptoffset1, ps, badv;
-//     int shift;
-//     bool huge = (base >> LOONGARCH_PAGE_HUGE_SHIFT) & 0x1;
-//     uint64_t ptbase = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTBASE);
-//     uint64_t ptwidth = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTWIDTH);
+void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
+                  uint32_t mem_idx)
+{
+    printf("base:%lx\n", base);
 
-//     base = base & TARGET_PHYS_MASK;
 
-//     if (huge) {
-//         /* Huge Page. base is paddr */
-//         tmp0 = base ^ (1 << LOONGARCH_PAGE_HUGE_SHIFT);
-//         /* Move Global bit */
-//         tmp0 = ((tmp0 & (1 << LOONGARCH_HGLOBAL_SHIFT))  >>
-//                 LOONGARCH_HGLOBAL_SHIFT) << R_TLBENTRY_G_SHIFT |
-//                 (tmp0 & (~(1 << R_TLBENTRY_G_SHIFT)));
-//         ps = ptbase + ptwidth - 1;
-//         if (odd) {
-//             tmp0 += MAKE_64BIT_MASK(ps, 1);
-//         }
-//     } else {
-//         /* 0:64bit, 1:128bit, 2:192bit, 3:256bit */
-//         shift = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTEWIDTH);
-//         shift = (shift + 1) * 3;
-//         badv = env->CSR_TLBRBADV;
+    CPUState *cs = env_cpu(env);
+    target_ulong phys, tmp0, ptindex, ptoffset0, ptoffset1, ps, badv;
+    int shift;
+    bool huge = (base >> LOONGARCH_PAGE_HUGE_SHIFT) & 0x1;
+    uint64_t ptbase = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTBASE);
+    uint64_t ptwidth = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTWIDTH);
 
-//         ptindex = (badv >> ptbase) & ((1 << ptwidth) - 1);
-//         ptindex = ptindex & ~0x1;   /* clear bit 0 */
-//         ptoffset0 = ptindex << shift;
-//         ptoffset1 = (ptindex + 1) << shift;
+    base = base & TARGET_PHYS_MASK;
 
-//         phys = base | (odd ? ptoffset1 : ptoffset0);
-//         tmp0 = ldq_phys(cs->as, phys) & TARGET_PHYS_MASK;
-//         ps = ptbase;
-//     }
+    if (huge) {
+        /* Huge Page. base is paddr */
+        tmp0 = base ^ (1 << LOONGARCH_PAGE_HUGE_SHIFT);
+        /* Move Global bit */
+        // target_ulong g = (tmp0 & (1 << LOONGARCH_HGLOBAL_SHIFT))  >> LOONGARCH_HGLOBAL_SHIFT;
+        tmp0 = ((tmp0 & (1 << LOONGARCH_HGLOBAL_SHIFT))  >>
+                LOONGARCH_HGLOBAL_SHIFT) << R_TLBENTRY_G_SHIFT |
+                (tmp0 & (~(1 << LOONGARCH_HGLOBAL_SHIFT)));
+        printf("tmp0:%lx\n", tmp0);
+        ps = ptbase + ptwidth - 1;
+        if (odd) {
+            tmp0 += MAKE_64BIT_MASK(ps, 1);
+        }
+    } else {
+        /* 0:64bit, 1:128bit, 2:192bit, 3:256bit */
+        shift = FIELD_EX64(env->CSR_PWCL, CSR_PWCL, PTEWIDTH);
+        shift = (shift + 1) * 3;
+        badv = env->CSR_TLBRBADV;
 
-//     if (odd) {
-//         env->CSR_TLBRELO1 = tmp0;
-//     } else {
-//         env->CSR_TLBRELO0 = tmp0;
-//     }
-//     env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI, PS, ps);
-// }
+        ptindex = (badv >> ptbase) & ((1 << ptwidth) - 1);
+        ptindex = ptindex & ~0x1;   /* clear bit 0 */
+        ptoffset0 = ptindex << shift;
+        ptoffset1 = (ptindex + 1) << shift;
+
+        phys = base | (odd ? ptoffset1 : ptoffset0);
+        tmp0 = ldq_phys(cs->as, phys) & TARGET_PHYS_MASK;
+        ps = ptbase;
+    }
+
+    if (odd) {
+        env->CSR_TLBRELO1 = tmp0;
+    } else {
+        env->CSR_TLBRELO0 = tmp0;
+    }
+    env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI, PS, ps);
+}
+
+
+int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
+                                int *prot, target_ulong address,
+                                MMUAccessType access_type, int mmu_idx) {
+    int ret = get_physical_address(env, physical, prot, address, access_type, mmu_idx);
+    if (ret == TLBRET_MATCH) {
+        // tlb_set_page(cs, address & TARGET_PAGE_MASK,
+        //              physical & TARGET_PAGE_MASK, prot,
+        //              mmu_idx, TARGET_PAGE_SIZE);
+        // qemu_log_mask(CPU_LOG_MMU,
+        //               "%s address=%" VADDR_PRIx " physical " HWADDR_FMT_plx
+        //               " prot %d\n", __func__, address, physical, prot);
+        return true;
+    } else {
+        // qemu_log_mask(CPU_LOG_MMU,
+        //               "%s address=%" VADDR_PRIx " ret %d\n", __func__, address,
+        //               ret);
+        printf("get_physical_address:%lx type:%d error:%d\n", address, access_type, ret);
+        raise_mmu_exception(env, address, access_type, ret);
+        cpu_loop_exit(env);
+    }
+    // if (probe) {
+    //     return false;
+    // }
+}
+
+void helper_ertn(CPULoongArchState *env)
+{
+    uint64_t csr_pplv, csr_pie;
+    if (FIELD_EX64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR)) {
+        csr_pplv = FIELD_EX64(env->CSR_TLBRPRMD, CSR_TLBRPRMD, PPLV);
+        csr_pie = FIELD_EX64(env->CSR_TLBRPRMD, CSR_TLBRPRMD, PIE);
+
+        env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 0);
+        env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, DA, 0);
+        env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PG, 1);
+        set_pc(env, env->CSR_TLBRERA);
+        qemu_log_mask(CPU_LOG_INT, "%s: TLBRERA " TARGET_FMT_lx "\n",
+                      __func__, env->CSR_TLBRERA);
+    } else {
+        csr_pplv = FIELD_EX64(env->CSR_PRMD, CSR_PRMD, PPLV);
+        csr_pie = FIELD_EX64(env->CSR_PRMD, CSR_PRMD, PIE);
+
+        set_pc(env, env->CSR_ERA);
+        qemu_log_mask(CPU_LOG_INT, "%s: ERA " TARGET_FMT_lx "\n",
+                      __func__, env->CSR_ERA);
+    }
+    env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PLV, csr_pplv);
+    env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, IE, csr_pie);
+
+    env->lladdr = 1;
+}
+
+void helper_idle(CPULoongArchState *env)
+{
+    CPUState *cs = env_cpu(env);
+
+    cs->halted = 1;
+    abort();
+    // do_raise_exception(env, EXCP_HLT, 0);
+}
