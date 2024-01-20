@@ -1,5 +1,5 @@
 #!/bin/bash
 
-gcc -Iinclude -DCONFIG_INT128 tlb_helper.c interpreter.c main.c -g -o la_emu
+gcc -g -Iinclude -DCONFIG_INT128 host-utils.c int128.c softfloat.c vec_helper.c tlb_helper.c interpreter.c main.c -lm -o la_emu
 
 
