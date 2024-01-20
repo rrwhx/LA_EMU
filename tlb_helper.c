@@ -80,16 +80,8 @@ static int loongarch_map_tlb_entry(CPULoongArchState *env, hwaddr *physical,
         return TLBRET_DIRTY;
     }
 
-        if (address == 0xfffffefffe0500b0) {
-            printf("aaaaaa index:%d tlbps:%d\n", index, tlb_ps);
-        }
-
     *physical = (tlb_ppn << R_TLBENTRY_PPN_SHIFT) |
                 (address & MAKE_64BIT_MASK(0, tlb_ps));
-
-    if (address == 0xfffffefffe0500b0) {
-        printf("aaaaaa index:%d tlbps:%d %lx %lx\n", index, tlb_ps, *physical, tlb_ppn << R_TLBENTRY_PPN_SHIFT);
-    }
 
     *prot = PAGE_READ;
     if (tlb_d) {
@@ -169,9 +161,6 @@ static int loongarch_map_address(CPULoongArchState *env, hwaddr *physical,
 
     match = loongarch_tlb_search(env, address, &index);
     if (match) {
-        if (address == 0xfffffefffe0500b0) {
-            printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa %d\n", index);
-        }
         return loongarch_map_tlb_entry(env, physical, prot,
                                        address, access_type, index, mmu_idx);
     }
@@ -747,11 +736,9 @@ void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
         /* Huge Page. base is paddr */
         tmp0 = base ^ (1 << LOONGARCH_PAGE_HUGE_SHIFT);
         /* Move Global bit */
-        // target_ulong g = (tmp0 & (1 << LOONGARCH_HGLOBAL_SHIFT))  >> LOONGARCH_HGLOBAL_SHIFT;
         tmp0 = ((tmp0 & (1 << LOONGARCH_HGLOBAL_SHIFT))  >>
                 LOONGARCH_HGLOBAL_SHIFT) << R_TLBENTRY_G_SHIFT |
                 (tmp0 & (~(1 << LOONGARCH_HGLOBAL_SHIFT)));
-        printf("tmp0:%lx\n", tmp0);
         ps = ptbase + ptwidth - 1;
         if (odd) {
             tmp0 += MAKE_64BIT_MASK(ps, 1);

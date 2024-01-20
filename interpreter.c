@@ -453,35 +453,13 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     int prot;
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
-    // printf("va:%lx,pa:%lx\n", addr, ha);
-        if (addr == 0xfffffefffe0510b0) {
-        printf("load:va:%lx,pa:%lx\n", addr, ha);
-    }
     return ha;
 }
 static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
-    if (addr == 0xfffffefffe0510b0) {
-        printf("store_pa1 %lx addr:%lx\n", env->pc, addr);
-    }
-
-    if ((addr & ~0xf) == 0xfffffefffe0510b0) {
-        printf("store_pa2 %lx addr:%lx\n", env->pc, addr);
-    }
-
-    if ((addr & ~0xf) == 0xfffffefffe0510a0) {
-        printf("store_pa3 %lx addr:%lx\n", env->pc, addr);
-    }
-
     hwaddr ha;
     int prot;
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
-    if (addr == 0xfffffefffe0510b0) {
-        printf("store:va:%lx,pa:%lx\n", addr, ha);
-    }
-    if (ha == 0x15e0510b0) {
-        printf("store:va:%lx,pa:%lx\n", addr, ha);
-    }
     return ha;
 }
 static bool is_io(hwaddr ha) {
@@ -496,7 +474,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
         break;
     
     default:
-        fprintf(stderr, "do_io_st, addr:%lx, data:%lx, size:%d", ha, data, size);
+        fprintf(stderr, "do_io_st, addr:%lx, data:%lx, size:%d\n", ha, data, size);
         // assert(0);
     }
 }

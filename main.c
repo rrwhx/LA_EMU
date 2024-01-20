@@ -469,8 +469,7 @@ int val;
 static void exec_env(CPULoongArchState *env) {
     uint64_t icount = 0;
     uint64_t ecount = 0;
-    int i = 10000;
-    while (i--) {
+    while (1) {
         if (sigsetjmp(env->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
