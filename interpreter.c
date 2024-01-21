@@ -447,6 +447,9 @@ static bool trans_bstrpick_d(CPULoongArchState *env, arg_bstrpick_d *a) {
 }
 
 
+bool is_aligned(uint64_t addr, int bytes) {
+    return !(addr & (bytes - 1));
+}
 
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     hwaddr ha;
@@ -491,25 +494,33 @@ static uint64_t do_io_ld(hwaddr ha, int size) {
     return data;
 }
 static bool trans_ld_b(CPULoongArchState *env, arg_ld_b *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    target_ulong va = env->gpr[a->rj] + a->imm;
+    lsassertm(is_aligned(va, 1), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
     env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ram, ha);
     env->pc += 4;
     return true;
 }
 static bool trans_ld_h(CPULoongArchState *env, arg_ld_h *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    target_ulong va = env->gpr[a->rj] + a->imm;
+    lsassertm(is_aligned(va, 2), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
     env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ram, ha);
     env->pc += 4;
     return true;
 }
 static bool trans_ld_w(CPULoongArchState *env, arg_ld_w *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    target_ulong va = env->gpr[a->rj] + a->imm;
+    lsassertm(is_aligned(va, 4), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
     env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ram, ha);
     env->pc += 4;
     return true;
 }
 static bool trans_ld_d(CPULoongArchState *env, arg_ld_d *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
+    target_ulong va = env->gpr[a->rj] + a->imm;
+    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
     env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ram, ha);
     env->pc += 4;
     return true;

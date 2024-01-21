@@ -58,33 +58,6 @@ const char *loongarch_exception_name(int32_t exception)
 }
 
 
-#if 1
-#define lsassert(cond)                                                  \
-    do {                                                                \
-        if (!(cond)) {                                                  \
-            fprintf(stderr,                                             \
-                    "\033[31m assertion failed in <%s> %s:%d \033[m\n", \
-                    __FUNCTION__, __FILE__, __LINE__);                  \
-            abort();                                                    \
-        }                                                               \
-    } while (0)
-
-#define lsassertm(cond, ...)                                                  \
-    do {                                                                      \
-        if (!(cond)) {                                                        \
-            fprintf(stderr, "\033[31m assertion failed in <%s> %s:%d \033[m", \
-                    __FUNCTION__, __FILE__, __LINE__);                        \
-            fprintf(stderr, __VA_ARGS__);                                     \
-            abort();                                                          \
-        }                                                                     \
-    } while (0)
-
-#else
-#define lsassert(cond)          ((void)0)
-#define lsassertm(cond, ...)    ((void)0)
-#endif
-
-
 char* ram;
 uint64_t ram_size = SZ_4G;
 const char* kernel_filename;
@@ -238,7 +211,7 @@ static void loongarch_la464_initfn(CPULoongArchState* env) {
     data = FIELD_DP32(data, CPUCFG1, IOCSR, 1);
     data = FIELD_DP32(data, CPUCFG1, PALEN, 0x2f);
     data = FIELD_DP32(data, CPUCFG1, VALEN, 0x2f);
-    data = FIELD_DP32(data, CPUCFG1, UAL, 1);
+    // data = FIELD_DP32(data, CPUCFG1, UAL, 1);
     data = FIELD_DP32(data, CPUCFG1, RI, 1);
     data = FIELD_DP32(data, CPUCFG1, EP, 1);
     data = FIELD_DP32(data, CPUCFG1, RPLV, 1);
