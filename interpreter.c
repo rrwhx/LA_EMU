@@ -5,7 +5,8 @@
 #include "util.h"
 
 
-#define __NOT_IMPLEMENTED__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); return false;} while(0);
+#define __NOT_IMPLEMENTED__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
+#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(0); return false;} while(0);
 
 #define DisasContext CPULoongArchState
 #define ctx env
@@ -1327,7 +1328,7 @@ static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {
     helper_ertn(env);
     return true;
 }
-static bool trans_idle(CPULoongArchState *env, arg_idle *a) {__NOT_IMPLEMENTED__}
+static bool trans_idle(CPULoongArchState *env, arg_idle *a) {__NOT_IMPLEMENTED_EXIT__}
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}
 static bool trans_vadd_b(CPULoongArchState *env, arg_vadd_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_vadd_h(CPULoongArchState *env, arg_vadd_h *a) {__NOT_IMPLEMENTED__}
