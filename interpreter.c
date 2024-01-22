@@ -472,6 +472,7 @@ static bool is_io(hwaddr ha) {
 static void do_io_st(hwaddr ha, uint64_t data, int size) {
     switch (ha)
     {
+    case 0x1fe001e0:
     case 0x1fe002e0:
             printf("%c", (char)(data));
             fflush(stdout);
