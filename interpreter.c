@@ -1154,7 +1154,15 @@ static bool trans_movgr2cf(CPULoongArchState *env, arg_movgr2cf *a) {__NOT_IMPLE
 static bool trans_movcf2gr(CPULoongArchState *env, arg_movcf2gr *a) {__NOT_IMPLEMENTED__}
 static bool trans_fld_s(CPULoongArchState *env, arg_fld_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fst_s(CPULoongArchState *env, arg_fst_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fld_d(CPULoongArchState *env, arg_fld_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fld_d(CPULoongArchState *env, arg_fld_d *a) {
+    target_ulong va = env->gpr[a->rj] + a->imm;
+    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
+    int64_t dest = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ram, ha);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fst_d(CPULoongArchState *env, arg_fst_d *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
     is_io(ha) ? do_io_st(ha, env->fpr[a->fd].vreg.D[0], 8) : ram_std(ram, ha, env->fpr[a->fd].vreg.D[0]);
