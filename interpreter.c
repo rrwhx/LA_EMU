@@ -10,6 +10,7 @@
 
 #define DisasContext CPULoongArchState
 #define ctx env
+#define TCGv int64_t
 static inline int plus_1(DisasContext *ctx, int x)
 {
     return x + 1;
@@ -977,8 +978,20 @@ static bool trans_fmaxa_s(CPULoongArchState *env, arg_fmaxa_s *a) {__NOT_IMPLEME
 static bool trans_fmaxa_d(CPULoongArchState *env, arg_fmaxa_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmina_s(CPULoongArchState *env, arg_fmina_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmina_d(CPULoongArchState *env, arg_fmina_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fabs_s(CPULoongArchState *env, arg_fabs_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fabs_d(CPULoongArchState *env, arg_fabs_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fabs_s(CPULoongArchState *env, arg_fabs_s *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = src & MAKE_64BIT_MASK(0, 31);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fabs_d(CPULoongArchState *env, arg_fabs_d *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = src & MAKE_64BIT_MASK(0, 63);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fneg_s(CPULoongArchState *env, arg_fneg_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fneg_d(CPULoongArchState *env, arg_fneg_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fsqrt_s(CPULoongArchState *env, arg_fsqrt_s *a) {__NOT_IMPLEMENTED__}
