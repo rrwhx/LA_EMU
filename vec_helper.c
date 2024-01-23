@@ -3717,26 +3717,6 @@ static const FloatRoundMode ieee_rm[4] = {
     float_round_down
 };
 
-/* bit0(signaling/quiet) bit1(lt) bit2(eq) bit3(un) bit4(neq) */
-static uint32_t get_fcmp_flags(int cond)
-{
-    uint32_t flags = 0;
-
-    if (cond & 0x1) {
-        flags |= FCMP_LT;
-    }
-    if (cond & 0x2) {
-        flags |= FCMP_EQ;
-    }
-    if (cond & 0x4) {
-        flags |= FCMP_UN;
-    }
-    if (cond & 0x8) {
-        flags |= FCMP_GT | FCMP_LT;
-    }
-    return flags;
-}
-
 uint64_t get_result_vec(uint8_t cat, uint8_t op, uint8_t size, uint8_t rm, void* a, void* b, void* c, void* result, uint8_t* vzoui) {
     uint32_t oprsz = size & 0x10 ? 32 : 16;
     int ele_size = size & 0x3;
@@ -3800,7 +3780,7 @@ uint64_t get_result_vec(uint8_t cat, uint8_t op, uint8_t size, uint8_t rm, void*
             fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
         }
     } else if (cat == SOFTFLOAT_FCMP) {
-        uint32_t flags = get_fcmp_flags(op >> 1);
+        // uint32_t flags = get_fcmp_flags(op >> 1);
         // if (op & 1) {
         //     if (ele_size == SIZE_D) {
         //         helper_vfcmp_s_d(&env, oprsz, result, a, b, flags);

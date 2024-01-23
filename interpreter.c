@@ -1,5 +1,6 @@
 #include "qemu/osdep.h"
 #include "cpu.h"
+#include "internals.h"
 #include "tcg/tcg-gvec-desc.h"
 
 #include "util.h"
@@ -87,6 +88,25 @@ static inline void set_fpr(CPULoongArchState *env, int reg_num, int64_t val) {
     env->fpr[reg_num].vreg.D[0] = val;
 }
 
+/* bit0(signaling/quiet) bit1(lt) bit2(eq) bit3(un) bit4(neq) */
+static uint32_t get_fcmp_flags(int cond)
+{
+    uint32_t flags = 0;
+
+    if (cond & 0x1) {
+        flags |= FCMP_LT;
+    }
+    if (cond & 0x2) {
+        flags |= FCMP_EQ;
+    }
+    if (cond & 0x4) {
+        flags |= FCMP_UN;
+    }
+    if (cond & 0x8) {
+        flags |= FCMP_GT | FCMP_LT;
+    }
+    return flags;
+}
 
 static bool trans_add_w(CPULoongArchState *env, arg_add_w *a) {
     env->gpr[a->rd] = (int64_t)(int32_t)(env->gpr[a->rj] + env->gpr[a->rk]);
@@ -960,8 +980,22 @@ static bool trans_fsub_s(CPULoongArchState *env, arg_fsub_s *a) {__NOT_IMPLEMENT
 static bool trans_fsub_d(CPULoongArchState *env, arg_fsub_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmul_s(CPULoongArchState *env, arg_fmul_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmul_d(CPULoongArchState *env, arg_fmul_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fdiv_s(CPULoongArchState *env, arg_fdiv_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fdiv_d(CPULoongArchState *env, arg_fdiv_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fdiv_s(CPULoongArchState *env, arg_fdiv_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fdiv_s(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fdiv_d(CPULoongArchState *env, arg_fdiv_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fdiv_d(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fmadd_s(CPULoongArchState *env, arg_fmadd_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmsub_s(CPULoongArchState *env, arg_fmsub_s *a) {__NOT_IMPLEMENTED__}
@@ -1008,8 +1042,24 @@ static bool trans_fcopysign_s(CPULoongArchState *env, arg_fcopysign_s *a) {__NOT
 static bool trans_fcopysign_d(CPULoongArchState *env, arg_fcopysign_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fclass_s(CPULoongArchState *env, arg_fclass_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fclass_d(CPULoongArchState *env, arg_fclass_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fcmp_cond_s(CPULoongArchState *env, arg_fcmp_cond_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fcmp_cond_d(CPULoongArchState *env, arg_fcmp_cond_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fcmp_cond_s(CPULoongArchState *env, arg_fcmp_cond_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    uint32_t flags = get_fcmp_flags(a->fcond >> 1);
+    int r = (a->fcond & 1) ? helper_fcmp_s_s(env, src1, src2, flags) : helper_fcmp_c_s(env, src1, src2, flags);
+    env->cf[a->cd] = r;
+    env->pc += 4;
+    return true;
+}
+static bool trans_fcmp_cond_d(CPULoongArchState *env, arg_fcmp_cond_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    uint32_t flags = get_fcmp_flags(a->fcond >> 1);
+    int r = (a->fcond & 1) ? helper_fcmp_s_d(env, src1, src2, flags) : helper_fcmp_c_d(env, src1, src2, flags);
+    env->cf[a->cd] = r;
+    env->pc += 4;
+    return true;
+}
 static bool trans_fcvt_s_d(CPULoongArchState *env, arg_fcvt_s_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fcvt_d_s(CPULoongArchState *env, arg_fcvt_d_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrm_w_s(CPULoongArchState *env, arg_ftintrm_w_s *a) {__NOT_IMPLEMENTED__}
