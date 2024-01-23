@@ -1057,8 +1057,20 @@ static bool trans_movfr2gr_s(CPULoongArchState *env, arg_movfr2gr_s *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_movfr2gr_d(CPULoongArchState *env, arg_movfr2gr_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_movfrh2gr_s(CPULoongArchState *env, arg_movfrh2gr_s *a) {__NOT_IMPLEMENTED__}
+static bool trans_movfr2gr_d(CPULoongArchState *env, arg_movfr2gr_d *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = src;
+    gen_set_gpr(env, a->rd, dest, EXT_NONE);
+    env->pc += 4;
+    return true;
+}
+static bool trans_movfrh2gr_s(CPULoongArchState *env, arg_movfrh2gr_s *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = src;
+    gen_set_gpr(env, a->rd, dest, EXT_SIGN);
+    env->pc += 4;
+    return true;
+}
 
 
 static const uint32_t fcsr_mask[4] = {
