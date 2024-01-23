@@ -458,9 +458,23 @@ static bool trans_bstrpick_d(CPULoongArchState *env, arg_bstrpick_d *a) {
     return true;
 }
 
+bool is_one_page(uint64_t addr, int bytes) {
+    target_ulong pgsz = 0x4000;
+    target_ulong pgmsk = pgsz - 1;
+    return (addr & ~pgmsk) == ((addr + bytes - 1) & ~pgmsk);
+}
+
+bool is_two_page(uint64_t addr, int bytes) {
+    return !is_one_page(addr, bytes);
+}
 
 bool is_aligned(uint64_t addr, int bytes) {
-    return !(addr & (bytes - 1));
+    return is_one_page(addr, bytes);
+    // return !(addr & (bytes - 1));
+}
+
+bool is_unaligned(uint64_t addr, int bytes) {
+    return !is_aligned(addr, bytes);
 }
 
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
