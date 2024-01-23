@@ -804,7 +804,7 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
         //               ret);
         // printf("get_physical_address:%lx type:%d error:%d\n", address, access_type, ret);
         raise_mmu_exception(env, address, access_type, ret);
-        cpu_loop_exit(env);
+        cpu_loop_exit(env_cpu(env));
     }
     // if (probe) {
     //     return false;

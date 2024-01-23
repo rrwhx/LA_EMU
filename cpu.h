@@ -15,6 +15,7 @@
 #include "cpu-csr.h"
 
 typedef struct CPUNegativeOffsetState {
+    char dummp[25];
     // CPUTLB tlb;
     // IcountDecr icount_decr;
     bool can_do_io;
@@ -420,19 +421,62 @@ typedef struct CPUArchState {
 //     DeviceState *ipistate;
 // #endif
 
-    int32_t exception_index;
-    CPUNegativeOffsetState neg;
-    sigjmp_buf jmp_env;
-    struct CPUArchState* env;
-    int cpu_index;
-    void* as;
-    int halted;
+    // struct CPUArchState* env;
 } CPULoongArchState;
 
-typedef CPULoongArchState CPUState;
-typedef CPULoongArchState LoongArchCPU;
-#define env_cpu(env) env
-#define LOONGARCH_CPU(env) env
+typedef CPULoongArchState CPUArchState;
+
+
+typedef struct CPUState {
+    int dummy;
+    int cpu_index;
+    void* as;
+    int exception_index;
+    CPULoongArchState *env;
+    sigjmp_buf jmp_env;
+    int halted;
+    char neg_align[-sizeof(CPUNegativeOffsetState) % 16] QEMU_ALIGNED(16);
+    CPUNegativeOffsetState neg;
+}CPUState;
+
+typedef struct LoongArchCPU {
+    CPUState parent_obj;
+    CPULoongArchState env;
+}LoongArchCPU;
+
+typedef LoongArchCPU ArchCPU;
+
+#define CPU(obj) ((CPUState *)(obj))
+
+#define LOONGARCH_CPU(obj) ((LoongArchCPU *)(obj))
+
+int cpu_exec(CPUState *cpu);
+
+/* Validate correct placement of CPUArchState. */
+QEMU_BUILD_BUG_ON(offsetof(ArchCPU, parent_obj) != 0);
+QEMU_BUILD_BUG_ON(offsetof(ArchCPU, env) != sizeof(CPUState));
+
+/**
+ * env_archcpu(env)
+ * @env: The architecture environment
+ *
+ * Return the ArchCPU associated with the environment.
+ */
+static inline ArchCPU *env_archcpu(CPUArchState *env)
+{
+    return (void *)env - sizeof(CPUState);
+}
+
+/**
+ * env_cpu(env)
+ * @env: The architecture environment
+ *
+ * Return the CPUState associated with the environment.
+ */
+static inline CPUState *env_cpu(CPUArchState *env)
+{
+    return (void *)env - sizeof(CPUState);
+}
 
 /*
  * LoongArch CPUs has 4 privilege levels.

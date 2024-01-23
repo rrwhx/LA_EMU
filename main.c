@@ -278,7 +278,7 @@ static void loongarch_la464_initfn(CPULoongArchState* env) {
 static void loongarch_cpu_do_interrupt(CPUState *cs)
 {
     LoongArchCPU *cpu = LOONGARCH_CPU(cs);
-    CPULoongArchState *env = cpu->env;
+    CPULoongArchState *env = &cpu->env;
     bool update_badinstr = 1;
     int cause = -1;
     const char *name;
@@ -422,6 +422,29 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
     cs->exception_index = -1;
 }
 
+
+// void loongarch_cpu_set_irq(void *opaque, int irq, int level)
+// {
+//     LoongArchCPU *cpu = opaque;
+//     CPULoongArchState *env = &cpu->env;
+//     CPUState *cs = CPU(cpu);
+
+//     if (irq < 0 || irq >= N_IRQS) {
+//         return;
+//     }
+
+//     if (kvm_enabled()) {
+//         kvm_loongarch_set_interrupt(cpu, irq, level);
+//     } else if (tcg_enabled()) {
+//         env->CSR_ESTAT = deposit64(env->CSR_ESTAT, irq, 1, level != 0);
+//         if (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS)) {
+//             cpu_interrupt(cs, CPU_INTERRUPT_HARD);
+//         } else {
+//             cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
+//         }
+//     }
+// }
+
 static uint64_t addr_trans(uint64_t addr, int prot) {
     // if (env.CSR_CRMD) {
 
@@ -443,7 +466,7 @@ static void exec_env(CPULoongArchState *env) {
     uint64_t icount = 0;
     uint64_t ecount = 0;
     while (1) {
-        if (sigsetjmp(env->jmp_env, 0) == 0) {
+        if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
                 // if (i != 9) {
@@ -467,7 +490,7 @@ static void exec_env(CPULoongArchState *env) {
             }
         } else {
             // printf("exception_index:%d\n", env->exception_index);
-            loongarch_cpu_do_interrupt(env);
+            loongarch_cpu_do_interrupt(env_cpu(env));
             ecount ++;
         }
     }
@@ -525,12 +548,13 @@ int main(int argc, char** argv) {
     uint64_t entry_addr;
     load_elf(ram, kernel_filename, &entry_addr);
     fprintf(stderr, "entry_addr:%lx\n", entry_addr);
-    CPULoongArchState env = {};
-    cpu_reset(&env);
-    loongarch_la464_initfn(&env);
-    env.env = &env;
-    env.pc = entry_addr;
-    exec_env(&env);
+    LoongArchCPU cpu = {};
+    CPUState *cs = CPU(&cpu);
+    cpu_reset(&cpu.env);
+    loongarch_la464_initfn(&cpu.env);
+    cs->env = &cpu.env;
+    cs->env->pc = entry_addr;
+    exec_env(cs->env);
 
     getchar();
 
