@@ -23,3 +23,5 @@ $(BUILD_DIR)/%.o : %.c
 
 clean:
 	rm -rf build
+
+-include $(DEPS)
