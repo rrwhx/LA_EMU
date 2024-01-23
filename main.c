@@ -454,9 +454,20 @@ static uint64_t addr_trans(uint64_t addr, int prot) {
 static uint32_t fetch(CPULoongArchState *env) {
     hwaddr ha;
     int prot;
+    uint64_t addr = env->pc;
+    int tc_index = TC_INDEX(addr);
+    TLBCache* tc = env->tc_fetch + tc_index;
+    uint64_t page_addr = addr & TARGET_PAGE_MASK;
+    if (page_addr == (tc->va & (~1))) {
+        uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
+        // printf("%lx %lx\n", addr, ha);
+        return *(uint32_t*)(ram + ha);
+    }
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-    int r = check_get_physical_address(env, &ha, &prot, env->pc, MMU_INST_FETCH, mmu_idx);
+    int r = check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
     // printf("va:%lx,pa:%lx\n", addr, ha);
+    tc->va = page_addr | 1;
+    tc->pa = ha & TARGET_PAGE_MASK;
     return *(uint32_t*)(ram + ha);
 }
 

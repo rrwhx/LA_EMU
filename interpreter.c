@@ -555,15 +555,36 @@ bool is_unaligned(uint64_t addr, int bytes) {
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     hwaddr ha;
     int prot;
+    int tc_index = TC_INDEX(addr);
+    TLBCache* tc = env->tc_load + tc_index;
+    uint64_t page_addr = addr & TARGET_PAGE_MASK;
+    if (page_addr == (tc->va & (~1))) {
+        uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
+        // printf("%lx %lx\n", addr, ha);
+        return ha;
+    }
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
+    tc->va = page_addr | 1;
+    tc->pa = ha & TARGET_PAGE_MASK;
     return ha;
 }
 static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     hwaddr ha;
     int prot;
+    int tc_index = TC_INDEX(addr);
+    TLBCache* tc = env->tc_store + tc_index;
+    uint64_t page_addr = addr & TARGET_PAGE_MASK;
+    if (page_addr == (tc->va & (~1))) {
+        uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
+        // printf("%lx %lx\n", addr, ha);
+        return ha;
+    }
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
+
+    tc->va = page_addr | 1;
+    tc->pa = ha & TARGET_PAGE_MASK;
     return ha;
 }
 static bool is_io(hwaddr ha) {
@@ -1554,6 +1575,7 @@ static bool trans_tlbrd(CPULoongArchState *env, arg_tlbrd *a) {
 }
 static bool trans_tlbwr(CPULoongArchState *env, arg_tlbwr *a) {
     helper_tlbwr(env);
+    cpu_clear_tc(env);
     env->pc += 4;
     return true;
 }
@@ -1566,6 +1588,7 @@ static bool trans_tlbclr(CPULoongArchState *env, arg_tlbclr *a) {__NOT_IMPLEMENT
 static bool trans_tlbflush(CPULoongArchState *env, arg_tlbflush *a) {__NOT_IMPLEMENTED__}
 static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *a) {
     helper_invtlb_all(env);
+    cpu_clear_tc(env);
     env->pc += 4;
     return true;
 }
@@ -1582,6 +1605,7 @@ static bool trans_ldpte(CPULoongArchState *env, arg_ldpte *a) {
 }
 static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {
     helper_ertn(env);
+    cpu_clear_tc(env);
     return true;
 }
 static bool trans_idle(CPULoongArchState *env, arg_idle *a) {__NOT_IMPLEMENTED_EXIT__}

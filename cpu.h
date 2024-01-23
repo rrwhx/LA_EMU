@@ -14,6 +14,17 @@
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
 
+typedef struct TLBCache {
+    uint64_t va;
+    uint64_t pa;
+} TLBCache;
+
+#define TC_BITS 8
+#define TC_NUM (1 << 8)
+#define TC_MASK (((target_long)1 << TC_BITS) - 1)
+#define TC_INDEX(va) ((va >> 14) & TC_MASK)
+
+
 typedef struct CPUNegativeOffsetState {
     char dummp[25];
     // CPUTLB tlb;
@@ -422,6 +433,9 @@ typedef struct CPUArchState {
 // #endif
 
     // struct CPUArchState* env;
+    TLBCache tc_load[TC_NUM];
+    TLBCache tc_store[TC_NUM];
+    TLBCache tc_fetch[TC_NUM];
 } CPULoongArchState;
 
 typedef CPULoongArchState CPUArchState;
@@ -585,6 +599,12 @@ void G_NORETURN do_raise_exception(CPULoongArchState *env, uint32_t exception, u
 
 uint64_t helper_fclass_s(CPULoongArchState *env, uint64_t fj);
 uint64_t helper_fclass_d(CPULoongArchState *env, uint64_t fj);
+
+static inline void cpu_clear_tc(CPULoongArchState *env) {
+    memset(env->tc_load, 0, sizeof(env->tc_load));
+    memset(env->tc_store, 0, sizeof(env->tc_store));
+    memset(env->tc_fetch, 0, sizeof(env->tc_fetch));
+}
 
 
 #include "helper.h"
