@@ -2206,7 +2206,6 @@ static bool trans_vstelm_d(CPULoongArchState *env, arg_vstelm_d *a) {
     assert(!is_io(ha));
     int64_t data = env->fpr[a->vd].vreg.D[a->imm2];
     ram_std(ram, ha, data);
-    ram_std(ram, ha + 8, data);
     env->pc += 4;
     return true;
 }
@@ -2215,9 +2214,6 @@ static bool trans_vstelm_w(CPULoongArchState *env, arg_vstelm_w *a) {
     assert(!is_io(ha));
     int64_t data = env->fpr[a->vd].vreg.W[a->imm2];
     ram_stw(ram, ha, data);
-    ram_stw(ram, ha + 4, data);
-    ram_stw(ram, ha + 8, data);
-    ram_stw(ram, ha + 12, data);
     env->pc += 4;
     return true;
 }
@@ -2226,13 +2222,6 @@ static bool trans_vstelm_h(CPULoongArchState *env, arg_vstelm_h *a) {
     assert(!is_io(ha));
     int64_t data = env->fpr[a->vd].vreg.H[a->imm2];
     ram_sth(ram, ha, data);
-    ram_sth(ram, ha + 2, data);
-    ram_sth(ram, ha + 4, data);
-    ram_sth(ram, ha + 6, data);
-    ram_sth(ram, ha + 8, data);
-    ram_sth(ram, ha + 10, data);
-    ram_sth(ram, ha + 12, data);
-    ram_sth(ram, ha + 14, data);
     env->pc += 4;
     return true;
 }
@@ -2240,22 +2229,7 @@ static bool trans_vstelm_b(CPULoongArchState *env, arg_vstelm_b *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
     assert(!is_io(ha));
     int64_t data = env->fpr[a->vd].vreg.B[a->imm2];
-    ram_stb(ram, ha + 0, data);
-    ram_stb(ram, ha + 1, data);
-    ram_stb(ram, ha + 2, data);
-    ram_stb(ram, ha + 3, data);
-    ram_stb(ram, ha + 4, data);
-    ram_stb(ram, ha + 5, data);
-    ram_stb(ram, ha + 6, data);
-    ram_stb(ram, ha + 7, data);
-    ram_stb(ram, ha + 8, data);
-    ram_stb(ram, ha + 9, data);
-    ram_stb(ram, ha + 10, data);
-    ram_stb(ram, ha + 11, data);
-    ram_stb(ram, ha + 12, data);
-    ram_stb(ram, ha + 13, data);
-    ram_stb(ram, ha + 14, data);
-    ram_stb(ram, ha + 15, data);
+    ram_stb(ram, ha, data);
     env->pc += 4;
     return true;
 }
