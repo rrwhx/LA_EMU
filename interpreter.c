@@ -3145,12 +3145,6 @@ static bool trans_xvxori_b(CPULoongArchState *env, arg_xvxori_b *a) {__NOT_IMPLE
 static bool trans_xvxor_v(CPULoongArchState *env, arg_xvxor_v *a) {__NOT_IMPLEMENTED__}
 
 bool interpreter(CPULoongArchState *env, uint32_t insn) {
-    if (env->pc == 0) {
-        fprintf(stderr, "**************PC:%lx\n", env->pc);
-        for (int i = 0; i < 32; i++) {
-            fprintf(stderr, "r%02d:%lx\n", i, env->gpr[i]);
-        }
-    }
     if (decode(env, insn)) {
         env->gpr[0] = 0;
 
