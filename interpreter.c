@@ -31,6 +31,60 @@ static inline int shl_3(DisasContext *ctx, int x)
 }
 #include "trans_la.c.inc"
 
+/*
+ * If an operation is being performed on less than TARGET_LONG_BITS,
+ * it may require the inputs to be sign- or zero-extended; which will
+ * depend on the exact operation being performed.
+ */
+typedef enum {
+    EXT_NONE,
+    EXT_SIGN,
+    EXT_ZERO,
+} DisasExtend;
+
+static inline int64_t gpr_src(CPULoongArchState *env, int reg_num, DisasExtend src_ext)
+{
+    int64_t t;
+
+    if (reg_num == 0) {
+        return 0;
+    }
+
+    switch (src_ext) {
+    case EXT_NONE:
+        return env->gpr[reg_num];
+    case EXT_SIGN:
+        return (int64_t)(int32_t)env->gpr[reg_num];
+    case EXT_ZERO:
+        return (uint64_t)(uint32_t)env->gpr[reg_num];
+    }
+    g_assert_not_reached();
+}
+
+static inline void gen_set_gpr(CPULoongArchState *env, int reg_num, int64_t t, DisasExtend dst_ext)
+{
+    if (reg_num != 0) {
+        switch (dst_ext) {
+        case EXT_NONE:
+            env->gpr[reg_num] = t;
+            break;
+        case EXT_SIGN:
+            env->gpr[reg_num] = (int64_t)(int32_t)t;
+            break;
+        case EXT_ZERO:
+            env->gpr[reg_num] = (uint64_t)(uint32_t)t;
+            break;
+        default:
+            g_assert_not_reached();
+        }
+    }
+}
+static inline int64_t get_fpr(CPULoongArchState *env, int reg_num) {
+    return env->fpr[reg_num].vreg.D[0];
+}
+static inline void set_fpr(CPULoongArchState *env, int reg_num, int64_t val) {
+    env->fpr[reg_num].vreg.D[0] = val;
+}
 
 
 static bool trans_add_w(CPULoongArchState *env, arg_add_w *a) {
@@ -975,8 +1029,16 @@ static bool trans_fmov_s(CPULoongArchState *env, arg_fmov_s *a) {__NOT_IMPLEMENT
 static bool trans_fmov_d(CPULoongArchState *env, arg_fmov_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fsel(CPULoongArchState *env, arg_fsel *a) {__NOT_IMPLEMENTED__}
 static bool trans_movgr2fr_w(CPULoongArchState *env, arg_movgr2fr_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_movgr2fr_d(CPULoongArchState *env, arg_movgr2fr_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_movgr2frh_w(CPULoongArchState *env, arg_movgr2frh_w *a) {__NOT_IMPLEMENTED__}
+static bool trans_movgr2fr_d(CPULoongArchState *env, arg_movgr2fr_d *a) {
+    env->fpr[a->fd].vreg.D[0] = env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
+static bool trans_movgr2frh_w(CPULoongArchState *env, arg_movgr2frh_w *a) {
+    env->fpr[a->fd].vreg.W[1] = env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
 static bool trans_movfr2gr_s(CPULoongArchState *env, arg_movfr2gr_s *a) {
     env->gpr[a->rd] = (int64_t)env->fpr[a->fj].vreg.W[0];
     env->pc += 4;
