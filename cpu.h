@@ -436,6 +436,8 @@ typedef struct CPUArchState {
     TLBCache tc_load[TC_NUM];
     TLBCache tc_store[TC_NUM];
     TLBCache tc_fetch[TC_NUM];
+    uint64_t icount;
+    uint64_t ecount;
 } CPULoongArchState;
 
 typedef CPULoongArchState CPUArchState;

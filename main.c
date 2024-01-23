@@ -474,35 +474,18 @@ static uint32_t fetch(CPULoongArchState *env) {
 int val;
 
 static void exec_env(CPULoongArchState *env) {
-    uint64_t icount = 0;
-    uint64_t ecount = 0;
     while (1) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
-                // if (i != 9) {
-
-                //     printf("***** pa:%lx,insn:%x\n", env->pc, insn);
-                // }
                 insn = fetch(env);
                 interpreter(env, insn);
-                icount ++;
-                // if (icount % 10000000 == 0) {
-                //     printf("icount:%ld, pc;%lx\n", icount, env->pc);
-                // }
-                if (env->gpr[0] != 0) {
-                    printf("zero is not zero:%ld, pc;%lx\n", icount, env->pc);
-                    exit(0);
-                }
-                if (val != (int)ram_ldw(ram, 0x15e0510b0)) {
-                    printf("changed :%ld, pc;%lx, old%x, new:%x\n", icount, env->pc, val, (int)ram_ldw(ram, 0x15e0510b0));
-                    val = (int)ram_ldw(ram, 0x15e0510b0);
-                }
+                env->icount ++;
             }
         } else {
             // printf("exception_index:%d\n", env->exception_index);
             loongarch_cpu_do_interrupt(env_cpu(env));
-            ecount ++;
+            env->ecount ++;
         }
     }
 }
