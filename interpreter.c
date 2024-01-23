@@ -1085,7 +1085,13 @@ static bool trans_ftint_l_d(CPULoongArchState *env, arg_ftint_l_d *a) {__NOT_IMP
 static bool trans_ffint_s_w(CPULoongArchState *env, arg_ffint_s_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_ffint_s_l(CPULoongArchState *env, arg_ffint_s_l *a) {__NOT_IMPLEMENTED__}
 static bool trans_ffint_d_w(CPULoongArchState *env, arg_ffint_d_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_ffint_d_l(CPULoongArchState *env, arg_ffint_d_l *a) {__NOT_IMPLEMENTED__}
+static bool trans_ffint_d_l(CPULoongArchState *env, arg_ffint_d_l *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = helper_ffint_d_l(env, src);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_frint_s(CPULoongArchState *env, arg_frint_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_frint_d(CPULoongArchState *env, arg_frint_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmov_s(CPULoongArchState *env, arg_fmov_s *a) {__NOT_IMPLEMENTED__}
