@@ -543,11 +543,13 @@ int main(int argc, char** argv) {
     uint64_t entry_addr;
     load_elf(ram, kernel_filename, &entry_addr);
     fprintf(stderr, "entry_addr:%lx\n", entry_addr);
-    LoongArchCPU cpu = {};
-    CPUState *cs = CPU(&cpu);
-    cpu_reset(&cpu.env);
-    loongarch_la464_initfn(&cpu.env);
-    cs->env = &cpu.env;
+
+    LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
+    memset(cpu, 0, sizeof(LoongArchCPU));
+    CPUState *cs = CPU(cpu);
+    cs->env = &cpu->env;
+    cpu_reset(cs->env);
+    loongarch_la464_initfn(cs->env);
     cs->env->pc = entry_addr;
     exec_env(cs->env);
 
