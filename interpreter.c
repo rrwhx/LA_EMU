@@ -5,6 +5,8 @@
 
 #include "util.h"
 
+#include <stdalign.h>
+
 
 #define __NOT_IMPLEMENTED__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
 #define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(0); return false;} while(0);
@@ -3144,11 +3146,19 @@ static bool trans_xvsubwod_w_hu(CPULoongArchState *env, arg_xvsubwod_w_hu *a) {_
 static bool trans_xvxori_b(CPULoongArchState *env, arg_xvxori_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvxor_v(CPULoongArchState *env, arg_xvxor_v *a) {__NOT_IMPLEMENTED__}
 
-bool interpreter(CPULoongArchState *env, uint32_t insn) {
+bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic) {
+    if (ic && ic->pc == env->pc && ic->trans_func) {
+        if (env->pc == 0x90000000007a20cc) {
+
+        fprintf(stderr, "get %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
+
+        }
+        ic->trans_func(env, ic->arg);
+        env->gpr[0] = 0;
+        return true;
+    }
     if (decode(env, insn)) {
         env->gpr[0] = 0;
-
-
         return true;
     } else {
         return false;

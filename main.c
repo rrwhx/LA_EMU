@@ -451,7 +451,8 @@ static uint64_t addr_trans(uint64_t addr, int prot) {
     // }
 }
 
-static uint32_t fetch(CPULoongArchState *env) {
+static INSCache inv_ic;
+static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     hwaddr ha;
     int prot;
     uint64_t addr = env->pc;
@@ -460,6 +461,13 @@ static uint32_t fetch(CPULoongArchState *env) {
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
     if (page_addr == (tc->va & (~1))) {
         uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
+        uint64_t page_off = addr & (TARGET_PAGE_SIZE - 1);
+        *ic = &env->inscache[tc_index][page_off >> 2];
+        int insn = *(uint32_t*)(ram + ha);
+        if ((*ic)->trans_func && insn != (*ic)->insn) {
+            fprintf(stderr, "pc:%lx real:%08x get:%08x\n", addr, insn, (*ic)->insn);
+            abort();
+        }
         // printf("%lx %lx\n", addr, ha);
         return *(uint32_t*)(ram + ha);
     }
@@ -468,22 +476,27 @@ static uint32_t fetch(CPULoongArchState *env) {
     // printf("va:%lx,pa:%lx\n", addr, ha);
     tc->va = page_addr | 1;
     tc->pa = ha & TARGET_PAGE_MASK;
+    *ic = NULL;
     return *(uint32_t*)(ram + ha);
 }
 
 int val;
 
 static void exec_env(CPULoongArchState *env) {
+    INSCache* ic;
     while (1) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
-                insn = fetch(env);
-                interpreter(env, insn);
+                insn = fetch(env, &ic);
+                int r = interpreter(env, insn, ic);
                 env->icount ++;
+                if(!r) {
+                    printf("ill pc:%lx insn:%08x\n", env->pc, insn);
+                    // exit(0);
+                }
             }
         } else {
-            // printf("exception_index:%d\n", env->exception_index);
             loongarch_cpu_do_interrupt(env_cpu(env));
             env->ecount ++;
         }

@@ -24,6 +24,13 @@ typedef struct TLBCache {
 #define TC_MASK (((target_long)1 << TC_BITS) - 1)
 #define TC_INDEX(va) ((va >> 14) & TC_MASK)
 
+typedef struct INSCache {
+    uint64_t pc;
+    bool (*trans_func)(void*, void*);
+    int arg[4];
+    int insn;
+} INSCache;
+
 
 typedef struct CPUNegativeOffsetState {
     char dummp[25];
@@ -436,6 +443,7 @@ typedef struct CPUArchState {
     TLBCache tc_load[TC_NUM];
     TLBCache tc_store[TC_NUM];
     TLBCache tc_fetch[TC_NUM];
+    INSCache inscache[TC_NUM][4096];
     uint64_t icount;
     uint64_t ecount;
 } CPULoongArchState;
@@ -557,7 +565,7 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
                                 int *prot, target_ulong address,
                                 MMUAccessType access_type, int mmu_idx);
 
-bool interpreter(CPULoongArchState *env, uint32_t insn);
+bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic);
 
 extern char* ram;
 static uint64_t ram_ldb(char* ram, hwaddr addr) {return (int64_t)*(int8_t*)(ram + addr);}
@@ -606,8 +614,26 @@ static inline void cpu_clear_tc(CPULoongArchState *env) {
     memset(env->tc_load, 0, sizeof(env->tc_load));
     memset(env->tc_store, 0, sizeof(env->tc_store));
     memset(env->tc_fetch, 0, sizeof(env->tc_fetch));
+    memset(env->inscache, 0, sizeof(env->inscache));
 }
 
+static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, void*), void* arg, int insn) {
+    return;
+    uint64_t addr = env->pc;
+    int tc_index = TC_INDEX(addr);
+    uint64_t page_addr = addr & TARGET_PAGE_MASK;
+    uint64_t page_off = addr & (TARGET_PAGE_SIZE - 1);
+    INSCache* ic = &env->inscache[tc_index][page_off >> 2];
+    ic->pc = addr;
+    ic->trans_func = trans_func;
+    int* args = (int*)arg;
+    ic->arg[0] = args[0];
+    ic->arg[1] = args[1];
+    ic->arg[2] = args[2];
+    ic->arg[3] = args[3];
+    ic->insn = insn;
+    // fprintf(stderr, "put %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
+}
 
 #include "helper.h"
 
