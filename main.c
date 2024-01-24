@@ -504,6 +504,7 @@ void G_NORETURN do_raise_exception(CPULoongArchState *env,
                                    uintptr_t pc)
 {
     CPUState *cs = env_cpu(env);
+    cpu_clear_tc(env);
 
     qemu_log_mask(CPU_LOG_INT, "%s: %d (%s)\n",
                   __func__,
