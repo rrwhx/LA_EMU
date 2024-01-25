@@ -483,12 +483,13 @@ static void exec_env(CPULoongArchState *env) {
             uint32_t insn;
             while(1) {
                 insn = fetch(env, &ic);
+#ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
-                int r = interpreter(env, insn, ic);
                 env->icount ++;
-                if(!r) {
-                    printf("ill pc:%lx insn:%08x\n", env->pc, insn);
-                    // exit(0);
+#endif
+                int r = interpreter(env, insn, ic);
+                if(unlikely(!r)) {
+                    printf("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
                 }
             }
         } else {
