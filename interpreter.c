@@ -560,14 +560,14 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     int tc_index = TC_INDEX(addr);
     TLBCache* tc = env->tc_load + tc_index;
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
-    if (page_addr == (tc->va & (~1))) {
+    if (page_addr == tc->va) {
         uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
         // printf("%lx %lx\n", addr, ha);
         return ha;
     }
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
-    tc->va = page_addr | 1;
+    tc->va = page_addr;
     tc->pa = ha & TARGET_PAGE_MASK;
     return ha;
 }
@@ -577,7 +577,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     int tc_index = TC_INDEX(addr);
     TLBCache* tc = env->tc_store + tc_index;
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
-    if (page_addr == (tc->va & (~1))) {
+    if (page_addr == tc->va) {
         uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
         // printf("%lx %lx\n", addr, ha);
         return ha;
@@ -585,7 +585,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
     int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
 
-    tc->va = page_addr | 1;
+    tc->va = page_addr;
     tc->pa = ha & TARGET_PAGE_MASK;
     return ha;
 }

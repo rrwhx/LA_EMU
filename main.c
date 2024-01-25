@@ -460,13 +460,13 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     int tc_index = TC_INDEX(addr);
     TLBCache* tc = env->tc_fetch + tc_index;
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
-    if (page_addr == (tc->va & (~1))) {
+    if (page_addr == tc->va) {
         ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
     } else {
         int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
         int r = check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
         // printf("va:%lx,pa:%lx\n", addr, ha);
-        tc->va = page_addr | 1;
+        tc->va = page_addr;
         tc->pa = ha & TARGET_PAGE_MASK;
     }
     insn = *(uint32_t*)(ram + ha);
@@ -559,6 +559,7 @@ int main(int argc, char** argv) {
     cs->env = &cpu->env;
     cpu_reset(cs->env);
     loongarch_la464_initfn(cs->env);
+    cpu_clear_tc(cs->env);
     cs->env->pc = entry_addr;
     exec_env(cs->env);
 

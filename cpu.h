@@ -618,9 +618,9 @@ uint64_t helper_fclass_s(CPULoongArchState *env, uint64_t fj);
 uint64_t helper_fclass_d(CPULoongArchState *env, uint64_t fj);
 
 static inline void cpu_clear_tc(CPULoongArchState *env) {
-    memset(env->tc_load, 0, sizeof(env->tc_load));
-    memset(env->tc_store, 0, sizeof(env->tc_store));
-    memset(env->tc_fetch, 0, sizeof(env->tc_fetch));
+    memset(env->tc_load, -1, sizeof(env->tc_load));
+    memset(env->tc_store, -1, sizeof(env->tc_store));
+    memset(env->tc_fetch, -1, sizeof(env->tc_fetch));
     // memset(env->inscache, 0, sizeof(env->inscache));
 }
 
