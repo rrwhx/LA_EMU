@@ -644,7 +644,7 @@ static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
     int ic_index = IC_INDEX(addr);
     INSCache* ic = &env->inscache[ic_index];
     ic->pc = addr;
-    if (ic->pc == env->pc && ic->insn == insn) {
+    if (likely(ic->pc == env->pc && ic->insn == insn)) {
         return ic;
     } else {
         return NULL;

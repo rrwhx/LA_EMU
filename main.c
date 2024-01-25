@@ -460,7 +460,7 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     int tc_index = TC_INDEX(addr);
     TLBCache* tc = env->tc_fetch + tc_index;
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
-    if (page_addr == tc->va) {
+    if (likely(page_addr == tc->va)) {
         ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
     } else {
         int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
