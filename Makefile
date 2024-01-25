@@ -1,4 +1,5 @@
 CC=gcc
+# CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
 CFLAGS ?= -g -O2 -MMD -MP -I. -Iinclude -DCONFIG_INT128
 LDFLAGS = -lm
 BUILD_DIR := ./build
