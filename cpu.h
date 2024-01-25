@@ -31,6 +31,11 @@ typedef struct INSCache {
     int insn;
 } INSCache;
 
+#define IC_BITS 14
+#define IC_NUM (1 << IC_BITS)
+#define IC_MASK (((target_long)1 << IC_BITS) - 1)
+#define IC_INDEX(va) ((va >> 2) & IC_MASK)
+
 
 typedef struct CPUNegativeOffsetState {
     char dummp[25];
@@ -38,6 +43,7 @@ typedef struct CPUNegativeOffsetState {
     // IcountDecr icount_decr;
     bool can_do_io;
 } CPUNegativeOffsetState;
+
 
 typedef enum MMUAccessType {
     MMU_DATA_LOAD  = 0,
@@ -443,9 +449,10 @@ typedef struct CPUArchState {
     TLBCache tc_load[TC_NUM];
     TLBCache tc_store[TC_NUM];
     TLBCache tc_fetch[TC_NUM];
-    INSCache inscache[TC_NUM][4096];
+    INSCache inscache[IC_NUM];
     uint64_t icount;
     uint64_t ecount;
+    uint64_t ic_hit_count;
 } CPULoongArchState;
 
 typedef CPULoongArchState CPUArchState;
@@ -614,16 +621,13 @@ static inline void cpu_clear_tc(CPULoongArchState *env) {
     memset(env->tc_load, 0, sizeof(env->tc_load));
     memset(env->tc_store, 0, sizeof(env->tc_store));
     memset(env->tc_fetch, 0, sizeof(env->tc_fetch));
-    memset(env->inscache, 0, sizeof(env->inscache));
+    // memset(env->inscache, 0, sizeof(env->inscache));
 }
 
 static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, void*), void* arg, int insn) {
-    return;
     uint64_t addr = env->pc;
-    int tc_index = TC_INDEX(addr);
-    uint64_t page_addr = addr & TARGET_PAGE_MASK;
-    uint64_t page_off = addr & (TARGET_PAGE_SIZE - 1);
-    INSCache* ic = &env->inscache[tc_index][page_off >> 2];
+    int ic_index = IC_INDEX(addr);
+    INSCache* ic = &env->inscache[ic_index];
     ic->pc = addr;
     ic->trans_func = trans_func;
     int* args = (int*)arg;
@@ -632,6 +636,19 @@ static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, 
     ic->arg[2] = args[2];
     ic->arg[3] = args[3];
     ic->insn = insn;
+    // fprintf(stderr, "put %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
+}
+
+static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
+    uint64_t addr = env->pc;
+    int ic_index = IC_INDEX(addr);
+    INSCache* ic = &env->inscache[ic_index];
+    ic->pc = addr;
+    if (ic->pc == env->pc && ic->insn == insn) {
+        return ic;
+    } else {
+        return NULL;
+    }
     // fprintf(stderr, "put %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
 }
 

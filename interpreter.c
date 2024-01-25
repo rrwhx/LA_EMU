@@ -778,6 +778,7 @@ static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
         printf("[INST HACK] ibar 64 begin %f\n", begin_timestamp);
     } else if (a->imm == 65) {
         printf("[INST HACK] ibar 65 end %f\n", second() - begin_timestamp);
+        printf("icount:%ld ic_hit_count:%ld ecount:%ld\n", env->icount, env->ic_hit_count, env->ecount);
         exit(0);
     }
     env->pc += 4;
@@ -3147,12 +3148,7 @@ static bool trans_xvxori_b(CPULoongArchState *env, arg_xvxori_b *a) {__NOT_IMPLE
 static bool trans_xvxor_v(CPULoongArchState *env, arg_xvxor_v *a) {__NOT_IMPLEMENTED__}
 
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic) {
-    if (ic && ic->pc == env->pc && ic->trans_func) {
-        if (env->pc == 0x90000000007a20cc) {
-
-        fprintf(stderr, "get %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
-
-        }
+    if (ic) {
         ic->trans_func(env, ic->arg);
         env->gpr[0] = 0;
         return true;

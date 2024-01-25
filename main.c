@@ -453,6 +453,7 @@ static uint64_t addr_trans(uint64_t addr, int prot) {
 
 static INSCache inv_ic;
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
+    int insn;
     hwaddr ha;
     int prot;
     uint64_t addr = env->pc;
@@ -460,24 +461,17 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     TLBCache* tc = env->tc_fetch + tc_index;
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
     if (page_addr == (tc->va & (~1))) {
-        uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
-        uint64_t page_off = addr & (TARGET_PAGE_SIZE - 1);
-        *ic = &env->inscache[tc_index][page_off >> 2];
-        int insn = *(uint32_t*)(ram + ha);
-        if ((*ic)->trans_func && insn != (*ic)->insn) {
-            fprintf(stderr, "pc:%lx real:%08x get:%08x\n", addr, insn, (*ic)->insn);
-            abort();
-        }
-        // printf("%lx %lx\n", addr, ha);
-        return *(uint32_t*)(ram + ha);
+        ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
+    } else {
+        int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+        int r = check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
+        // printf("va:%lx,pa:%lx\n", addr, ha);
+        tc->va = page_addr | 1;
+        tc->pa = ha & TARGET_PAGE_MASK;
     }
-    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-    int r = check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
-    // printf("va:%lx,pa:%lx\n", addr, ha);
-    tc->va = page_addr | 1;
-    tc->pa = ha & TARGET_PAGE_MASK;
-    *ic = NULL;
-    return *(uint32_t*)(ram + ha);
+    insn = *(uint32_t*)(ram + ha);
+    *ic = cpu_get_ic(env, insn);
+    return insn;
 }
 
 int val;
@@ -489,6 +483,7 @@ static void exec_env(CPULoongArchState *env) {
             uint32_t insn;
             while(1) {
                 insn = fetch(env, &ic);
+                env->ic_hit_count += (ic != NULL);
                 int r = interpreter(env, insn, ic);
                 env->icount ++;
                 if(!r) {
