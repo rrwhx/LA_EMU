@@ -67,6 +67,19 @@ void usage(void) {
     exit(EXIT_SUCCESS);
 }
 
+static void user_ram_memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n) {
+    lsassert(!((uintptr_t)__dest & 0xfff));
+    void* dst = mmap(__dest, __n, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    lsassert(dst != MAP_FAILED);
+    memcpy(__dest, __src, __n);
+}
+
+static target_ulong user_setup_stack() {
+    void* dst = mmap(NULL, 0x800000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    lsassert(dst != MAP_FAILED);
+    return (target_ulong)(dst + 0x800000 - 64);
+}
+
 static char* alloc_ram(uint64_t ram_size) {
     void* start = mmap(NULL, ram_size + SZ_2G, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(start != MAP_FAILED);
@@ -129,7 +142,12 @@ bool load_elf(char* ram, const char* filename, uint64_t* entry_addr) {
         if (ph->p_type == PT_LOAD) {
             mem_size = ph->p_memsz; /* Size of the ROM */
             file_size = ph->p_filesz; /* Size of the allocated data */
-            data = (uint8_t*)malloc(file_size);
+#if defined(USER_MODE)
+                data = (uint8_t*)malloc(mem_size);
+                memset(data, 0, mem_size);
+#else
+                data = (uint8_t*)malloc(file_size);
+#endif
             if (ph->p_filesz > 0) {
                 if (lseek(fd, ph->p_offset, SEEK_SET) < 0) {
                     goto fail;
@@ -138,8 +156,12 @@ bool load_elf(char* ram, const char* filename, uint64_t* entry_addr) {
                     goto fail;
                 }
                 // ram_writen(ph->p_paddr & 0xfffffff, data, file_size);
+#if defined(USER_MODE)
+                user_ram_memcpy((void*)ph->p_paddr, data, mem_size);
+#else
                 memcpy(ram + (ph->p_paddr & 0xfffffff), data, file_size);
-                printf("%lx, %lx, \n", ph->p_paddr, file_size);
+#endif
+                printf("%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
             }
         }
     }
@@ -453,6 +475,12 @@ static uint64_t addr_trans(uint64_t addr, int prot) {
 
 static INSCache inv_ic;
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
+#if defined(USER_MODE)
+        uint32_t insn = *(uint32_t*)(env->pc);
+        *ic = cpu_get_ic(env, insn);
+        return insn;
+
+#else
     int insn;
     hwaddr ha;
     int prot;
@@ -472,6 +500,7 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     insn = *(uint32_t*)(ram + ha);
     *ic = cpu_get_ic(env, insn);
     return insn;
+#endif
 }
 
 int val;
@@ -482,11 +511,17 @@ static void exec_env(CPULoongArchState *env) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
+                // fprintf(stderr, "before fetch, pc:%lx\n", env->pc);
                 insn = fetch(env, &ic);
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
                 env->icount ++;
 #endif
+                // fprintf(stderr, "before exec, pc:%lx %c\n", env->pc, *(char*)0x120002980);
+                // for (int i = 0; i <32; i++) {
+                //     fprintf(stderr, "%d:%lx ", i, env->gpr[i]);
+                // }
+                // fprintf(stderr, "\n");
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
                     printf("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
@@ -561,6 +596,9 @@ int main(int argc, char** argv) {
     loongarch_la464_initfn(cs->env);
     cpu_clear_tc(cs->env);
     cs->env->pc = entry_addr;
+#if defined(USER_MODE)
+        cs->env->gpr[3] = user_setup_stack();
+#endif
     exec_env(cs->env);
 
     getchar();

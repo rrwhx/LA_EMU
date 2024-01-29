@@ -558,6 +558,9 @@ bool is_unaligned(uint64_t addr, int bytes) {
 }
 
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
+#ifdef USER_MODE
+        return addr;
+#endif
     hwaddr ha;
     int prot;
     int tc_index = TC_INDEX(addr);
@@ -575,6 +578,9 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     return ha;
 }
 static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
+#ifdef USER_MODE
+        return addr;
+#endif
     hwaddr ha;
     int prot;
     int tc_index = TC_INDEX(addr);
@@ -616,6 +622,7 @@ static uint64_t do_io_ld(hwaddr ha, int size) {
             data = 'a';
         break;
     default:
+        fprintf(stderr, "do_io_ld, addr:%lx, size:%d\n", ha, size);
         break;
     }
     return data;
@@ -981,8 +988,50 @@ static bool trans_break(CPULoongArchState *env, arg_break *a) {
 
     __NOT_IMPLEMENTED__
 }
+
+#define TARGET_NR_write 64
+#define TARGET_NR_exit 93
+#define TARGET_NR_exit_group 94
+#define TARGET_NR_clock_gettime 113
+
+static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
+                            abi_long arg2, abi_long arg3, abi_long arg4,
+                            abi_long arg5, abi_long arg6, abi_long arg7,
+                            abi_long arg8)
+{
+    // fprintf(stderr, "syscall %d %lx %lx %lx %lx %lx\n", num, arg1, arg2, arg3, arg4, arg5);
+    abi_long ret;
+    switch(num) {
+        case TARGET_NR_write:
+            ret = write(arg1, (void*)arg2, arg3);
+            return ret;
+        case TARGET_NR_exit:
+        case TARGET_NR_exit_group:
+            printf("icount:%ld ic_hit_count:%ld ecount:%ld\n", cpu_env->icount, cpu_env->ic_hit_count, cpu_env->ecount);
+            exit(arg1);
+            lsassert(0);
+        case TARGET_NR_clock_gettime:
+            ret = clock_gettime(arg1, (void*)arg2);
+            return ret;
+        default:
+            lsassertm(0, "unimplement syscall %d\n", num);
+    }
+    return -1;
+}
+
 static bool trans_syscall(CPULoongArchState *env, arg_syscall *a) {
+#if defined(USER_MODE)
+    target_long ret = do_syscall1(env, env->gpr[11],
+                        env->gpr[4], env->gpr[5],
+                        env->gpr[6], env->gpr[7],
+                        env->gpr[8], env->gpr[9],
+                        -1, -1);
+    env->gpr[4] = ret;
+    env->pc += 4;
+#else
     do_raise_exception(env, EXCCODE_SYS, 0);
+#endif
+    return true;
 }
 static bool trans_asrtle_d(CPULoongArchState *env, arg_asrtle_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *a) {__NOT_IMPLEMENTED__}

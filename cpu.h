@@ -99,6 +99,8 @@ typedef uint64_t target_ulong;
 
 #define target_ulong uint64_t
 #define target_long int64_t
+#define abi_ulong uint64_t
+#define abi_long int64_t
 #define hwaddr uint64_t
 typedef uint64_t vaddr;
 
@@ -575,6 +577,20 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic);
 
 extern char* ram;
+#ifdef USER_MODE
+static uint64_t ram_ldb(char* ram, hwaddr addr) {return (int64_t)*(int8_t*)(addr);}
+static uint64_t ram_ldh(char* ram, hwaddr addr) {return (int64_t)*(int16_t*)(addr);}
+static uint64_t ram_ldw(char* ram, hwaddr addr) {return (int64_t)*(int32_t*)(addr);}
+static uint64_t ram_ldd(char* ram, hwaddr addr) {return (int64_t)*(int64_t*)(addr);}
+static uint64_t ram_ldub(char* ram, hwaddr addr) {return *(uint8_t*)(addr);}
+static uint64_t ram_lduh(char* ram, hwaddr addr) {return *(uint16_t*)(addr);}
+static uint64_t ram_lduw(char* ram, hwaddr addr) {return *(uint32_t*)(addr);}
+static uint64_t ram_ldud(char* ram, hwaddr addr) {return *(uint64_t*)(addr);}
+static void ram_stb(char* ram, hwaddr addr, uint64_t data) {*(uint8_t*)(addr) = data;}
+static void ram_sth(char* ram, hwaddr addr, uint64_t data) {*(uint16_t*)(addr) = data;}
+static void ram_stw(char* ram, hwaddr addr, uint64_t data) {*(uint32_t*)(addr) = data;}
+static void ram_std(char* ram, hwaddr addr, uint64_t data) {*(uint64_t*)(addr) = data;}
+#else
 static uint64_t ram_ldb(char* ram, hwaddr addr) {return (int64_t)*(int8_t*)(ram + addr);}
 static uint64_t ram_ldh(char* ram, hwaddr addr) {return (int64_t)*(int16_t*)(ram + addr);}
 static uint64_t ram_ldw(char* ram, hwaddr addr) {return (int64_t)*(int32_t*)(ram + addr);}
@@ -587,6 +603,7 @@ static void ram_stb(char* ram, hwaddr addr, uint64_t data) {*(uint8_t*)(ram + ad
 static void ram_sth(char* ram, hwaddr addr, uint64_t data) {*(uint16_t*)(ram + addr) = data;}
 static void ram_stw(char* ram, hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
 static void ram_std(char* ram, hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
+#endif
 
 G_NORETURN void cpu_loop_exit(CPUState *cpu);
 
@@ -643,13 +660,12 @@ static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
     uint64_t addr = env->pc;
     int ic_index = IC_INDEX(addr);
     INSCache* ic = &env->inscache[ic_index];
-    ic->pc = addr;
-    if (likely(ic->pc == env->pc && ic->insn == insn)) {
+    if (likely(ic->insn == insn)) {
+    // fprintf(stderr, "get %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
         return ic;
     } else {
         return NULL;
     }
-    // fprintf(stderr, "put %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
 }
 
 #include "helper.h"
