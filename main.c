@@ -57,8 +57,9 @@ const char *loongarch_exception_name(int32_t exception)
     return excp_names[exception];
 }
 
-
+#ifndef USER_MODE
 char* ram;
+#endif
 uint64_t ram_size = SZ_4G;
 const char* kernel_filename;
 
@@ -94,7 +95,7 @@ static char* alloc_ram(uint64_t ram_size) {
 #define elf_shdr Elf64_Shdr
 #define elf_phdr Elf64_Phdr
 
-bool load_elf(char* ram, const char* filename, uint64_t* entry_addr) {
+bool load_elf(const char* filename, uint64_t* entry_addr) {
     int size, i, total_size;
     uint64_t mem_size, file_size;
     uint8_t e_ident[EI_NIDENT];
@@ -476,7 +477,7 @@ static uint64_t addr_trans(uint64_t addr, int prot) {
 static INSCache inv_ic;
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
 #if defined(USER_MODE)
-        uint32_t insn = *(uint32_t*)(env->pc);
+        uint32_t insn = ram_lduw(env->pc);
         *ic = cpu_get_ic(env, insn);
         return insn;
 
@@ -497,7 +498,7 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
         tc->va = page_addr;
         tc->pa = ha & TARGET_PAGE_MASK;
     }
-    insn = *(uint32_t*)(ram + ha);
+    insn = ram_lduw(ha);
     *ic = cpu_get_ic(env, insn);
     return insn;
 #endif
@@ -582,10 +583,11 @@ int main(int argc, char** argv) {
         }
     }
     printf("%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size,kernel_filename);
-
+#ifndef USER_MODE
     ram = alloc_ram(ram_size);
+#endif
     uint64_t entry_addr;
-    load_elf(ram, kernel_filename, &entry_addr);
+    load_elf(kernel_filename, &entry_addr);
     fprintf(stderr, "entry_addr:%lx\n", entry_addr);
 
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
