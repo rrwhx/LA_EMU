@@ -561,7 +561,7 @@ void G_NORETURN do_raise_exception(CPULoongArchState *env,
     // cpu_loop_exit_restore(cs, pc);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv, char **envp) {
     if (argc < 2) {
         usage();
     }
@@ -583,10 +583,10 @@ int main(int argc, char** argv) {
         }
     }
     printf("%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size,kernel_filename);
-    printf("optind %d \n", optind);
-    for (int i = optind; i < argc; i++) {
-        printf("%s\n", argv[i]);
-    }
+    // printf("optind %d \n", optind);
+    // for (int i = optind; i < argc; i++) {
+    //     printf("%s\n", argv[i]);
+    // }
 #ifndef USER_MODE
     ram = alloc_ram(ram_size);
 #endif
@@ -619,12 +619,33 @@ int main(int argc, char** argv) {
         guest_argv_addr[i] = sp;
         // printf("setup argv %s %lx %ld\n", guest_argv[i], sp, guest_argv_len[i]);
     }
-    sp = QEMU_ALIGN_DOWN(sp, 8);
-    target_ulong guest_arg_size = QEMU_ALIGN_UP(((guest_argc + 2) * 8), 64);
+
+    int guest_envc;
+    while (envp[guest_envc]) {guest_envc ++;}
+    // printf("guest_envc %d\n", guest_envc);
+    char** guest_envv = envp;
+    size_t* guest_envv_len = (size_t*)malloc(sizeof(size_t) * guest_envc);
+    target_ulong* guest_envv_addr = (target_ulong*)malloc(sizeof(target_ulong) * guest_envc);
+    for (int i = 0; i < guest_envc; i++) {
+        guest_envv_len[i] = strlen(guest_envv[i]);
+        sp -= (guest_envv_len[i] + 1);
+        memcpy((void*)(sp), guest_envv[i], guest_envv_len[i]);
+        guest_envv_addr[i] = sp;
+        // printf("setup envv %s %lx %ld\n", guest_envv[i], sp, guest_envv_addr[i]);
+    }
+    sp = QEMU_ALIGN_DOWN(sp, 16);
+
+    sp -= 16; ram_std(sp, AT_RANDOM);ram_std(sp+8, 0x1233211234567);
+    sp -= 16; ram_std(sp, AT_PAGESZ);ram_std(sp+8, TARGET_PAGE_SIZE);
+
+    target_ulong guest_arg_size = QEMU_ALIGN_UP((( 1 + guest_argc + 1 + guest_envc + 1) * 8), 64);
     sp -= guest_arg_size;
     ram_std(sp, guest_argc);
     for (int i = 0; i < guest_argc; i++) {
         ram_std(sp + 8 + (i * 8), guest_argv_addr[i]);
+    }
+    for (int i = 0; i < guest_envc; i++) {
+        ram_std(sp + (1 + guest_argc + 1) * 8 +(i * 8), guest_envv_addr[i]);
     }
     env->gpr[3] = sp;
     // printf("guest_sp:%lx\n", sp);
