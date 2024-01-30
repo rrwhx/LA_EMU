@@ -583,8 +583,15 @@ int main(int argc, char** argv) {
         }
     }
     printf("%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size,kernel_filename);
+    printf("optind %d \n", optind);
+    for (int i = optind; i < argc; i++) {
+        printf("%s\n", argv[i]);
+    }
 #ifndef USER_MODE
     ram = alloc_ram(ram_size);
+#endif
+#if defined(USER_MODE)
+    kernel_filename = argv[optind];
 #endif
     uint64_t entry_addr;
     load_elf(kernel_filename, &entry_addr);
@@ -600,7 +607,30 @@ int main(int argc, char** argv) {
     cpu_clear_tc(env);
     env->pc = entry_addr;
 #if defined(USER_MODE)
-        env->gpr[3] = user_setup_stack();
+    target_ulong sp = user_setup_stack();
+    int guest_argc = argc - optind;
+    char** guest_argv = argv + optind;
+    size_t* guest_argv_len = (size_t*)malloc(sizeof(size_t) * guest_argc);
+    target_ulong* guest_argv_addr = (target_ulong*)malloc(sizeof(target_ulong) * guest_argc);
+    for (int i = 0; i < guest_argc; i++) {
+        guest_argv_len[i] = strlen(guest_argv[i]);
+        sp -= (guest_argv_len[i] + 1);
+        memcpy((void*)(sp), guest_argv[i], guest_argv_len[i]);
+        guest_argv_addr[i] = sp;
+        // printf("setup argv %s %lx %ld\n", guest_argv[i], sp, guest_argv_len[i]);
+    }
+    sp = QEMU_ALIGN_DOWN(sp, 8);
+    target_ulong guest_arg_size = QEMU_ALIGN_UP(((guest_argc + 2) * 8), 64);
+    sp -= guest_arg_size;
+    ram_std(sp, guest_argc);
+    for (int i = 0; i < guest_argc; i++) {
+        ram_std(sp + 8 + (i * 8), guest_argv_addr[i]);
+    }
+    env->gpr[3] = sp;
+    // printf("guest_sp:%lx\n", sp);
+    // for (int i = 0; i < guest_argc + 2; i++) {
+    //     printf("%lx %lx\n", sp, ram_ldud(sp + i *8));
+    // }
 #endif
     exec_env(env);
     printf("end %s %d\n", __FILE__, __LINE__);
