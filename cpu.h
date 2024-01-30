@@ -25,7 +25,6 @@ typedef struct TLBCache {
 #define TC_INDEX(va) ((va >> 14) & TC_MASK)
 
 typedef struct INSCache {
-    uint64_t pc;
     bool (*trans_func)(void*, void*);
     int arg[4];
     int insn;
@@ -642,10 +641,7 @@ static inline void cpu_clear_tc(CPULoongArchState *env) {
 }
 
 static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, void*), void* arg, int insn) {
-    uint64_t addr = env->pc;
-    int ic_index = IC_INDEX(addr);
-    INSCache* ic = &env->inscache[ic_index];
-    ic->pc = addr;
+    INSCache* ic = &env->inscache[IC_INDEX(env->pc)];
     ic->trans_func = trans_func;
     int* args = (int*)arg;
     ic->arg[0] = args[0];
@@ -657,9 +653,7 @@ static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, 
 }
 
 static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
-    uint64_t addr = env->pc;
-    int ic_index = IC_INDEX(addr);
-    INSCache* ic = &env->inscache[ic_index];
+    INSCache* ic = &env->inscache[IC_INDEX(env->pc)];
     if (likely(ic->insn == insn)) {
     // fprintf(stderr, "get %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
         return ic;
