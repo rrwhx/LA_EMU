@@ -593,17 +593,16 @@ int main(int argc, char** argv) {
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
     memset(cpu, 0, sizeof(LoongArchCPU));
     CPUState *cs = CPU(cpu);
-    cs->env = &cpu->env;
-    cpu_reset(cs->env);
-    loongarch_la464_initfn(cs->env);
-    cpu_clear_tc(cs->env);
-    cs->env->pc = entry_addr;
+    CPULoongArchState* env = &cpu->env;
+    cs->env = env;
+    cpu_reset(env);
+    loongarch_la464_initfn(env);
+    cpu_clear_tc(env);
+    env->pc = entry_addr;
 #if defined(USER_MODE)
-        cs->env->gpr[3] = user_setup_stack();
+        env->gpr[3] = user_setup_stack();
 #endif
-    exec_env(cs->env);
-
-    getchar();
-
+    exec_env(env);
+    printf("end %s %d\n", __FILE__, __LINE__);
     return 0;
 }
