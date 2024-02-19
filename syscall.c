@@ -1,9 +1,12 @@
 #include "user.h"
 
+#define TARGET_NR_fstatfs 44
 #define TARGET_NR_write 64
+#define TARGET_NR_readlinkat 78
 #define TARGET_NR_exit 93
 #define TARGET_NR_exit_group 94
 #define TARGET_NR_clock_gettime 113
+#define TARGET_NR_brk 214
 
 static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                             abi_long arg2, abi_long arg3, abi_long arg4,
