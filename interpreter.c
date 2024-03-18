@@ -16,6 +16,7 @@ static inline long long la_get_tval(void){
 }
 
 #define __NOT_IMPLEMENTED__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
+#define __NOT_CORRECTED_IMPLEMENTED__ do {fprintf(stderr, "NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);} while(0);
 #define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(0); return false;} while(0);
 
 #define DisasContext CPULoongArchState
@@ -478,7 +479,20 @@ static bool trans_revb_4h(CPULoongArchState *env, arg_revb_4h *a) {
     return true;
 }
 static bool trans_revb_2w(CPULoongArchState *env, arg_revb_2w *a) {__NOT_IMPLEMENTED__}
-static bool trans_revb_d(CPULoongArchState *env, arg_revb_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_revb_d(CPULoongArchState *env, arg_revb_d *a) {
+    uint64_t rj = env->gpr[a->rj];
+    env->gpr[a->rd] =
+        ((rj & 0xFF00000000000000u) >> 56u) |
+        ((rj & 0x00FF000000000000u) >> 40u) |
+        ((rj & 0x0000FF0000000000u) >> 24u) |
+        ((rj & 0x000000FF00000000u) >>  8u) |
+        ((rj & 0x00000000FF000000u) <<  8u) |
+        ((rj & 0x0000000000FF0000u) << 24u) |
+        ((rj & 0x000000000000FF00u) << 40u) |
+        ((rj & 0x00000000000000FFu) << 56u);
+    env->pc += 4;
+    return true;
+}
 static bool trans_revh_2w(CPULoongArchState *env, arg_revh_2w *a) {__NOT_IMPLEMENTED__}
 static bool trans_revh_d(CPULoongArchState *env, arg_revh_d *a) {
     uint64_t mask = 0x0000FFFF0000FFFFULL;
@@ -1201,7 +1215,12 @@ static bool trans_movgr2fcsr(CPULoongArchState *env, arg_movgr2fcsr *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_movfcsr2gr(CPULoongArchState *env, arg_movfcsr2gr *a) {__NOT_IMPLEMENTED__}
+static bool trans_movfcsr2gr(CPULoongArchState *env, arg_movfcsr2gr *a) {
+    __NOT_CORRECTED_IMPLEMENTED__;
+    env->gpr[a->rd] = 0;
+    env->pc += 4;
+    return true;
+}
 static bool trans_movfr2cf(CPULoongArchState *env, arg_movfr2cf *a) {__NOT_IMPLEMENTED__}
 static bool trans_movcf2fr(CPULoongArchState *env, arg_movcf2fr *a) {__NOT_IMPLEMENTED__}
 static bool trans_movgr2cf(CPULoongArchState *env, arg_movgr2cf *a) {__NOT_IMPLEMENTED__}

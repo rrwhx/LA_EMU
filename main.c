@@ -12,6 +12,10 @@
 #include "sizes.h"
 #include "cpu.h"
 
+#if defined(USER_MODE)
+#include "user.h"
+#endif
+
 // # define ELF_CLASS  ELFCLASS64
 
 const char * const regnames[32] = {
@@ -61,7 +65,7 @@ const char *loongarch_exception_name(int32_t exception)
 char* ram;
 #endif
 uint64_t ram_size = SZ_4G;
-const char* kernel_filename;
+char* kernel_filename;
 
 void usage(void) {
     printf("la_emu -m n[G] -k kernel\n");
@@ -171,6 +175,178 @@ fail:
     close(fd);
     return ret;
 }
+
+#if defined(USER_MODE)
+char *exec_path;
+char real_exec_path[PATH_MAX];
+struct image_info info;
+abi_ulong e_phoff;
+abi_ulong e_phnum;
+
+bool load_elf_user(const char* filename, uint64_t* entry_addr) {
+    int size, i, total_size;
+    uint64_t mem_size, file_size;
+    uint8_t e_ident[EI_NIDENT];
+    uint8_t *data = NULL;
+    int ret = 1;
+    elfhdr ehdr;
+    elf_shdr *symtab, *strtab, *shdr_table = NULL;
+    elf_phdr *phdr = NULL, *ph;
+    int fd = open(filename, O_RDONLY);
+    if (fd < 0) {
+        perror(filename);
+        goto fail;
+    }
+
+    if (read(fd, e_ident, sizeof(e_ident)) != sizeof(e_ident))
+        goto fail;
+    if (e_ident[0] != ELFMAG0 ||
+        e_ident[1] != ELFMAG1 ||
+        e_ident[2] != ELFMAG2 ||
+        e_ident[3] != ELFMAG3) {
+            lsassertm(0, "%s is not an elf\n", filename);
+    }
+    lsassert(e_ident[EI_CLASS] == ELFCLASS64);
+    lseek(fd, 0, SEEK_SET);
+
+
+    if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr))
+        goto fail;
+
+    *entry_addr = ehdr.e_entry;
+
+    size = ehdr.e_phnum * sizeof(phdr[0]);
+    e_phoff = ehdr.e_phoff;
+    e_phnum = ehdr.e_phnum;
+    if (lseek(fd, ehdr.e_phoff, SEEK_SET) != ehdr.e_phoff) {
+        goto fail;
+    }
+    phdr = (elf_phdr *)malloc(size);
+    if (!phdr)
+        goto fail;
+    if (read(fd, phdr, size) != size)
+        goto fail;
+
+    total_size = 0;
+    uint64_t loaddr = -1, hiaddr = 0;
+    for(i = 0; i < ehdr.e_phnum; i++) {
+        ph = &phdr[i];
+        if (ph->p_type == PT_LOAD) {
+            abi_ulong a = ph->p_vaddr & TARGET_PAGE_MASK;
+            if (a < loaddr) {
+                loaddr = a;
+            }
+            a = ph->p_vaddr + ph->p_memsz - 1;
+            if (a > hiaddr) {
+                hiaddr = a;
+            }
+        } else if (ph->p_type == PT_INTERP) {
+            qemu_log("unsupported dynamic elf\n");
+            exit(0);
+        }
+    }
+
+    abi_ulong load_addr = loaddr;
+    if (ehdr.e_type != ET_EXEC) {
+        load_addr += 0x4000000;
+    }
+
+    load_addr = (abi_ulong)mmap((void*)load_addr, (size_t)hiaddr - loaddr + 1, PROT_NONE,
+                            MAP_PRIVATE | MAP_ANON | MAP_NORESERVE |
+                            (ehdr.e_type == ET_EXEC ? MAP_FIXED_NOREPLACE : 0),
+                            -1, 0);
+    if ((void*)load_addr == MAP_FAILED) {
+        lsassert(0);
+    }
+
+    abi_ulong load_bias = load_addr - loaddr;
+    info.load_bias = load_bias;
+    info.code_offset = load_bias;
+    info.data_offset = load_bias;
+    info.load_addr = load_addr;
+    info.entry = ehdr.e_entry + load_bias;
+    info.start_code = -1;
+    info.end_code = 0;
+    info.start_data = -1;
+    info.end_data = 0;
+    /* Usual start for brk is after all sections of the main executable. */
+    info.brk = TARGET_PAGE_ALIGN(hiaddr + load_bias);
+    info.elf_flags = ehdr.e_flags;
+    for(i = 0; i < ehdr.e_phnum; i++) {
+        ph = &phdr[i];
+        if (ph->p_type == PT_LOAD) {
+            abi_ulong vaddr, vaddr_po, vaddr_ps, vaddr_ef, vaddr_em;
+            int elf_prot = 0;
+
+            if (ph->p_flags & PF_R) {
+                elf_prot |= PROT_READ;
+            }
+            if (ph->p_flags & PF_W) {
+                elf_prot |= PROT_WRITE;
+            }
+            if (ph->p_flags & PF_X) {
+                elf_prot |= PROT_EXEC;
+            }
+
+            vaddr = load_bias + ph->p_vaddr;
+            if (ph->p_align <= TARGET_PAGE_SIZE) {
+                vaddr_po = vaddr & ~TARGET_PAGE_MASK;
+                vaddr_ps = vaddr & TARGET_PAGE_MASK;
+            } else {
+                vaddr_po = vaddr & (ph->p_align - 1);
+                vaddr_ps = vaddr & ~(ph->p_align - 1);
+            }
+
+
+            vaddr_ef = vaddr + ph->p_filesz;
+            vaddr_em = vaddr + ph->p_memsz;
+            fprintf(stderr, "vaddr_po:%lx vaddr_ps:%lx vaddr_ef:%lx vaddr_em:%lx\n", vaddr_po, vaddr_ps, vaddr_ef, vaddr_em);
+            if (ph->p_filesz != 0) {
+                void* r = mmap((void*)vaddr_ps, ph->p_filesz + vaddr_po,
+                                    elf_prot, MAP_PRIVATE | MAP_FIXED,
+                                    fd, ph->p_offset - vaddr_po);
+                lsassert(r != MAP_FAILED);
+            }
+            if (vaddr_ef < vaddr_em) {
+                uint64_t end = vaddr_ps + ph->p_filesz + vaddr_po;
+                memset((void*)end, 0, ROUND_UP(end, TARGET_PAGE_SIZE) - end);
+                abi_ulong align_bss = TARGET_PAGE_ALIGN(vaddr_ef);
+                abi_ulong end_bss = TARGET_PAGE_ALIGN(vaddr_em);
+                void* r = mmap((void*)align_bss, end_bss - align_bss,
+                        elf_prot, MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0);
+                lsassert(r != MAP_FAILED);
+            }
+            /* Find the full program boundaries.  */
+            if (elf_prot & PROT_EXEC) {
+                if (vaddr < info.start_code) {
+                    info.start_code = vaddr;
+                }
+                if (vaddr_ef > info.end_code) {
+                    info.end_code = vaddr_ef;
+                }
+            }
+            if (elf_prot & PROT_WRITE) {
+                if (vaddr < info.start_data) {
+                    info.start_data = vaddr;
+                }
+                if (vaddr_ef > info.end_data) {
+                    info.end_data = vaddr_ef;
+                }
+            }
+        }
+    }
+
+    if (info.end_data == 0) {
+        info.start_data = info.end_code;
+        info.end_data = info.end_code;
+    }
+
+fail:
+    close(fd);
+    return ret;
+}
+
+#endif
 
 static void cpu_reset(CPULoongArchState* env) {
     int n;
@@ -522,6 +698,7 @@ static void exec_env(CPULoongArchState *env) {
                 // for (int i = 0; i <32; i++) {
                 //     fprintf(stderr, "%d:%lx ", i, env->gpr[i]);
                 // }
+                // fprintf(stderr, "0x12001fc84")
                 // fprintf(stderr, "\n");
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
@@ -590,11 +767,18 @@ int main(int argc, char** argv, char **envp) {
 #ifndef USER_MODE
     ram = alloc_ram(ram_size);
 #endif
+    uint64_t entry_addr;
 #if defined(USER_MODE)
     kernel_filename = argv[optind];
-#endif
-    uint64_t entry_addr;
+    load_elf_user(kernel_filename, &entry_addr);
+    target_set_brk(info.brk);
+    exec_path = kernel_filename;
+    if (realpath(exec_path, real_exec_path)) {
+        exec_path = real_exec_path;
+    }
+#else
     load_elf(kernel_filename, &entry_addr);
+#endif
     fprintf(stderr, "entry_addr:%lx\n", entry_addr);
 
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
@@ -620,7 +804,7 @@ int main(int argc, char** argv, char **envp) {
         // printf("setup argv %s %lx %ld\n", guest_argv[i], sp, guest_argv_len[i]);
     }
 
-    int guest_envc;
+    int guest_envc = 0;
     while (envp[guest_envc]) {guest_envc ++;}
     // printf("guest_envc %d\n", guest_envc);
     char** guest_envv = envp;
@@ -635,10 +819,28 @@ int main(int argc, char** argv, char **envp) {
     }
     sp = QEMU_ALIGN_DOWN(sp, 16);
 
-    sp -= 16; ram_std(sp, AT_RANDOM);ram_std(sp+8, 0x1233211234567);
-    sp -= 16; ram_std(sp, AT_PAGESZ);ram_std(sp+8, TARGET_PAGE_SIZE);
+    sp -= 16;
+    abi_ulong u_rand_bytes = sp;
+    ram_std(sp+0, 0x0011223344556677);
+    ram_std(sp+8, 0x8899aabbccddeeff);
 
-    target_ulong guest_arg_size = QEMU_ALIGN_UP((( 1 + guest_argc + 1 + guest_envc + 1) * 8), 64);
+    if ((guest_argc + guest_envc) % 2 == 0) {
+        sp -=8;
+    }
+
+    sp -= 16; ram_std(sp, AT_RANDOM);ram_std(sp+8, u_rand_bytes);
+    sp -= 16; ram_std(sp, AT_PHDR);  ram_std(sp+8, (abi_ulong)(info.load_addr + e_phoff));
+    sp -= 16; ram_std(sp, AT_PHENT); ram_std(sp+8, (abi_ulong)(sizeof (elf_phdr)));
+    sp -= 16; ram_std(sp, AT_PHNUM); ram_std(sp+8, (abi_ulong)(e_phnum));
+    sp -= 16; ram_std(sp, AT_PAGESZ);ram_std(sp+8, TARGET_PAGE_SIZE);
+    sp -= 16; ram_std(sp, AT_UID);   ram_std(sp+8, (abi_ulong) getuid());
+    sp -= 16; ram_std(sp, AT_EUID);  ram_std(sp+8, (abi_ulong) geteuid());
+    sp -= 16; ram_std(sp, AT_GID);   ram_std(sp+8, (abi_ulong) getgid());
+    sp -= 16; ram_std(sp, AT_EGID);  ram_std(sp+8, (abi_ulong) getegid());
+
+    printf("aux addr %lx\n", sp);
+
+    target_ulong guest_arg_size = ( 1 + guest_argc + 1 + guest_envc + 1) * 8;
     sp -= guest_arg_size;
     ram_std(sp, guest_argc);
     for (int i = 0; i < guest_argc; i++) {
@@ -652,6 +854,7 @@ int main(int argc, char** argv, char **envp) {
     // for (int i = 0; i < guest_argc + 2; i++) {
     //     printf("%lx %lx\n", sp, ram_ldud(sp + i *8));
     // }
+    printf("init sp %lx\n", sp);
 #endif
     exec_env(env);
     printf("end %s %d\n", __FILE__, __LINE__);
