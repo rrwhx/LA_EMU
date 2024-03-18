@@ -586,7 +586,7 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
     if (likely(page_addr == tc->va)) {
         uint64_t ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
-        // printf("%lx %lx\n", addr, ha);
+        // fprintf(stderr, "%lx %lx\n", addr, ha);
         return ha;
     }
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
@@ -606,7 +606,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     uint64_t page_addr = addr & TARGET_PAGE_MASK;
     if (likely(page_addr == tc->va)) {
         ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
-        // printf("%lx %lx\n", addr, ha);
+        // fprintf(stderr, "%lx %lx\n", addr, ha);
     } else {
         int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
         int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
@@ -627,7 +627,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
     {
     case 0x1fe001e0:
     case 0x1fe002e0:
-            printf("%c", (char)(data));
+            fprintf(stderr, "%c", (char)(data));
             fflush(stdout);
         break;
     
@@ -806,10 +806,10 @@ static double begin_timestamp;
 static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
     if (a->imm == 64) {
         begin_timestamp = second();
-        printf("[INST HACK] ibar 64 begin %f\n", begin_timestamp);
+        fprintf(stderr, "[INST HACK] ibar 64 begin %f\n", begin_timestamp);
     } else if (a->imm == 65) {
-        printf("[INST HACK] ibar 65 end %f\n", second() - begin_timestamp);
-        printf("icount:%ld ic_hit_count:%ld ecount:%ld\n", env->icount, env->ic_hit_count, env->ecount);
+        fprintf(stderr, "[INST HACK] ibar 65 end %f\n", second() - begin_timestamp);
+        fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", env->icount, env->ic_hit_count, env->syscall_count, env->ecount);
         exit(0);
     }
     env->pc += 4;
@@ -1005,7 +1005,7 @@ static bool trans_crcc_w_w_w(CPULoongArchState *env, arg_crcc_w_w_w *a) {__NOT_I
 static bool trans_crcc_w_d_w(CPULoongArchState *env, arg_crcc_w_d_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_break(CPULoongArchState *env, arg_break *a) {
 
-    printf("trans_break\n");
+    fprintf(stderr, "trans_break\n");
     exit(0);
 
     __NOT_IMPLEMENTED__
@@ -1013,6 +1013,7 @@ static bool trans_break(CPULoongArchState *env, arg_break *a) {
 
 
 static bool trans_syscall(CPULoongArchState *env, arg_syscall *a) {
+    env->syscall_count ++;
 #if defined(USER_MODE)
     target_long ret = do_syscall(env, env->gpr[11],
                         env->gpr[4], env->gpr[5],

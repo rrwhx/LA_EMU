@@ -108,19 +108,48 @@ static inline double second(void){
 #define __4G (4 * 1024 * 1024 * 1024ULL)
 #define __4K (4 * 1024ULL)
 
-
+extern FILE* logfile;
 static void qemu_log(const char *fmt, ...)
 {
-    FILE *f = stderr;
+    FILE *f = logfile;
     va_list ap;
     va_start(ap, fmt);
     vfprintf(f, fmt, ap);
     va_end(ap);
 }
 
+#define CPU_LOG_TB_OUT_ASM (1 << 0)
+#define CPU_LOG_TB_IN_ASM  (1 << 1)
+#define CPU_LOG_TB_OP      (1 << 2)
+#define CPU_LOG_TB_OP_OPT  (1 << 3)
+#define CPU_LOG_INT        (1 << 4)
+#define CPU_LOG_EXEC       (1 << 5)
+#define CPU_LOG_PCALL      (1 << 6)
+#define CPU_LOG_TB_CPU     (1 << 8)
+#define CPU_LOG_RESET      (1 << 9)
+#define LOG_UNIMP          (1 << 10)
+#define LOG_GUEST_ERROR    (1 << 11)
+#define CPU_LOG_MMU        (1 << 12)
+#define CPU_LOG_TB_NOCHAIN (1 << 13)
+#define CPU_LOG_PAGE       (1 << 14)
+#define LOG_TRACE          (1 << 15)
+#define CPU_LOG_TB_OP_IND  (1 << 16)
+#define CPU_LOG_TB_FPU     (1 << 17)
+#define CPU_LOG_PLUGIN     (1 << 18)
+/* LOG_STRACE is used for user-mode strace logging. */
+#define LOG_STRACE         (1 << 19)
+#define LOG_PER_THREAD     (1 << 20)
+#define CPU_LOG_TB_VPU     (1 << 21)
+
+extern int qemu_loglevel;
+static inline bool qemu_loglevel_mask(int mask)
+{
+    return (qemu_loglevel & mask) != 0;
+}
+
 #define qemu_log_mask(MASK, FMT, ...)                   \
     do {                                                \
-        if (0) {       \
+        if (unlikely(qemu_loglevel_mask(MASK))) {       \
             qemu_log(FMT, ## __VA_ARGS__);              \
         }                                               \
     } while (0)

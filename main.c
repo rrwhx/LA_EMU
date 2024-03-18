@@ -68,7 +68,7 @@ uint64_t ram_size = SZ_4G;
 char* kernel_filename;
 
 void usage(void) {
-    printf("la_emu -m n[G] -k kernel\n");
+    fprintf(stderr, "la_emu -m n[G] -k kernel\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -166,7 +166,7 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
 #else
                 memcpy(ram + (ph->p_paddr & 0xfffffff), data, file_size);
 #endif
-                printf("%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
+                qemu_log_mask(CPU_LOG_PAGE, "%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
             }
         }
     }
@@ -300,7 +300,7 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
 
             vaddr_ef = vaddr + ph->p_filesz;
             vaddr_em = vaddr + ph->p_memsz;
-            fprintf(stderr, "vaddr_po:%lx vaddr_ps:%lx vaddr_ef:%lx vaddr_em:%lx\n", vaddr_po, vaddr_ps, vaddr_ef, vaddr_em);
+            qemu_log_mask(CPU_LOG_PAGE, "vaddr_po:%lx vaddr_ps:%lx vaddr_ef:%lx vaddr_em:%lx\n", vaddr_po, vaddr_ps, vaddr_ef, vaddr_em);
             if (ph->p_filesz != 0) {
                 void* r = mmap((void*)vaddr_ps, ph->p_filesz + vaddr_po,
                                     elf_prot, MAP_PRIVATE | MAP_FIXED,
@@ -670,7 +670,7 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     } else {
         int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
         int r = check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
-        // printf("va:%lx,pa:%lx\n", addr, ha);
+        // fprintf(stderr, "va:%lx,pa:%lx\n", addr, ha);
         tc->va = page_addr;
         tc->pa = ha & TARGET_PAGE_MASK;
     }
@@ -688,21 +688,23 @@ static void exec_env(CPULoongArchState *env) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
-                // fprintf(stderr, "before fetch, pc:%lx\n", env->pc);
+                if (unlikely(qemu_loglevel_mask(CPU_LOG_EXEC))) {
+                    qemu_log("pc:%lx\n", env->pc);
+                }
                 insn = fetch(env, &ic);
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
                 env->icount ++;
 #endif
-                // fprintf(stderr, "before exec, pc:%lx %c\n", env->pc, *(char*)0x120002980);
-                // for (int i = 0; i <32; i++) {
-                //     fprintf(stderr, "%d:%lx ", i, env->gpr[i]);
-                // }
-                // fprintf(stderr, "0x12001fc84")
-                // fprintf(stderr, "\n");
+                if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_CPU))) {
+                    for (int i = 0; i <32; i++) {
+                        qemu_log("%d:%lx ", i, env->gpr[i]);
+                    }
+                    qemu_log("\n");
+                }
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
-                    printf("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
+                    qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
                 }
             }
         } else {
@@ -738,19 +740,113 @@ void G_NORETURN do_raise_exception(CPULoongArchState *env,
     // cpu_loop_exit_restore(cs, pc);
 }
 
+int qemu_loglevel;
+FILE* logfile;
+void handle_logfile(const char* filename) {
+    FILE* logfile = fopen(optarg, "w");
+    if (logfile) {
+        fprintf(stderr, "can not open logfile %s\n", filename);
+    }
+}
+
+/* define log items */
+typedef struct QEMULogItem {
+    int mask;
+    const char *name;
+    const char *help;
+} QEMULogItem;
+
+const QEMULogItem qemu_log_items[] = {
+    { CPU_LOG_TB_OUT_ASM, "out_asm",
+      "show generated host assembly code for each compiled TB" },
+    { CPU_LOG_TB_IN_ASM, "in_asm",
+      "show target assembly code for each compiled TB" },
+    { CPU_LOG_TB_OP, "op",
+      "show micro ops for each compiled TB" },
+    { CPU_LOG_TB_OP_OPT, "op_opt",
+      "show micro ops after optimization" },
+    { CPU_LOG_TB_OP_IND, "op_ind",
+      "show micro ops before indirect lowering" },
+    { CPU_LOG_INT, "int",
+      "show interrupts/exceptions in short format" },
+    { CPU_LOG_EXEC, "exec",
+      "show trace before each executed TB (lots of logs)" },
+    { CPU_LOG_TB_CPU, "cpu",
+      "show CPU registers before entering a TB (lots of logs)" },
+    { CPU_LOG_TB_FPU, "fpu",
+      "include FPU registers in the 'cpu' logging" },
+    { CPU_LOG_MMU, "mmu",
+      "log MMU-related activities" },
+    { CPU_LOG_PCALL, "pcall",
+      "x86 only: show protected mode far calls/returns/exceptions" },
+    { CPU_LOG_RESET, "cpu_reset",
+      "show CPU state before CPU resets" },
+    { LOG_UNIMP, "unimp",
+      "log unimplemented functionality" },
+    { LOG_GUEST_ERROR, "guest_errors",
+      "log when the guest OS does something invalid (eg accessing a\n"
+      "non-existent register)" },
+    { CPU_LOG_PAGE, "page",
+      "dump pages at beginning of user mode emulation" },
+    { CPU_LOG_TB_NOCHAIN, "nochain",
+      "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
+      "complete traces" },
+    { CPU_LOG_PLUGIN, "plugin", "output from TCG plugins"},
+    { LOG_STRACE, "strace",
+      "log every user-mode syscall, its input, and its result" },
+    { LOG_PER_THREAD, "tid",
+      "open a separate log file per thread; filename must contain '%d'" },
+    { CPU_LOG_TB_VPU, "vpu",
+      "include VPU registers in the 'cpu' logging" },
+    { 0, NULL, NULL },
+};
+
+void handle_logmask(const char* str) {
+    const QEMULogItem *item;
+    const char *start = str, *p;
+    while (1) {
+        p = strchr(start, ',');
+        if (!p) {
+            p = start + strlen(start);
+        }
+        for (item = qemu_log_items; item->mask != 0; item++) {
+            if (strncmp(start, item->name, p - start) == 0) {
+                qemu_loglevel |= item->mask;
+                break;
+            }
+        }
+        if (item->mask == 0) {
+            fprintf(stderr, "unable to prase %s\n", start);
+            exit(EXIT_FAILURE);
+        }
+        if (*p) {
+            start = p + 1;
+        } else {
+            break;
+        }
+    };
+}
+
 int main(int argc, char** argv, char **envp) {
+    logfile = stderr;
     if (argc < 2) {
         usage();
     }
     char* end;
     int c;
-    while ((c = getopt(argc, argv, "m:k:")) != -1) {
+    while ((c = getopt(argc, argv, "m:k:d:D:")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
                 break;
             case 'k':
                 kernel_filename = optarg;
+                break;
+            case 'd':
+                handle_logmask(optarg);
+                break;
+            case 'D':
+                handle_logfile(optarg);
                 break;
             case '?':
                 usage();
@@ -759,13 +855,13 @@ int main(int argc, char** argv, char **envp) {
                 abort();
         }
     }
-    printf("%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size,kernel_filename);
-    // printf("optind %d \n", optind);
+    // fprintf(stderr, "optind %d \n", optind);
     // for (int i = optind; i < argc; i++) {
-    //     printf("%s\n", argv[i]);
+    //     fprintf(stderr, "%s\n", argv[i]);
     // }
 #ifndef USER_MODE
     ram = alloc_ram(ram_size);
+    qemu_log("pid:%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size, kernel_filename);
 #endif
     uint64_t entry_addr;
 #if defined(USER_MODE)
@@ -779,7 +875,7 @@ int main(int argc, char** argv, char **envp) {
 #else
     load_elf(kernel_filename, &entry_addr);
 #endif
-    fprintf(stderr, "entry_addr:%lx\n", entry_addr);
+    qemu_log_mask(CPU_LOG_PAGE, "entry_addr:%lx\n", entry_addr);
 
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
     memset(cpu, 0, sizeof(LoongArchCPU));
@@ -801,12 +897,12 @@ int main(int argc, char** argv, char **envp) {
         sp -= (guest_argv_len[i] + 1);
         memcpy((void*)(sp), guest_argv[i], guest_argv_len[i]);
         guest_argv_addr[i] = sp;
-        // printf("setup argv %s %lx %ld\n", guest_argv[i], sp, guest_argv_len[i]);
+        // fprintf(stderr, "setup argv %s %lx %ld\n", guest_argv[i], sp, guest_argv_len[i]);
     }
 
     int guest_envc = 0;
     while (envp[guest_envc]) {guest_envc ++;}
-    // printf("guest_envc %d\n", guest_envc);
+    // fprintf(stderr, "guest_envc %d\n", guest_envc);
     char** guest_envv = envp;
     size_t* guest_envv_len = (size_t*)malloc(sizeof(size_t) * guest_envc);
     target_ulong* guest_envv_addr = (target_ulong*)malloc(sizeof(target_ulong) * guest_envc);
@@ -815,7 +911,7 @@ int main(int argc, char** argv, char **envp) {
         sp -= (guest_envv_len[i] + 1);
         memcpy((void*)(sp), guest_envv[i], guest_envv_len[i]);
         guest_envv_addr[i] = sp;
-        // printf("setup envv %s %lx %ld\n", guest_envv[i], sp, guest_envv_addr[i]);
+        // fprintf(stderr, "setup envv %s %lx %ld\n", guest_envv[i], sp, guest_envv_addr[i]);
     }
     sp = QEMU_ALIGN_DOWN(sp, 16);
 
@@ -838,7 +934,7 @@ int main(int argc, char** argv, char **envp) {
     sp -= 16; ram_std(sp, AT_GID);   ram_std(sp+8, (abi_ulong) getgid());
     sp -= 16; ram_std(sp, AT_EGID);  ram_std(sp+8, (abi_ulong) getegid());
 
-    printf("aux addr %lx\n", sp);
+    qemu_log_mask(CPU_LOG_PAGE, "aux addr %lx\n", sp);
 
     target_ulong guest_arg_size = ( 1 + guest_argc + 1 + guest_envc + 1) * 8;
     sp -= guest_arg_size;
@@ -850,13 +946,13 @@ int main(int argc, char** argv, char **envp) {
         ram_std(sp + (1 + guest_argc + 1) * 8 +(i * 8), guest_envv_addr[i]);
     }
     env->gpr[3] = sp;
-    // printf("guest_sp:%lx\n", sp);
+    // fprintf(stderr, "guest_sp:%lx\n", sp);
     // for (int i = 0; i < guest_argc + 2; i++) {
-    //     printf("%lx %lx\n", sp, ram_ldud(sp + i *8));
+    //     fprintf(stderr, "%lx %lx\n", sp, ram_ldud(sp + i *8));
     // }
-    printf("init sp %lx\n", sp);
+    qemu_log_mask(CPU_LOG_PAGE, "init sp %lx\n", sp);
 #endif
     exec_env(env);
-    printf("end %s %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "end from main %s %d\n", __FILE__, __LINE__);
     return 0;
 }

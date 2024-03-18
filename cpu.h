@@ -453,6 +453,7 @@ typedef struct CPUArchState {
     INSCache inscache[IC_NUM];
     uint64_t icount;
     uint64_t ecount;
+    uint64_t syscall_count;
     uint64_t ic_hit_count;
 } CPULoongArchState;
 

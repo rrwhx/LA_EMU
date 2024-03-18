@@ -23,7 +23,7 @@ void target_set_brk(abi_ulong new_brk)
 {
     target_brk = TARGET_PAGE_ALIGN(new_brk);
     initial_target_brk = target_brk;
-    fprintf(stderr, "initial_target_brk:%lx\n", initial_target_brk);
+    qemu_log_mask(CPU_LOG_PAGE, "initial_target_brk:%lx\n", initial_target_brk);
 }
 
 /* do_brk() must return target values and target errnos. */
@@ -117,7 +117,6 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                             abi_long arg5, abi_long arg6, abi_long arg7,
                             abi_long arg8)
 {
-    fprintf(stderr, "syscall %d %lx %lx %lx %lx %lx\n", num, arg1, arg2, arg3, arg4, arg5);
     struct stat st;
     abi_long ret;
     void *p;
@@ -156,7 +155,7 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return ret;
         case TARGET_NR_exit:
         case TARGET_NR_exit_group:
-            printf("icount:%ld ic_hit_count:%ld ecount:%ld\n", cpu_env->icount, cpu_env->ic_hit_count, cpu_env->ecount);
+            fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", cpu_env->icount, cpu_env->ic_hit_count, cpu_env->syscall_count, cpu_env->ecount);
             exit(arg1);
             lsassert(0);
         case TARGET_NR_clock_gettime:
@@ -181,7 +180,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
 }
 
 abi_long do_syscall(CPUArchState *cpu_env, int num, abi_long arg1, abi_long arg2, abi_long arg3, abi_long arg4, abi_long arg5, abi_long arg6, abi_long arg7, abi_long arg8) {
+    qemu_log_mask(LOG_STRACE, "syscall %d %lx %lx %lx %lx %lx\n", num, arg1, arg2, arg3, arg4, arg5);
     abi_long r = do_syscall1(cpu_env, num, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-    fprintf(stderr, "syscall ret:%lx\n", r);
+    qemu_log_mask(LOG_STRACE, "syscall ret:%lx\n", r);
     return r;
 }
