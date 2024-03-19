@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "user.h"
 #include <unistd.h>
 #include <asm/unistd.h>
@@ -23,6 +24,7 @@
 #define TARGET_NR_gettid 178
 #define TARGET_NR_brk 214
 #define TARGET_NR_munmap 215
+#define TARGET_NR_mremap 216
 #define TARGET_NR_mmap 222
 
 
@@ -390,6 +392,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return do_brk(arg1);
         case TARGET_NR_munmap:
             return get_errno(munmap((void*)arg1, arg2));
+        case TARGET_NR_mremap:
+            return get_errno((abi_long)mremap((void*)arg1, arg2, arg3, arg4, (void*)arg5));
         case TARGET_NR_mmap:
             return do_mmap(arg1, arg2, arg3, arg4, arg5, arg6);
         default:
