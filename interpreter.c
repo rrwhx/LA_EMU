@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "internals.h"
 #include "tcg/tcg-gvec-desc.h"
+#include "fpu/softfloat.h"
 
 #if defined(USER_MODE)
 #include "user.h"
@@ -1079,108 +1080,52 @@ static bool trans_cpucfg(CPULoongArchState *env, arg_cpucfg *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_fadd_s(CPULoongArchState *env, arg_fadd_s *a) {
+
+static bool gen_fff(CPULoongArchState *env, arg_fff *a, uint64_t (*func)(CPULoongArchState *, uint64_t, uint64_t)) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fadd_s(env, src1, src2);
+    TCGv dest = func(env, src1, src2);
     set_fpr(env, a->fd, dest);
     env->pc += 4;
     return true;
 }
-static bool trans_fadd_d(CPULoongArchState *env, arg_fadd_d *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fadd_d(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fsub_s(CPULoongArchState *env, arg_fsub_s *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fsub_s(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fsub_d(CPULoongArchState *env, arg_fsub_d *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fsub_d(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fmul_s(CPULoongArchState *env, arg_fmul_s *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fmul_s(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fmul_d(CPULoongArchState *env, arg_fmul_d *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fmul_d(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fdiv_s(CPULoongArchState *env, arg_fdiv_s *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fdiv_s(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fdiv_d(CPULoongArchState *env, arg_fdiv_d *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fdiv_d(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fmadd_s(CPULoongArchState *env, arg_fmadd_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {
+static bool trans_fadd_s(CPULoongArchState *env, arg_fadd_s *a) {return gen_fff(env, a, helper_fadd_s);}
+static bool trans_fadd_d(CPULoongArchState *env, arg_fadd_d *a) {return gen_fff(env, a, helper_fadd_d);}
+static bool trans_fsub_s(CPULoongArchState *env, arg_fadd_s *a) {return gen_fff(env, a, helper_fsub_s);}
+static bool trans_fsub_d(CPULoongArchState *env, arg_fadd_d *a) {return gen_fff(env, a, helper_fsub_d);}
+static bool trans_fmul_s(CPULoongArchState *env, arg_fadd_s *a) {return gen_fff(env, a, helper_fmul_s);}
+static bool trans_fmul_d(CPULoongArchState *env, arg_fadd_d *a) {return gen_fff(env, a, helper_fmul_d);}
+static bool trans_fdiv_s(CPULoongArchState *env, arg_fadd_s *a) {return gen_fff(env, a, helper_fdiv_s);}
+static bool trans_fdiv_d(CPULoongArchState *env, arg_fadd_d *a) {return gen_fff(env, a, helper_fdiv_d);}
+static bool trans_fmax_s(CPULoongArchState *env, arg_fmax_s *a) {return gen_fff(env, a, helper_fmax_s);}
+static bool trans_fmax_d(CPULoongArchState *env, arg_fmax_d *a) {return gen_fff(env, a, helper_fmax_d);}
+static bool trans_fmin_s(CPULoongArchState *env, arg_fmin_s *a) {return gen_fff(env, a, helper_fmin_s);}
+static bool trans_fmin_d(CPULoongArchState *env, arg_fmin_d *a) {return gen_fff(env, a, helper_fmin_d);}
+static bool trans_fmaxa_s(CPULoongArchState *env, arg_fmaxa_s *a) {return gen_fff(env, a, helper_fmaxa_s);}
+static bool trans_fmaxa_d(CPULoongArchState *env, arg_fmaxa_d *a) {return gen_fff(env, a, helper_fmaxa_d);}
+static bool trans_fmina_s(CPULoongArchState *env, arg_fmina_s *a) {return gen_fff(env, a, helper_fmina_s);}
+static bool trans_fmina_d(CPULoongArchState *env, arg_fmina_d *a) {return gen_fff(env, a, helper_fmina_d);}
+static bool trans_fscaleb_s(CPULoongArchState *env, arg_fscaleb_s *a) {return gen_fff(env, a, helper_fscaleb_s);}
+static bool trans_fscaleb_d(CPULoongArchState *env, arg_fscaleb_d *a) {return gen_fff(env, a, helper_fscaleb_d);}
+
+static bool gen_ffff(CPULoongArchState *env, arg_ffff *a, uint64_t (*func)(CPULoongArchState *, uint64_t, uint64_t, uint64_t, uint32_t), uint32_t flag) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
     TCGv src3 = get_fpr(ctx, a->fa);
-    TCGv dest = helper_fmuladd_d(env, src1, src2, src3, 0);
+    TCGv dest = func(env, src1, src2, src3, flag);
     set_fpr(env, a->fd, dest);
     env->pc += 4;
     return true;
 }
-static bool trans_fmsub_s(CPULoongArchState *env, arg_fmsub_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmsub_d(CPULoongArchState *env, arg_fmsub_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fmadd_s(CPULoongArchState *env, arg_fmadd_s *a) {gen_ffff(env, a, helper_fmuladd_s, 0);}
+static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {gen_ffff(env, a, helper_fmuladd_d, 0);}
+static bool trans_fmsub_s(CPULoongArchState *env, arg_fmsub_s *a) {gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_c);}
+static bool trans_fmsub_d(CPULoongArchState *env, arg_fmsub_s *a) {gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_c);}
 static bool trans_fnmadd_s(CPULoongArchState *env, arg_fnmadd_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fnmadd_d(CPULoongArchState *env, arg_fnmadd_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fnmsub_s(CPULoongArchState *env, arg_fnmsub_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fnmsub_d(CPULoongArchState *env, arg_fnmsub_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmax_s(CPULoongArchState *env, arg_fmax_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmax_d(CPULoongArchState *env, arg_fmax_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmin_s(CPULoongArchState *env, arg_fmin_s *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fmin_s(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fmin_d(CPULoongArchState *env, arg_fmin_d *a) {
-    TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = helper_fmin_d(env, src1, src2);
-    set_fpr(env, a->fd, dest);
-    env->pc += 4;
-    return true;
-}
-static bool trans_fmaxa_s(CPULoongArchState *env, arg_fmaxa_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmaxa_d(CPULoongArchState *env, arg_fmaxa_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmina_s(CPULoongArchState *env, arg_fmina_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmina_d(CPULoongArchState *env, arg_fmina_d *a) {__NOT_IMPLEMENTED__}
+
 static bool trans_fabs_s(CPULoongArchState *env, arg_fabs_s *a) {
     TCGv src = get_fpr(ctx, a->fj);
     TCGv dest = src & MAKE_64BIT_MASK(0, 31);
@@ -1197,26 +1142,39 @@ static bool trans_fabs_d(CPULoongArchState *env, arg_fabs_d *a) {
 }
 static bool trans_fneg_s(CPULoongArchState *env, arg_fneg_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fneg_d(CPULoongArchState *env, arg_fneg_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fsqrt_s(CPULoongArchState *env, arg_fsqrt_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fsqrt_d(CPULoongArchState *env, arg_fsqrt_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_frecip_s(CPULoongArchState *env, arg_frecip_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_frecip_d(CPULoongArchState *env, arg_frecip_d *a) {
+static bool gen_ff(CPULoongArchState *env, arg_ff *a, uint64_t (*func)(CPULoongArchState *, uint64_t)) {
     TCGv src1 = get_fpr(ctx, a->fj);
-    TCGv dest = helper_frecip_d(env, src1);
+    TCGv dest = func(env, src1);
     set_fpr(env, a->fd, dest);
     env->pc += 4;
     return true;
 }
-static bool trans_frsqrt_s(CPULoongArchState *env, arg_frsqrt_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_frsqrt_d(CPULoongArchState *env, arg_frsqrt_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fscaleb_s(CPULoongArchState *env, arg_fscaleb_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fscaleb_d(CPULoongArchState *env, arg_fscaleb_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_flogb_s(CPULoongArchState *env, arg_flogb_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_flogb_d(CPULoongArchState *env, arg_flogb_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fcopysign_s(CPULoongArchState *env, arg_fcopysign_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fcopysign_d(CPULoongArchState *env, arg_fcopysign_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fclass_s(CPULoongArchState *env, arg_fclass_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fclass_d(CPULoongArchState *env, arg_fclass_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fsqrt_s(CPULoongArchState *env, arg_fsqrt_s *a) {gen_ff(env, a, helper_fsqrt_s);}
+static bool trans_fsqrt_d(CPULoongArchState *env, arg_fsqrt_d *a) {gen_ff(env, a, helper_fsqrt_d);}
+static bool trans_frecip_s(CPULoongArchState *env, arg_frecip_s *a) {gen_ff(env, a, helper_frecip_s);}
+static bool trans_frecip_d(CPULoongArchState *env, arg_frecip_d *a) {gen_ff(env, a, helper_frecip_d);}
+static bool trans_frsqrt_s(CPULoongArchState *env, arg_frsqrt_s *a) {gen_ff(env, a, helper_frsqrt_s);}
+static bool trans_frsqrt_d(CPULoongArchState *env, arg_frsqrt_d *a) {gen_ff(env, a, helper_frsqrt_d);}
+static bool trans_flogb_s(CPULoongArchState *env, arg_flogb_s *a) {gen_ff(env, a, helper_flogb_s);}
+static bool trans_flogb_d(CPULoongArchState *env, arg_flogb_d *a) {gen_ff(env, a, helper_flogb_d);}
+static bool trans_fcopysign_s(CPULoongArchState *env, arg_fcopysign_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = deposit64(src2, 0, 63, src1);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fcopysign_d(CPULoongArchState *env, arg_fcopysign_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = deposit64(src2, 0, 31, src1);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fclass_s(CPULoongArchState *env, arg_fclass_s *a) {gen_ff(env, a, helper_fclass_s);}
+static bool trans_fclass_d(CPULoongArchState *env, arg_fclass_d *a) {gen_ff(env, a, helper_fclass_d);}
 static bool trans_fcmp_cond_s(CPULoongArchState *env, arg_fcmp_cond_s *a) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
@@ -1235,8 +1193,20 @@ static bool trans_fcmp_cond_d(CPULoongArchState *env, arg_fcmp_cond_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_fcvt_s_d(CPULoongArchState *env, arg_fcvt_s_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fcvt_d_s(CPULoongArchState *env, arg_fcvt_d_s *a) {__NOT_IMPLEMENTED__}
+static bool trans_fcvt_s_d(CPULoongArchState *env, arg_fcvt_s_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv dest = helper_fcvt_s_d(env, src1);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fcvt_d_s(CPULoongArchState *env, arg_fcvt_d_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv dest = helper_fcvt_d_s(env, src1);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_ftintrm_w_s(CPULoongArchState *env, arg_ftintrm_w_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrm_w_d(CPULoongArchState *env, arg_ftintrm_w_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrm_l_s(CPULoongArchState *env, arg_ftintrm_l_s *a) {__NOT_IMPLEMENTED__}
@@ -1263,7 +1233,13 @@ static bool trans_ftint_w_s(CPULoongArchState *env, arg_ftint_w_s *a) {__NOT_IMP
 static bool trans_ftint_w_d(CPULoongArchState *env, arg_ftint_w_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftint_l_s(CPULoongArchState *env, arg_ftint_l_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftint_l_d(CPULoongArchState *env, arg_ftint_l_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_ffint_s_w(CPULoongArchState *env, arg_ffint_s_w *a) {__NOT_IMPLEMENTED__}
+static bool trans_ffint_s_w(CPULoongArchState *env, arg_ffint_s_w *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = helper_ffint_s_w(env, src);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_ffint_s_l(CPULoongArchState *env, arg_ffint_s_l *a) {__NOT_IMPLEMENTED__}
 static bool trans_ffint_d_w(CPULoongArchState *env, arg_ffint_d_w *a) {
     TCGv src = get_fpr(ctx, a->fj);
@@ -1291,7 +1267,14 @@ static bool trans_fmov_d(CPULoongArchState *env, arg_fmov_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_fsel(CPULoongArchState *env, arg_fsel *a) {__NOT_IMPLEMENTED__}
+static bool trans_fsel(CPULoongArchState *env, arg_fsel *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = env->cf[a->ca] == 0 ? src1 : src2;
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_movgr2fr_w(CPULoongArchState *env, arg_movgr2fr_w *a) {
     env->fpr[a->fd].vreg.W[0] = env->gpr[a->rj];
     env->pc += 4;
