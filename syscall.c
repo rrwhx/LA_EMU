@@ -1,15 +1,28 @@
 #define _GNU_SOURCE
 #include "user.h"
+#include <fcntl.h>
 #include <unistd.h>
 #include <asm/unistd.h>
 #include <sys/mman.h>
-#include <fcntl.h>
+#include <sys/sysinfo.h>
+#include <sys/uio.h>
+#include <sys/times.h>
+#include <sys/resource.h>
+#include <sys/ioctl.h>
 
+#define TARGET_NR_getcwd 17
+#define TARGET_NR_fcntl 25
+#define TARGET_NR_ioctl 29
+#define TARGET_NR_unlinkat 35
 #define TARGET_NR_fstatfs 44
+#define TARGET_NR_ftruncate 46
+#define TARGET_NR_faccessat 48
 #define TARGET_NR_openat 56
 #define TARGET_NR_close 57
+#define TARGET_NR_lseek 62
 #define TARGET_NR_read 63
 #define TARGET_NR_write 64
+#define TARGET_NR_writev 66
 #define TARGET_NR_readlinkat 78
 #define TARGET_NR_fstatat64 79
 #define TARGET_NR_fstat64 80
@@ -17,15 +30,22 @@
 #define TARGET_NR_exit_group 94
 #define TARGET_NR_clock_gettime 113
 #define TARGET_NR_rt_sigaction 134
+#define TARGET_NR_times 153
+#define TARGET_NR_getrusage 165
+#define TARGET_NR_gettimeofday 169
+#define TARGET_NR_getpid 172
+#define TARGET_NR_getppid 173
 #define TARGET_NR_getuid 174
 #define TARGET_NR_geteuid 175
 #define TARGET_NR_getgid 176
 #define TARGET_NR_getegid 177
 #define TARGET_NR_gettid 178
+#define TARGET_NR_sysinfo 179
 #define TARGET_NR_brk 214
 #define TARGET_NR_munmap 215
 #define TARGET_NR_mremap 216
 #define TARGET_NR_mmap 222
+#define TARGET_NR_prlimit64 261
 
 
 static abi_ulong target_brk, initial_target_brk;
@@ -324,13 +344,34 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
     abi_long ret;
     void *p;
     switch(num) {
+        case TARGET_NR_getcwd:
+            {
+                char* p = getcwd((void*)arg1, arg2);
+                if (!p) {
+                    ret = -TARGET_ERANGE;
+                } else {
+                    ret = (abi_long)p;
+                }
+            }
+            return ret;
+        case TARGET_NR_fcntl:
+            return get_errno(fcntl(arg1, arg2, arg3));
+        case TARGET_NR_ioctl:
+            return get_errno(ioctl(arg1, arg2, arg3));
+        case TARGET_NR_faccessat:
+            return get_errno(faccessat(arg1, (void*)arg2, arg3, 0));
+        case TARGET_NR_ftruncate:
+            return get_errno(ftruncate(arg1, arg2));
         case TARGET_NR_close:
             return get_errno(close(arg1));
+        case TARGET_NR_lseek:
+            return get_errno(lseek(arg1, arg2, arg3));
         case TARGET_NR_read:
             return get_errno(read(arg1, (void*)arg2, arg3));
         case TARGET_NR_write:
-            ret = write(arg1, (void*)arg2, arg3);
-            return get_errno(ret);
+            return get_errno(write(arg1, (void*)arg2, arg3));
+        case TARGET_NR_writev:
+            return get_errno(writev(arg1, (void*)arg2, arg3));
         case TARGET_NR_readlinkat:
             {
                 void *p2;
@@ -357,6 +398,9 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
         case TARGET_NR_rt_sigaction:
             fprintf(stderr, "unimp rt_sigaction\n");
             return 0;
+        case TARGET_NR_unlinkat:
+            ret = get_errno(unlinkat(arg1, (void*)arg2, arg3));
+            return ret;
         case TARGET_NR_fstatat64:
             ret = get_errno(fstatat(arg1, (void*)arg2, &st, arg4));
             if (!is_error(ret))
@@ -376,8 +420,19 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             exit(arg1);
             lsassert(0);
         case TARGET_NR_clock_gettime:
-            ret = clock_gettime(arg1, (void*)arg2);
+            ret = get_errno(clock_gettime(arg1, (void*)arg2));
             return ret;
+        case TARGET_NR_times:
+            return get_errno(times((void*)arg1));
+        case TARGET_NR_getrusage:
+            return get_errno(getrusage(arg1, (void*)arg2));
+        case TARGET_NR_gettimeofday:
+            ret = get_errno(gettimeofday((void*)arg1, (void*)arg2));
+            return ret;
+        case TARGET_NR_getpid:
+            return get_errno(getpid());
+        case TARGET_NR_getppid:
+            return get_errno(getppid());
         case TARGET_NR_geteuid:
             return get_errno(geteuid());
         case TARGET_NR_getuid:
@@ -388,6 +443,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return get_errno(getegid());
         case TARGET_NR_gettid:
             return get_errno(syscall(__NR_gettid));
+        case TARGET_NR_sysinfo:
+            return get_errno(sysinfo((void*)arg1));
         case TARGET_NR_brk:
             return do_brk(arg1);
         case TARGET_NR_munmap:
@@ -396,6 +453,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return get_errno((abi_long)mremap((void*)arg1, arg2, arg3, arg4, (void*)arg5));
         case TARGET_NR_mmap:
             return do_mmap(arg1, arg2, arg3, arg4, arg5, arg6);
+        case TARGET_NR_prlimit64:
+            return get_errno(prlimit(arg1, arg2, (void*)arg3, (void*)arg4));
         default:
             lsassertm(0, "unimplement syscall %d\n", num);
     }
