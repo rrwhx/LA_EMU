@@ -572,6 +572,9 @@ bool is_two_page(uint64_t addr, int bytes) {
 }
 
 bool is_aligned(uint64_t addr, int bytes) {
+#ifdef USER_MODE
+        return true;
+#endif
     return is_one_page(addr, bytes);
     // return !(addr & (bytes - 1));
 }
