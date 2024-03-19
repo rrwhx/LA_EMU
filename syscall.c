@@ -15,6 +15,7 @@
 #define TARGET_NR_exit 93
 #define TARGET_NR_exit_group 94
 #define TARGET_NR_clock_gettime 113
+#define TARGET_NR_rt_sigaction 134
 #define TARGET_NR_getuid 174
 #define TARGET_NR_geteuid 175
 #define TARGET_NR_getgid 176
@@ -253,10 +254,63 @@ abi_long get_errno(abi_long ret)
         return ret;
 }
 
+static inline int is_error(abi_long ret)
+{
+    return (abi_ulong)ret >= (abi_ulong)(-4096);
+}
+
 static abi_long do_mmap(abi_ulong addr, abi_ulong len, int prot,
                         int target_flags, int fd, off_t offset)
 {
     return get_errno((abi_long)mmap((void*)addr, len, prot, target_flags, fd, offset));
+}
+
+struct target_stat {
+    abi_ulong st_dev;
+    abi_ulong st_ino;
+    unsigned int st_mode;
+    unsigned int st_nlink;
+    unsigned int st_uid;
+    unsigned int st_gid;
+    abi_ulong st_rdev;
+    abi_ulong __pad1;
+    abi_long st_size;
+    int st_blksize;
+    int __pad2;
+    abi_long st_blocks;
+    abi_long target_st_atime;
+    abi_ulong target_st_atime_nsec;
+    abi_long target_st_mtime;
+    abi_ulong target_st_mtime_nsec;
+    abi_long target_st_ctime;
+    abi_ulong target_st_ctime_nsec;
+    unsigned int __unused4;
+    unsigned int __unused5;
+};
+
+static inline abi_long host_to_target_stat64(CPUArchState *cpu_env,
+                                             abi_ulong target_addr,
+                                             struct stat *host_st)
+{
+    struct target_stat *p = (void*)target_addr;
+    memset(p, 0, sizeof(*p));
+    p->st_dev = host_st->st_dev;
+    p->st_ino = host_st->st_ino;
+    p->st_mode = host_st->st_mode;
+    p->st_nlink = host_st->st_nlink;
+    p->st_uid = host_st->st_uid;
+    p->st_gid = host_st->st_gid;
+    p->st_rdev = host_st->st_rdev;
+    p->st_size = host_st->st_size;
+    p->st_blksize = host_st->st_blksize;
+    p->st_blocks = host_st->st_blocks;
+    p->target_st_atime = host_st->st_atime;
+    p->target_st_mtime = host_st->st_mtime;
+    p->target_st_ctime = host_st->st_ctime;
+    p->target_st_atime_nsec = host_st->st_atim.tv_nsec;
+    p->target_st_mtime_nsec = host_st->st_mtim.tv_nsec;
+    p->target_st_ctime_nsec = host_st->st_ctim.tv_nsec;
+    return 0;
 }
 
 static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
@@ -298,13 +352,22 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                 }
             }
             return ret;
+        case TARGET_NR_rt_sigaction:
+            fprintf(stderr, "unimp rt_sigaction\n");
+            return 0;
+        case TARGET_NR_fstatat64:
+            ret = get_errno(fstatat(arg1, (void*)arg2, &st, arg4));
+            if (!is_error(ret))
+                ret = host_to_target_stat64(cpu_env, arg3, &st);
+            return ret;
         case TARGET_NR_fstat64:
-            {
-                ret = get_errno(fstat(arg1, &st));
-            }
+            ret = get_errno(fstat(arg1, &st));
+            if (!is_error(ret))
+                ret = host_to_target_stat64(cpu_env, arg2, &st);
             return ret;
         case TARGET_NR_openat:
-            return get_errno(openat(arg1, (char*)arg2, arg3, arg4));
+            ret = get_errno(openat(arg1, (char*)arg2, arg3, arg4));
+            return ret;
         case TARGET_NR_exit:
         case TARGET_NR_exit_group:
             fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", cpu_env->icount, cpu_env->ic_hit_count, cpu_env->syscall_count, cpu_env->ecount);
