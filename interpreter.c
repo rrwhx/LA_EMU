@@ -987,10 +987,42 @@ static bool trans_amxor_db_d(CPULoongArchState *env, arg_amxor_db_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_ammax_db_w(CPULoongArchState *env, arg_ammax_db_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_ammax_db_d(CPULoongArchState *env, arg_ammax_db_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_ammin_db_w(CPULoongArchState *env, arg_ammin_db_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_ammin_db_d(CPULoongArchState *env, arg_ammin_db_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_ammax_db_w(CPULoongArchState *env, arg_ammax_db_w *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int32_t old_v = ram_ldw(ha);
+    int32_t new_v = MAX((int32_t)env->gpr[a->rk], old_v);
+    ram_stw(ha, new_v);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_ammax_db_d(CPULoongArchState *env, arg_ammax_db_d *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int64_t old_v = ram_ldd(ha);
+    int64_t new_v = MAX((int64_t)env->gpr[a->rk], old_v);
+    ram_stw(ha, new_v);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_ammin_db_w(CPULoongArchState *env, arg_ammin_db_w *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int32_t old_v = ram_ldw(ha);
+    int32_t new_v = MIN((int32_t)env->gpr[a->rk], old_v);
+    ram_stw(ha, new_v);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_ammin_db_d(CPULoongArchState *env, arg_ammin_db_d *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int64_t old_v = ram_ldd(ha);
+    int64_t new_v = MIN((int64_t)env->gpr[a->rk], old_v);
+    ram_stw(ha, new_v);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
 static bool trans_ammax_db_wu(CPULoongArchState *env, arg_ammax_db_wu *a) {__NOT_IMPLEMENTED__}
 static bool trans_ammax_db_du(CPULoongArchState *env, arg_ammax_db_du *a) {__NOT_IMPLEMENTED__}
 static bool trans_ammin_db_wu(CPULoongArchState *env, arg_ammin_db_wu *a) {__NOT_IMPLEMENTED__}
