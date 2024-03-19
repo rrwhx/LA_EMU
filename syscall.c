@@ -1,5 +1,6 @@
 #include "user.h"
 #include <unistd.h>
+#include <asm/unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 
@@ -112,6 +113,140 @@ void *lock_user_string(abi_ulong guest_addr)
     return (void*)guest_addr;
 }
 
+static inline int host_to_target_errno(int host_errno)
+{
+    switch (host_errno) {
+#define E(X)  case X: return TARGET_##X;
+        E(EADDRINUSE)
+        E(EADDRNOTAVAIL)
+        E(EADV)
+        E(EAFNOSUPPORT)
+        E(EAGAIN)
+        E(EALREADY)
+        E(EBADE)
+        E(EBADFD)
+        E(EBADMSG)
+        E(EBADR)
+        E(EBADRQC)
+        E(EBADSLT)
+        E(EBFONT)
+        E(ECANCELED)
+        E(ECHRNG)
+        E(ECOMM)
+        E(ECONNABORTED)
+        E(ECONNREFUSED)
+        E(ECONNRESET)
+        E(EDEADLK)
+        E(EDESTADDRREQ)
+        E(EDOTDOT)
+        E(EDQUOT)
+        E(EHOSTDOWN)
+        E(EHOSTUNREACH)
+        #ifdef EHWPOISON
+        E(EHWPOISON)
+        #endif
+        E(EIDRM)
+        E(EILSEQ)
+        E(EINPROGRESS)
+        E(EISCONN)
+        E(EISNAM)
+        #ifdef EKEYEXPIRED
+        E(EKEYEXPIRED)
+        #endif
+        #ifdef EKEYREJECTED
+        E(EKEYREJECTED)
+        #endif
+        #ifdef EKEYREVOKED
+        E(EKEYREVOKED)
+        #endif
+        E(EL2HLT)
+        E(EL2NSYNC)
+        E(EL3HLT)
+        E(EL3RST)
+        E(ELIBACC)
+        E(ELIBBAD)
+        E(ELIBEXEC)
+        E(ELIBMAX)
+        E(ELIBSCN)
+        E(ELNRNG)
+        E(ELOOP)
+        E(EMEDIUMTYPE)
+        E(EMSGSIZE)
+        E(EMULTIHOP)
+        E(ENAMETOOLONG)
+        E(ENAVAIL)
+        E(ENETDOWN)
+        E(ENETRESET)
+        E(ENETUNREACH)
+        E(ENOANO)
+        E(ENOBUFS)
+        E(ENOCSI)
+        E(ENODATA)
+        #ifdef ENOKEY
+        E(ENOKEY)
+        #endif
+        E(ENOLCK)
+        E(ENOLINK)
+        E(ENOMEDIUM)
+        #ifdef ENOMSG
+        E(ENOMSG)
+        #endif
+        E(ENONET)
+        E(ENOPKG)
+        E(ENOPROTOOPT)
+        E(ENOSR)
+        E(ENOSTR)
+        E(ENOSYS)
+        E(ENOTCONN)
+        E(ENOTEMPTY)
+        E(ENOTNAM)
+        #ifdef ENOTRECOVERABLE
+        E(ENOTRECOVERABLE)
+        #endif
+        E(ENOTSOCK)
+        E(ENOTUNIQ)
+        E(EOPNOTSUPP)
+        E(EOVERFLOW)
+        #ifdef EOWNERDEAD
+        E(EOWNERDEAD)
+        #endif
+        E(EPFNOSUPPORT)
+        E(EPROTO)
+        E(EPROTONOSUPPORT)
+        E(EPROTOTYPE)
+        E(EREMCHG)
+        E(EREMOTE)
+        E(EREMOTEIO)
+        E(ERESTART)
+        #ifdef ERFKILL
+        E(ERFKILL)
+        #endif
+        E(ESHUTDOWN)
+        E(ESOCKTNOSUPPORT)
+        E(ESRMNT)
+        E(ESTALE)
+        E(ESTRPIPE)
+        E(ETIME)
+        E(ETIMEDOUT)
+        E(ETOOMANYREFS)
+        E(EUCLEAN)
+        E(EUNATCH)
+        E(EUSERS)
+        E(EXFULL)
+#undef E
+    default:
+        return host_errno;
+    }
+}
+
+abi_long get_errno(abi_long ret)
+{
+    if (ret == -1)
+        return -host_to_target_errno(errno);
+    else
+        return ret;
+}
+
 static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                             abi_long arg2, abi_long arg3, abi_long arg4,
                             abi_long arg5, abi_long arg6, abi_long arg7,
@@ -123,7 +258,7 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
     switch(num) {
         case TARGET_NR_write:
             ret = write(arg1, (void*)arg2, arg3);
-            return ret;
+            return get_errno(ret);
         case TARGET_NR_readlinkat:
             {
                 void *p2;
@@ -143,14 +278,13 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                     /* We cannot NUL terminate the string. */
                     memcpy(p2, exec_path, ret);
                 } else {
-                    ret = readlinkat(arg1, p, p2, arg4);
+                    ret = get_errno(readlinkat(arg1, p, p2, arg4));
                 }
             }
-
             return ret;
         case TARGET_NR_fstat64:
             {
-                ret = fstat(arg1, &st);
+                ret = get_errno(fstat(arg1, &st));
             }
             return ret;
         case TARGET_NR_exit:
@@ -162,15 +296,15 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             ret = clock_gettime(arg1, (void*)arg2);
             return ret;
         case TARGET_NR_geteuid:
-            return geteuid();
+            return get_errno(geteuid());
         case TARGET_NR_getuid:
-            return getuid();
+            return get_errno(getuid());
         case TARGET_NR_getgid:
-            return getgid();
+            return get_errno(getgid());
         case TARGET_NR_getegid:
-            return getegid();
+            return get_errno(getegid());
         case TARGET_NR_gettid:
-            return syscall(178);
+            return get_errno(syscall(__NR_gettid));
         case TARGET_NR_brk:
             return do_brk(arg1);
         default:
