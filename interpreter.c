@@ -238,7 +238,11 @@ static bool trans_div_d(CPULoongArchState *env, arg_div_d *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_mod_d(CPULoongArchState *env, arg_mod_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_mod_d(CPULoongArchState *env, arg_mod_d *a) {
+    env->gpr[a->rd] = (int64_t)env->gpr[a->rj] % (int64_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
 static bool trans_div_du(CPULoongArchState *env, arg_div_du *a) {
     env->gpr[a->rd] = (uint64_t)env->gpr[a->rj] / (uint64_t)env->gpr[a->rk];
     env->pc += 4;
@@ -1075,12 +1079,54 @@ static bool trans_cpucfg(CPULoongArchState *env, arg_cpucfg *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_fadd_s(CPULoongArchState *env, arg_fadd_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fadd_d(CPULoongArchState *env, arg_fadd_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fsub_s(CPULoongArchState *env, arg_fsub_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fsub_d(CPULoongArchState *env, arg_fsub_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmul_s(CPULoongArchState *env, arg_fmul_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmul_d(CPULoongArchState *env, arg_fmul_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fadd_s(CPULoongArchState *env, arg_fadd_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fadd_s(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fadd_d(CPULoongArchState *env, arg_fadd_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fadd_d(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fsub_s(CPULoongArchState *env, arg_fsub_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fsub_s(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fsub_d(CPULoongArchState *env, arg_fsub_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fsub_d(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fmul_s(CPULoongArchState *env, arg_fmul_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fmul_s(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fmul_d(CPULoongArchState *env, arg_fmul_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fmul_d(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fdiv_s(CPULoongArchState *env, arg_fdiv_s *a) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
@@ -1098,7 +1144,15 @@ static bool trans_fdiv_d(CPULoongArchState *env, arg_fdiv_d *a) {
     return true;
 }
 static bool trans_fmadd_s(CPULoongArchState *env, arg_fmadd_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv src3 = get_fpr(ctx, a->fa);
+    TCGv dest = helper_fmuladd_d(env, src1, src2, src3, 0);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fmsub_s(CPULoongArchState *env, arg_fmsub_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmsub_d(CPULoongArchState *env, arg_fmsub_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fnmadd_s(CPULoongArchState *env, arg_fnmadd_s *a) {__NOT_IMPLEMENTED__}
@@ -1107,8 +1161,22 @@ static bool trans_fnmsub_s(CPULoongArchState *env, arg_fnmsub_s *a) {__NOT_IMPLE
 static bool trans_fnmsub_d(CPULoongArchState *env, arg_fnmsub_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmax_s(CPULoongArchState *env, arg_fmax_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmax_d(CPULoongArchState *env, arg_fmax_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmin_s(CPULoongArchState *env, arg_fmin_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmin_d(CPULoongArchState *env, arg_fmin_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fmin_s(CPULoongArchState *env, arg_fmin_s *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fmin_s(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fmin_d(CPULoongArchState *env, arg_fmin_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv src2 = get_fpr(ctx, a->fk);
+    TCGv dest = helper_fmin_d(env, src1, src2);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fmaxa_s(CPULoongArchState *env, arg_fmaxa_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmaxa_d(CPULoongArchState *env, arg_fmaxa_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fmina_s(CPULoongArchState *env, arg_fmina_s *a) {__NOT_IMPLEMENTED__}
@@ -1132,7 +1200,13 @@ static bool trans_fneg_d(CPULoongArchState *env, arg_fneg_d *a) {__NOT_IMPLEMENT
 static bool trans_fsqrt_s(CPULoongArchState *env, arg_fsqrt_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fsqrt_d(CPULoongArchState *env, arg_fsqrt_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_frecip_s(CPULoongArchState *env, arg_frecip_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_frecip_d(CPULoongArchState *env, arg_frecip_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_frecip_d(CPULoongArchState *env, arg_frecip_d *a) {
+    TCGv src1 = get_fpr(ctx, a->fj);
+    TCGv dest = helper_frecip_d(env, src1);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_frsqrt_s(CPULoongArchState *env, arg_frsqrt_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_frsqrt_d(CPULoongArchState *env, arg_frsqrt_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fscaleb_s(CPULoongArchState *env, arg_fscaleb_s *a) {__NOT_IMPLEMENTED__}
@@ -1172,7 +1246,13 @@ static bool trans_ftintrp_w_d(CPULoongArchState *env, arg_ftintrp_w_d *a) {__NOT
 static bool trans_ftintrp_l_s(CPULoongArchState *env, arg_ftintrp_l_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrp_l_d(CPULoongArchState *env, arg_ftintrp_l_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrz_w_s(CPULoongArchState *env, arg_ftintrz_w_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_ftintrz_w_d(CPULoongArchState *env, arg_ftintrz_w_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_ftintrz_w_d(CPULoongArchState *env, arg_ftintrz_w_d *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = helper_ftintrz_w_d(env, src);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_ftintrz_l_s(CPULoongArchState *env, arg_ftintrz_l_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrz_l_d(CPULoongArchState *env, arg_ftintrz_l_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_ftintrne_w_s(CPULoongArchState *env, arg_ftintrne_w_s *a) {__NOT_IMPLEMENTED__}
@@ -1185,7 +1265,13 @@ static bool trans_ftint_l_s(CPULoongArchState *env, arg_ftint_l_s *a) {__NOT_IMP
 static bool trans_ftint_l_d(CPULoongArchState *env, arg_ftint_l_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_ffint_s_w(CPULoongArchState *env, arg_ffint_s_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_ffint_s_l(CPULoongArchState *env, arg_ffint_s_l *a) {__NOT_IMPLEMENTED__}
-static bool trans_ffint_d_w(CPULoongArchState *env, arg_ffint_d_w *a) {__NOT_IMPLEMENTED__}
+static bool trans_ffint_d_w(CPULoongArchState *env, arg_ffint_d_w *a) {
+    TCGv src = get_fpr(ctx, a->fj);
+    TCGv dest = helper_ffint_d_w(env, src);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
 static bool trans_ffint_d_l(CPULoongArchState *env, arg_ffint_d_l *a) {
     TCGv src = get_fpr(ctx, a->fj);
     TCGv dest = helper_ffint_d_l(env, src);
@@ -1195,10 +1281,22 @@ static bool trans_ffint_d_l(CPULoongArchState *env, arg_ffint_d_l *a) {
 }
 static bool trans_frint_s(CPULoongArchState *env, arg_frint_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_frint_d(CPULoongArchState *env, arg_frint_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmov_s(CPULoongArchState *env, arg_fmov_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fmov_d(CPULoongArchState *env, arg_fmov_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_fmov_s(CPULoongArchState *env, arg_fmov_s *a) {
+    env->fpr[a->fd].vreg.W[0] = env->fpr[a->fj].vreg.W[0];
+    env->pc += 4;
+    return true;
+}
+static bool trans_fmov_d(CPULoongArchState *env, arg_fmov_d *a) {
+    env->fpr[a->fd].vreg.D[0] = env->fpr[a->fj].vreg.D[0];
+    env->pc += 4;
+    return true;
+}
 static bool trans_fsel(CPULoongArchState *env, arg_fsel *a) {__NOT_IMPLEMENTED__}
-static bool trans_movgr2fr_w(CPULoongArchState *env, arg_movgr2fr_w *a) {__NOT_IMPLEMENTED__}
+static bool trans_movgr2fr_w(CPULoongArchState *env, arg_movgr2fr_w *a) {
+    env->fpr[a->fd].vreg.W[0] = env->gpr[a->rj];
+    env->pc += 4;
+    return true;
+}
 static bool trans_movgr2fr_d(CPULoongArchState *env, arg_movgr2fr_d *a) {
     env->fpr[a->fd].vreg.D[0] = env->gpr[a->rj];
     env->pc += 4;
@@ -1258,8 +1356,21 @@ static bool trans_movfr2cf(CPULoongArchState *env, arg_movfr2cf *a) {__NOT_IMPLE
 static bool trans_movcf2fr(CPULoongArchState *env, arg_movcf2fr *a) {__NOT_IMPLEMENTED__}
 static bool trans_movgr2cf(CPULoongArchState *env, arg_movgr2cf *a) {__NOT_IMPLEMENTED__}
 static bool trans_movcf2gr(CPULoongArchState *env, arg_movcf2gr *a) {__NOT_IMPLEMENTED__}
-static bool trans_fld_s(CPULoongArchState *env, arg_fld_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_fst_s(CPULoongArchState *env, arg_fst_s *a) {__NOT_IMPLEMENTED__}
+static bool trans_fld_s(CPULoongArchState *env, arg_fld_s *a) {
+    target_ulong va = env->gpr[a->rj] + a->imm;
+    lsassertm(is_aligned(va, 4), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
+    int64_t dest = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+    set_fpr(env, a->fd, dest);
+    env->pc += 4;
+    return true;
+}
+static bool trans_fst_s(CPULoongArchState *env, arg_fst_s *a) {
+    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
+    is_io(ha) ? do_io_st(ha, env->fpr[a->fd].vreg.W[0], 4) : ram_stw(ha, env->fpr[a->fd].vreg.W[0]);
+    env->pc += 4;
+    return true;
+}
 static bool trans_fld_d(CPULoongArchState *env, arg_fld_d *a) {
     target_ulong va = env->gpr[a->rj] + a->imm;
     lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
