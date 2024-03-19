@@ -5,6 +5,9 @@
 #include <fcntl.h>
 
 #define TARGET_NR_fstatfs 44
+#define TARGET_NR_openat 56
+#define TARGET_NR_close 57
+#define TARGET_NR_read 63
 #define TARGET_NR_write 64
 #define TARGET_NR_readlinkat 78
 #define TARGET_NR_fstatat64 79
@@ -18,6 +21,9 @@
 #define TARGET_NR_getegid 177
 #define TARGET_NR_gettid 178
 #define TARGET_NR_brk 214
+#define TARGET_NR_munmap 215
+#define TARGET_NR_mmap 222
+
 
 static abi_ulong target_brk, initial_target_brk;
 void target_set_brk(abi_ulong new_brk)
@@ -247,6 +253,12 @@ abi_long get_errno(abi_long ret)
         return ret;
 }
 
+static abi_long do_mmap(abi_ulong addr, abi_ulong len, int prot,
+                        int target_flags, int fd, off_t offset)
+{
+    return get_errno((abi_long)mmap((void*)addr, len, prot, target_flags, fd, offset));
+}
+
 static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                             abi_long arg2, abi_long arg3, abi_long arg4,
                             abi_long arg5, abi_long arg6, abi_long arg7,
@@ -256,6 +268,10 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
     abi_long ret;
     void *p;
     switch(num) {
+        case TARGET_NR_close:
+            return get_errno(close(arg1));
+        case TARGET_NR_read:
+            return get_errno(read(arg1, (void*)arg2, arg3));
         case TARGET_NR_write:
             ret = write(arg1, (void*)arg2, arg3);
             return get_errno(ret);
@@ -287,6 +303,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                 ret = get_errno(fstat(arg1, &st));
             }
             return ret;
+        case TARGET_NR_openat:
+            return get_errno(openat(arg1, (char*)arg2, arg3, arg4));
         case TARGET_NR_exit:
         case TARGET_NR_exit_group:
             fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", cpu_env->icount, cpu_env->ic_hit_count, cpu_env->syscall_count, cpu_env->ecount);
@@ -307,6 +325,10 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return get_errno(syscall(__NR_gettid));
         case TARGET_NR_brk:
             return do_brk(arg1);
+        case TARGET_NR_munmap:
+            return get_errno(munmap((void*)arg1, arg2));
+        case TARGET_NR_mmap:
+            return do_mmap(arg1, arg2, arg3, arg4, arg5, arg6);
         default:
             lsassertm(0, "unimplement syscall %d\n", num);
     }
