@@ -654,144 +654,167 @@ static uint64_t do_io_ld(hwaddr ha, int size) {
     }
     return data;
 }
-static bool trans_ld_b(CPULoongArchState *env, arg_ld_b *a) {
-    target_ulong va = env->gpr[a->rj] + a->imm;
+
+static uint64_t add_addr(int64_t base, int64_t disp) {
+    return (uint64_t)(base + disp);
+}
+
+static int8_t ld_b(CPULoongArchState *env, uint64_t va) {
     lsassertm(is_aligned(va, 1), "not aligned pc:%lx addr:%lx\n", env->pc, va);
     hwaddr ha = load_pa(env, va);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ha);
+    return is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ha);
+}
+
+static int16_t ld_h(CPULoongArchState *env, uint64_t va) {
+    lsassertm(is_aligned(va, 2), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
+    return is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ha);
+}
+
+static int32_t ld_w(CPULoongArchState *env, uint64_t va) {
+    lsassertm(is_aligned(va, 4), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
+    return is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+}
+
+static int64_t ld_d(CPULoongArchState *env, uint64_t va) {
+    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = load_pa(env, va);
+    return is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ha);
+}
+
+static void st_b(CPULoongArchState *env, uint64_t va, uint8_t data) {
+    lsassertm(is_aligned(va, 1), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = store_pa(env, va);
+    is_io(ha) ? do_io_st(ha, data, 1) : ram_stb(ha, data);
+}
+
+static void st_h(CPULoongArchState *env, uint64_t va, uint16_t data) {
+    lsassertm(is_aligned(va, 2), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = store_pa(env, va);
+    is_io(ha) ? do_io_st(ha, data, 2) : ram_sth(ha, data);
+}
+
+static void st_w(CPULoongArchState *env, uint64_t va, uint32_t data) {
+    hwaddr ha = store_pa(env, va);
+    is_io(ha) ? do_io_st(ha, data, 4) : ram_stw(ha, data);
+}
+
+static void st_d(CPULoongArchState *env, uint64_t va, uint64_t data) {
+    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    hwaddr ha = store_pa(env, va);
+    is_io(ha) ? do_io_st(ha, data, 8) : ram_std(ha, data);
+}
+
+static bool trans_ld_b(CPULoongArchState *env, arg_ld_b *a) {
+    env->gpr[a->rd] = (int64_t)ld_b(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_ld_h(CPULoongArchState *env, arg_ld_h *a) {
-    target_ulong va = env->gpr[a->rj] + a->imm;
-    lsassertm(is_aligned(va, 2), "not aligned pc:%lx addr:%lx\n", env->pc, va);
-    hwaddr ha = load_pa(env, va);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ha);
+    env->gpr[a->rd] = (int64_t)ld_h(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_ld_w(CPULoongArchState *env, arg_ld_w *a) {
-    target_ulong va = env->gpr[a->rj] + a->imm;
-    lsassertm(is_aligned(va, 4), "not aligned pc:%lx addr:%lx\n", env->pc, va);
-    hwaddr ha = load_pa(env, va);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+    env->gpr[a->rd] = (int64_t)ld_w(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_ld_d(CPULoongArchState *env, arg_ld_d *a) {
-    target_ulong va = env->gpr[a->rj] + a->imm;
-    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
-    hwaddr ha = load_pa(env, va);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ha);
+    env->gpr[a->rd] = (int64_t)ld_d(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 
 static bool trans_st_b(CPULoongArchState *env, arg_st_b *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 1) : ram_stb(ha, env->gpr[a->rd]);
+    st_b(env, add_addr(env->gpr[a->rj], a->imm), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_st_h(CPULoongArchState *env, arg_st_h *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 2) : ram_sth(ha, env->gpr[a->rd]);
+    st_h(env, add_addr(env->gpr[a->rj], a->imm), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
+
 static bool trans_st_w(CPULoongArchState *env, arg_st_w *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 4) : ram_stw(ha, env->gpr[a->rd]);
+    st_w(env, add_addr(env->gpr[a->rj], a->imm), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_st_d(CPULoongArchState *env, arg_st_d *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 8) : ram_std(ha, env->gpr[a->rd]);
+    st_d(env, add_addr(env->gpr[a->rj], a->imm), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_ld_bu(CPULoongArchState *env, arg_ld_bu *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldub(ha);
+    env->gpr[a->rd] = (uint8_t)ld_b(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_ld_hu(CPULoongArchState *env, arg_ld_hu *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_lduh(ha);
+    env->gpr[a->rd] = (uint16_t)ld_h(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_ld_wu(CPULoongArchState *env, arg_ld_wu *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_lduw(ha);
+    env->gpr[a->rd] = (uint32_t)ld_w(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_b(CPULoongArchState *env, arg_ldx_b *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ha);
+    env->gpr[a->rd] = (int64_t)ld_b(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_h(CPULoongArchState *env, arg_ldx_h *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ha);
+    env->gpr[a->rd] = (int64_t)ld_h(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_w(CPULoongArchState *env, arg_ldx_w *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+    env->gpr[a->rd] = (int64_t)ld_w(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_d(CPULoongArchState *env, arg_ldx_d *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ha);
+    env->gpr[a->rd] = (int64_t)ld_d(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
 static bool trans_stx_b(CPULoongArchState *env, arg_stx_b *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 1) : ram_stb(ha, env->gpr[a->rd]);
+    st_b(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_stx_h(CPULoongArchState *env, arg_stx_h *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 2) : ram_sth(ha, env->gpr[a->rd]);
+    st_h(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_stx_w(CPULoongArchState *env, arg_stx_w *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 4) : ram_stw(ha, env->gpr[a->rd]);
+    st_w(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_stx_d(CPULoongArchState *env, arg_stx_d *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 8) : ram_std(ha, env->gpr[a->rd]);
+    st_d(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_bu(CPULoongArchState *env, arg_ldx_bu *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 1) : ram_ldub(ha);
+    env->gpr[a->rd] = (uint8_t)ld_b(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_hu(CPULoongArchState *env, arg_ldx_hu *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 2) : ram_lduh(ha);
+    env->gpr[a->rd] = (uint16_t)ld_h(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
 static bool trans_ldx_wu(CPULoongArchState *env, arg_ldx_wu *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_lduw(ha);
+    env->gpr[a->rd] = (uint32_t)ld_w(env, add_addr(env->gpr[a->rj], env->gpr[a->rk]));
     env->pc += 4;
     return true;
 }
@@ -821,26 +844,22 @@ static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
     return true;
 }
 static bool trans_ldptr_w(CPULoongArchState *env, arg_ldptr_w *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+    env->gpr[a->rd] = (int64_t)ld_w(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_stptr_w(CPULoongArchState *env, arg_stptr_w *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 4) : ram_stw(ha, env->gpr[a->rd]);
+    st_w(env, add_addr(env->gpr[a->rj], a->imm), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
 static bool trans_ldptr_d(CPULoongArchState *env, arg_ldptr_d *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ha);
+    env->gpr[a->rd] = (int64_t)ld_d(env, add_addr(env->gpr[a->rj], a->imm));
     env->pc += 4;
     return true;
 }
 static bool trans_stptr_d(CPULoongArchState *env, arg_stptr_d *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    is_io(ha) ? do_io_st(ha, env->gpr[a->rd], 8) : ram_std(ha, env->gpr[a->rd]);
+    st_d(env, add_addr(env->gpr[a->rj], a->imm), env->gpr[a->rd]);
     env->pc += 4;
     return true;
 }
