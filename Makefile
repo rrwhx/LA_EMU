@@ -27,14 +27,14 @@ $(BUILD_DIR)/la_emu_user : ${USER_OBJS}
 	$(CC) $(USER_OBJS) -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/%_user.o : %.c
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -DUSER_MODE=1 -c -o $@ $<
 
 $(BUILD_DIR)/la_emu_kernel : ${KERNEL_OBJS}
 	$(CC) $(KERNEL_OBJS) -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/%_kernel.o : %.c
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
