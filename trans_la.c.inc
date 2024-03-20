@@ -4325,7 +4325,6 @@ static bool decode(DisasContext *ctx, uint32_t insn)
         assert((void*)&u.f_vvvv == &u);
 
     assert(sizeof(u) == 16);
-    assert(alignof(u) == 4);
 
     switch ((insn >> 26) & 0x3f) {
     case 0x0:
