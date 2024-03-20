@@ -80,9 +80,9 @@ static void user_ram_memcpy (void *__restrict __dest, const void *__restrict __s
 }
 
 static target_ulong user_setup_stack() {
-    void* dst = mmap(NULL, 0x800000, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void* dst = mmap(NULL, SZ_4G, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(dst != MAP_FAILED);
-    return (target_ulong)(dst + 0x800000 - 64);
+    return (target_ulong)(dst + SZ_4G - 64);
 }
 
 static char* alloc_ram(uint64_t ram_size) {
