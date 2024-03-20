@@ -300,7 +300,11 @@ static bool trans_pcaddu12i(CPULoongArchState *env, arg_pcaddu12i *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_pcaddu18i(CPULoongArchState *env, arg_pcaddu18i *a) {__NOT_IMPLEMENTED__}
+static bool trans_pcaddu18i(CPULoongArchState *env, arg_pcaddu18i *a) {
+    env->gpr[a->rd] = env->pc + (a->imm << 18);
+    env->pc += 4;
+    return true;
+}
 static bool trans_addi_w(CPULoongArchState *env, arg_addi_w *a) {
     env->gpr[a->rd] = (int64_t)(int32_t)(env->gpr[a->rj] + a->imm);
     env->pc += 4;
