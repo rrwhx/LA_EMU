@@ -743,9 +743,10 @@ void G_NORETURN do_raise_exception(CPULoongArchState *env,
 int qemu_loglevel;
 FILE* logfile;
 void handle_logfile(const char* filename) {
-    FILE* logfile = fopen(optarg, "w");
-    if (logfile) {
+    logfile = fopen(optarg, "w");
+    if (!logfile) {
         fprintf(stderr, "can not open logfile %s\n", filename);
+        exit(EXIT_FAILURE);
     }
 }
 
