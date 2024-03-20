@@ -85,6 +85,7 @@ static target_ulong user_setup_stack() {
     return (target_ulong)(dst + SZ_4G - 64);
 }
 
+#ifndef USER_MODE
 static char* alloc_ram(uint64_t ram_size) {
     void* start = mmap(NULL, ram_size + SZ_2G, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(start != MAP_FAILED);
@@ -94,6 +95,7 @@ static char* alloc_ram(uint64_t ram_size) {
     lsassert(part2 != MAP_FAILED);
     return part1;
 }
+#endif
 
 #define elfhdr Elf64_Ehdr
 #define elf_shdr Elf64_Shdr
@@ -644,13 +646,6 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
 //     }
 // }
 
-static uint64_t addr_trans(uint64_t addr, int prot) {
-    // if (env.CSR_CRMD) {
-
-    // }
-}
-
-static INSCache inv_ic;
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
 #if defined(USER_MODE)
         uint32_t insn = ram_lduw(env->pc);
