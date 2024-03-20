@@ -197,14 +197,30 @@ static bool trans_mul_w(CPULoongArchState *env, arg_mul_w *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_mulh_w(CPULoongArchState *env, arg_mulh_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_mulh_wu(CPULoongArchState *env, arg_mulh_wu *a) {__NOT_IMPLEMENTED__}
+static bool trans_mulh_w(CPULoongArchState *env, arg_mulh_w *a) {
+    int64_t data = ((int64_t)(int32_t)env->gpr[a->rj] * (int64_t)(int32_t)env->gpr[a->rk]) >> 32;
+    env->gpr[a->rd] = data;
+    env->pc += 4;
+    return true;
+}
+static bool trans_mulh_wu(CPULoongArchState *env, arg_mulh_wu *a) {
+    int64_t data = ((int64_t)((uint64_t)(uint32_t)env->gpr[a->rj] * (uint64_t)(uint32_t)env->gpr[a->rk])) >> 32;
+    env->gpr[a->rd] = data;
+    env->pc += 4;
+    return true;
+}
 static bool trans_mul_d(CPULoongArchState *env, arg_mul_d *a) {
     env->gpr[a->rd] = (int64_t)env->gpr[a->rj] * (int64_t)env->gpr[a->rk];
     env->pc += 4;
     return true;
 }
-static bool trans_mulh_d(CPULoongArchState *env, arg_mulh_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_mulh_d(CPULoongArchState *env, arg_mulh_d *a) {
+    uint64_t high,low;
+    muls64(&low, &high, env->gpr[a->rj], env->gpr[a->rk]);
+    env->gpr[a->rd] = high;
+    env->pc += 4;
+    return true;
+}
 static bool trans_mulh_du(CPULoongArchState *env, arg_mulh_du *a) {
     uint64_t high,low;
     mulu64(&low, &high, env->gpr[a->rj], env->gpr[a->rk]);
@@ -212,8 +228,16 @@ static bool trans_mulh_du(CPULoongArchState *env, arg_mulh_du *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_mulw_d_w(CPULoongArchState *env, arg_mulw_d_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_mulw_d_wu(CPULoongArchState *env, arg_mulw_d_wu *a) {__NOT_IMPLEMENTED__}
+static bool trans_mulw_d_w(CPULoongArchState *env, arg_mulw_d_w *a) {
+    env->gpr[a->rd] = (int64_t)(int32_t)env->gpr[a->rj] * (int64_t)(int32_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
+static bool trans_mulw_d_wu(CPULoongArchState *env, arg_mulw_d_wu *a) {
+    env->gpr[a->rd] = (uint64_t)(uint32_t)env->gpr[a->rj] * (uint64_t)(uint32_t)env->gpr[a->rk];
+    env->pc += 4;
+    return true;
+}
 static bool trans_div_w(CPULoongArchState *env, arg_div_w *a) {
     env->gpr[a->rd] = (int32_t)env->gpr[a->rj] / (int32_t)env->gpr[a->rk];
     env->pc += 4;
