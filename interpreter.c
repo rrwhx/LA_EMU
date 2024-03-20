@@ -1199,14 +1199,14 @@ static bool gen_ffff(CPULoongArchState *env, arg_ffff *a, uint64_t (*func)(CPULo
     env->pc += 4;
     return true;
 }
-static bool trans_fmadd_s(CPULoongArchState *env, arg_fmadd_s *a) {gen_ffff(env, a, helper_fmuladd_s, 0);}
-static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {gen_ffff(env, a, helper_fmuladd_d, 0);}
-static bool trans_fmsub_s(CPULoongArchState *env, arg_fmsub_s *a) {gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_c);}
-static bool trans_fmsub_d(CPULoongArchState *env, arg_fmsub_s *a) {gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_c);}
-static bool trans_fnmadd_s(CPULoongArchState *env, arg_fnmadd_s *a) {gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_result);}
-static bool trans_fnmadd_d(CPULoongArchState *env, arg_fnmadd_d *a) {gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_result);}
-static bool trans_fnmsub_s(CPULoongArchState *env, arg_fnmsub_s *a) {gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_c | float_muladd_negate_result);}
-static bool trans_fnmsub_d(CPULoongArchState *env, arg_fnmsub_d *a) {gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_c | float_muladd_negate_result);}
+static bool trans_fmadd_s(CPULoongArchState *env, arg_fmadd_s *a) {return gen_ffff(env, a, helper_fmuladd_s, 0);}
+static bool trans_fmadd_d(CPULoongArchState *env, arg_fmadd_d *a) {return gen_ffff(env, a, helper_fmuladd_d, 0);}
+static bool trans_fmsub_s(CPULoongArchState *env, arg_fmsub_s *a) {return gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_c);}
+static bool trans_fmsub_d(CPULoongArchState *env, arg_fmsub_s *a) {return gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_c);}
+static bool trans_fnmadd_s(CPULoongArchState *env, arg_fnmadd_s *a) {return gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_result);}
+static bool trans_fnmadd_d(CPULoongArchState *env, arg_fnmadd_d *a) {return gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_result);}
+static bool trans_fnmsub_s(CPULoongArchState *env, arg_fnmsub_s *a) {return gen_ffff(env, a, helper_fmuladd_s, float_muladd_negate_c | float_muladd_negate_result);}
+static bool trans_fnmsub_d(CPULoongArchState *env, arg_fnmsub_d *a) {return gen_ffff(env, a, helper_fmuladd_d, float_muladd_negate_c | float_muladd_negate_result);}
 
 static bool trans_fabs_s(CPULoongArchState *env, arg_fabs_s *a) {
     TCGv src = get_fpr(ctx, a->fj);
@@ -1243,44 +1243,44 @@ static bool gen_ff(CPULoongArchState *env, arg_ff *a, uint64_t (*func)(CPULoongA
     env->pc += 4;
     return true;
 }
-static bool trans_fsqrt_s(CPULoongArchState *env, arg_fsqrt_s *a) {gen_ff(env, a, helper_fsqrt_s);}
-static bool trans_fsqrt_d(CPULoongArchState *env, arg_fsqrt_d *a) {gen_ff(env, a, helper_fsqrt_d);}
-static bool trans_frecip_s(CPULoongArchState *env, arg_frecip_s *a) {gen_ff(env, a, helper_frecip_s);}
-static bool trans_frecip_d(CPULoongArchState *env, arg_frecip_d *a) {gen_ff(env, a, helper_frecip_d);}
-static bool trans_frsqrt_s(CPULoongArchState *env, arg_frsqrt_s *a) {gen_ff(env, a, helper_frsqrt_s);}
-static bool trans_frsqrt_d(CPULoongArchState *env, arg_frsqrt_d *a) {gen_ff(env, a, helper_frsqrt_d);}
-static bool trans_flogb_s(CPULoongArchState *env, arg_flogb_s *a) {gen_ff(env, a, helper_flogb_s);}
-static bool trans_flogb_d(CPULoongArchState *env, arg_flogb_d *a) {gen_ff(env, a, helper_flogb_d);}
-static bool trans_fclass_s(CPULoongArchState *env, arg_fclass_s *a) {gen_ff(env, a, helper_fclass_s);}
-static bool trans_fclass_d(CPULoongArchState *env, arg_fclass_d *a) {gen_ff(env, a, helper_fclass_d);}
-static bool trans_fcvt_s_d(CPULoongArchState *env, arg_fcvt_s_d *a) {gen_ff(env, a, helper_fcvt_s_d);}
-static bool trans_fcvt_d_s(CPULoongArchState *env, arg_fcvt_d_s *a) {gen_ff(env, a, helper_fcvt_d_s);}
-static bool trans_ftintrm_w_s(CPULoongArchState *env, arg_ftintrm_w_s *a) {gen_ff(env, a, helper_ftintrm_w_s);}
-static bool trans_ftintrm_w_d(CPULoongArchState *env, arg_ftintrm_w_d *a) {gen_ff(env, a, helper_ftintrm_w_d);}
-static bool trans_ftintrm_l_s(CPULoongArchState *env, arg_ftintrm_l_s *a) {gen_ff(env, a, helper_ftintrm_l_s);}
-static bool trans_ftintrm_l_d(CPULoongArchState *env, arg_ftintrm_l_d *a) {gen_ff(env, a, helper_ftintrm_l_d);}
-static bool trans_ftintrp_w_s(CPULoongArchState *env, arg_ftintrp_w_s *a) {gen_ff(env, a, helper_ftintrp_w_s);}
-static bool trans_ftintrp_w_d(CPULoongArchState *env, arg_ftintrp_w_d *a) {gen_ff(env, a, helper_ftintrp_w_d);}
-static bool trans_ftintrp_l_s(CPULoongArchState *env, arg_ftintrp_l_s *a) {gen_ff(env, a, helper_ftintrp_l_s);}
-static bool trans_ftintrp_l_d(CPULoongArchState *env, arg_ftintrp_l_d *a) {gen_ff(env, a, helper_ftintrp_l_d);}
-static bool trans_ftintrz_w_s(CPULoongArchState *env, arg_ftintrz_w_s *a) {gen_ff(env, a, helper_ftintrz_w_s);}
-static bool trans_ftintrz_w_d(CPULoongArchState *env, arg_ftintrz_w_d *a) {gen_ff(env, a, helper_ftintrz_w_d);}
-static bool trans_ftintrz_l_s(CPULoongArchState *env, arg_ftintrz_l_s *a) {gen_ff(env, a, helper_ftintrz_l_s);}
-static bool trans_ftintrz_l_d(CPULoongArchState *env, arg_ftintrz_l_d *a) {gen_ff(env, a, helper_ftintrz_l_d);}
-static bool trans_ftintrne_w_s(CPULoongArchState *env, arg_ftintrne_w_s *a) {gen_ff(env, a, helper_ftintrne_w_s);}
-static bool trans_ftintrne_w_d(CPULoongArchState *env, arg_ftintrne_w_d *a) {gen_ff(env, a, helper_ftintrne_w_d);}
-static bool trans_ftintrne_l_s(CPULoongArchState *env, arg_ftintrne_l_s *a) {gen_ff(env, a, helper_ftintrne_l_s);}
-static bool trans_ftintrne_l_d(CPULoongArchState *env, arg_ftintrne_l_d *a) {gen_ff(env, a, helper_ftintrne_l_d);}
-static bool trans_ftint_w_s(CPULoongArchState *env, arg_ftint_w_s *a) {gen_ff(env, a, helper_ftint_w_s);}
-static bool trans_ftint_w_d(CPULoongArchState *env, arg_ftint_w_d *a) {gen_ff(env, a, helper_ftint_w_d);}
-static bool trans_ftint_l_s(CPULoongArchState *env, arg_ftint_l_s *a) {gen_ff(env, a, helper_ftint_l_s);}
-static bool trans_ftint_l_d(CPULoongArchState *env, arg_ftint_l_d *a) {gen_ff(env, a, helper_ftint_l_d);}
-static bool trans_ffint_s_w(CPULoongArchState *env, arg_ffint_s_w *a) {gen_ff(env, a, helper_ffint_s_w);}
-static bool trans_ffint_s_l(CPULoongArchState *env, arg_ffint_s_l *a) {gen_ff(env, a, helper_ffint_s_l);}
-static bool trans_ffint_d_w(CPULoongArchState *env, arg_ffint_d_w *a) {gen_ff(env, a, helper_ffint_d_w);}
-static bool trans_ffint_d_l(CPULoongArchState *env, arg_ffint_d_l *a) {gen_ff(env, a, helper_ffint_d_l);}
-static bool trans_frint_s(CPULoongArchState *env, arg_frint_s *a) {gen_ff(env, a, helper_frint_s);}
-static bool trans_frint_d(CPULoongArchState *env, arg_frint_d *a) {gen_ff(env, a, helper_frint_d);}
+static bool trans_fsqrt_s(CPULoongArchState *env, arg_fsqrt_s *a) {return gen_ff(env, a, helper_fsqrt_s);}
+static bool trans_fsqrt_d(CPULoongArchState *env, arg_fsqrt_d *a) {return gen_ff(env, a, helper_fsqrt_d);}
+static bool trans_frecip_s(CPULoongArchState *env, arg_frecip_s *a) {return gen_ff(env, a, helper_frecip_s);}
+static bool trans_frecip_d(CPULoongArchState *env, arg_frecip_d *a) {return gen_ff(env, a, helper_frecip_d);}
+static bool trans_frsqrt_s(CPULoongArchState *env, arg_frsqrt_s *a) {return gen_ff(env, a, helper_frsqrt_s);}
+static bool trans_frsqrt_d(CPULoongArchState *env, arg_frsqrt_d *a) {return gen_ff(env, a, helper_frsqrt_d);}
+static bool trans_flogb_s(CPULoongArchState *env, arg_flogb_s *a) {return gen_ff(env, a, helper_flogb_s);}
+static bool trans_flogb_d(CPULoongArchState *env, arg_flogb_d *a) {return gen_ff(env, a, helper_flogb_d);}
+static bool trans_fclass_s(CPULoongArchState *env, arg_fclass_s *a) {return gen_ff(env, a, helper_fclass_s);}
+static bool trans_fclass_d(CPULoongArchState *env, arg_fclass_d *a) {return gen_ff(env, a, helper_fclass_d);}
+static bool trans_fcvt_s_d(CPULoongArchState *env, arg_fcvt_s_d *a) {return gen_ff(env, a, helper_fcvt_s_d);}
+static bool trans_fcvt_d_s(CPULoongArchState *env, arg_fcvt_d_s *a) {return gen_ff(env, a, helper_fcvt_d_s);}
+static bool trans_ftintrm_w_s(CPULoongArchState *env, arg_ftintrm_w_s *a) {return gen_ff(env, a, helper_ftintrm_w_s);}
+static bool trans_ftintrm_w_d(CPULoongArchState *env, arg_ftintrm_w_d *a) {return gen_ff(env, a, helper_ftintrm_w_d);}
+static bool trans_ftintrm_l_s(CPULoongArchState *env, arg_ftintrm_l_s *a) {return gen_ff(env, a, helper_ftintrm_l_s);}
+static bool trans_ftintrm_l_d(CPULoongArchState *env, arg_ftintrm_l_d *a) {return gen_ff(env, a, helper_ftintrm_l_d);}
+static bool trans_ftintrp_w_s(CPULoongArchState *env, arg_ftintrp_w_s *a) {return gen_ff(env, a, helper_ftintrp_w_s);}
+static bool trans_ftintrp_w_d(CPULoongArchState *env, arg_ftintrp_w_d *a) {return gen_ff(env, a, helper_ftintrp_w_d);}
+static bool trans_ftintrp_l_s(CPULoongArchState *env, arg_ftintrp_l_s *a) {return gen_ff(env, a, helper_ftintrp_l_s);}
+static bool trans_ftintrp_l_d(CPULoongArchState *env, arg_ftintrp_l_d *a) {return gen_ff(env, a, helper_ftintrp_l_d);}
+static bool trans_ftintrz_w_s(CPULoongArchState *env, arg_ftintrz_w_s *a) {return gen_ff(env, a, helper_ftintrz_w_s);}
+static bool trans_ftintrz_w_d(CPULoongArchState *env, arg_ftintrz_w_d *a) {return gen_ff(env, a, helper_ftintrz_w_d);}
+static bool trans_ftintrz_l_s(CPULoongArchState *env, arg_ftintrz_l_s *a) {return gen_ff(env, a, helper_ftintrz_l_s);}
+static bool trans_ftintrz_l_d(CPULoongArchState *env, arg_ftintrz_l_d *a) {return gen_ff(env, a, helper_ftintrz_l_d);}
+static bool trans_ftintrne_w_s(CPULoongArchState *env, arg_ftintrne_w_s *a) {return gen_ff(env, a, helper_ftintrne_w_s);}
+static bool trans_ftintrne_w_d(CPULoongArchState *env, arg_ftintrne_w_d *a) {return gen_ff(env, a, helper_ftintrne_w_d);}
+static bool trans_ftintrne_l_s(CPULoongArchState *env, arg_ftintrne_l_s *a) {return gen_ff(env, a, helper_ftintrne_l_s);}
+static bool trans_ftintrne_l_d(CPULoongArchState *env, arg_ftintrne_l_d *a) {return gen_ff(env, a, helper_ftintrne_l_d);}
+static bool trans_ftint_w_s(CPULoongArchState *env, arg_ftint_w_s *a) {return gen_ff(env, a, helper_ftint_w_s);}
+static bool trans_ftint_w_d(CPULoongArchState *env, arg_ftint_w_d *a) {return gen_ff(env, a, helper_ftint_w_d);}
+static bool trans_ftint_l_s(CPULoongArchState *env, arg_ftint_l_s *a) {return gen_ff(env, a, helper_ftint_l_s);}
+static bool trans_ftint_l_d(CPULoongArchState *env, arg_ftint_l_d *a) {return gen_ff(env, a, helper_ftint_l_d);}
+static bool trans_ffint_s_w(CPULoongArchState *env, arg_ffint_s_w *a) {return gen_ff(env, a, helper_ffint_s_w);}
+static bool trans_ffint_s_l(CPULoongArchState *env, arg_ffint_s_l *a) {return gen_ff(env, a, helper_ffint_s_l);}
+static bool trans_ffint_d_w(CPULoongArchState *env, arg_ffint_d_w *a) {return gen_ff(env, a, helper_ffint_d_w);}
+static bool trans_ffint_d_l(CPULoongArchState *env, arg_ffint_d_l *a) {return gen_ff(env, a, helper_ffint_d_l);}
+static bool trans_frint_s(CPULoongArchState *env, arg_frint_s *a) {return gen_ff(env, a, helper_frint_s);}
+static bool trans_frint_d(CPULoongArchState *env, arg_frint_d *a) {return gen_ff(env, a, helper_frint_d);}
 static bool trans_fcopysign_s(CPULoongArchState *env, arg_fcopysign_s *a) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
