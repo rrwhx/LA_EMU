@@ -68,7 +68,11 @@ uint64_t ram_size = SZ_4G;
 char* kernel_filename;
 
 void usage(void) {
-    fprintf(stderr, "la_emu -m n[G] -k kernel\n");
+#ifndef USER_MODE
+    fprintf(stderr, "la_emu_kernel -m n[G] -k kernel\n");
+#else
+    fprintf(stderr, "usage: la_emu_user [-d exec,cpu,page,strace,unimp] [-D logfile] program [arguments...]\n");
+#endif
     exit(EXIT_SUCCESS);
 }
 
@@ -852,6 +856,10 @@ int main(int argc, char** argv, char **envp) {
     qemu_log_mask(CPU_LOG_PAGE, "TARGET_PAGE_SIZE:%lx TARGET_PAGE_BITS:%ld TARGET_PAGE_MASK:%lx\n", TARGET_PAGE_SIZE, TARGET_PAGE_BITS, TARGET_PAGE_MASK);
 
     kernel_filename = argv[optind];
+    if(!kernel_filename) {
+        usage();
+        exit(EXIT_FAILURE);
+    }
     load_elf_user(kernel_filename, &entry_addr);
     target_set_brk(info.brk);
     exec_path = kernel_filename;
