@@ -40,5 +40,6 @@ $(BUILD_DIR)/%_kernel.o : %.c
 clean:
 	rm -rf build
 
+.EXTRA_PREREQS = Makefile
 -include $(USER_DEPS)
 -include $(KERNEL_DEPS)
