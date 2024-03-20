@@ -65,7 +65,7 @@ typedef enum MMUAccessType {
 #define TARGET_PAGE_BITS 12
 
 #define TARGET_PAGE_SIZE   (1 << TARGET_PAGE_BITS)
-#define TARGET_PAGE_MASK   ((target_long)-1 << TARGET_PAGE_BITS)
+#define TARGET_PAGE_MASK   ((target_ulong)-1 << TARGET_PAGE_BITS)
 
 #define TARGET_LONG_SIZE (TARGET_LONG_BITS / 8)
 
