@@ -577,37 +577,37 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic);
 
 #ifdef USER_MODE
-static uint64_t ram_ldb(hwaddr addr) {return (int64_t)*(int8_t*)(addr);}
-static uint64_t ram_ldh(hwaddr addr) {return (int64_t)*(int16_t*)(addr);}
-static uint64_t ram_ldw(hwaddr addr) {return (int64_t)*(int32_t*)(addr);}
-static uint64_t ram_ldd(hwaddr addr) {return (int64_t)*(int64_t*)(addr);}
-static uint64_t ram_ldub(hwaddr addr) {return *(uint8_t*)(addr);}
-static uint64_t ram_lduh(hwaddr addr) {return *(uint16_t*)(addr);}
-static uint64_t ram_lduw(hwaddr addr) {return *(uint32_t*)(addr);}
-static uint64_t ram_ldud(hwaddr addr) {return *(uint64_t*)(addr);}
-static void ram_stb(hwaddr addr, uint64_t data) {*(uint8_t*)(addr) = data;}
-static void ram_sth(hwaddr addr, uint64_t data) {*(uint16_t*)(addr) = data;}
-static void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(addr) = data;}
-static void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(addr) = data;}
+static inline uint64_t ram_ldb(hwaddr addr) {return (int64_t)*(int8_t*)(addr);}
+static inline uint64_t ram_ldh(hwaddr addr) {return (int64_t)*(int16_t*)(addr);}
+static inline uint64_t ram_ldw(hwaddr addr) {return (int64_t)*(int32_t*)(addr);}
+static inline uint64_t ram_ldd(hwaddr addr) {return (int64_t)*(int64_t*)(addr);}
+static inline uint64_t ram_ldub(hwaddr addr) {return *(uint8_t*)(addr);}
+static inline uint64_t ram_lduh(hwaddr addr) {return *(uint16_t*)(addr);}
+static inline uint64_t ram_lduw(hwaddr addr) {return *(uint32_t*)(addr);}
+static inline uint64_t ram_ldud(hwaddr addr) {return *(uint64_t*)(addr);}
+static inline void ram_stb(hwaddr addr, uint64_t data) {*(uint8_t*)(addr) = data;}
+static inline void ram_sth(hwaddr addr, uint64_t data) {*(uint16_t*)(addr) = data;}
+static inline void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(addr) = data;}
+static inline void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(addr) = data;}
 #else
 extern char* ram;
-static uint64_t ram_ldb(hwaddr addr) {return (int64_t)*(int8_t*)(ram + addr);}
-static uint64_t ram_ldh(hwaddr addr) {return (int64_t)*(int16_t*)(ram + addr);}
-static uint64_t ram_ldw(hwaddr addr) {return (int64_t)*(int32_t*)(ram + addr);}
-static uint64_t ram_ldd(hwaddr addr) {return (int64_t)*(int64_t*)(ram + addr);}
-static uint64_t ram_ldub(hwaddr addr) {return *(uint8_t*)(ram + addr);}
-static uint64_t ram_lduh(hwaddr addr) {return *(uint16_t*)(ram + addr);}
-static uint64_t ram_lduw(hwaddr addr) {return *(uint32_t*)(ram + addr);}
-static uint64_t ram_ldud(hwaddr addr) {return *(uint64_t*)(ram + addr);}
-static void ram_stb(hwaddr addr, uint64_t data) {*(uint8_t*)(ram + addr) = data;}
-static void ram_sth(hwaddr addr, uint64_t data) {*(uint16_t*)(ram + addr) = data;}
-static void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
-static void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
+static inline uint64_t ram_ldb(hwaddr addr) {return (int64_t)*(int8_t*)(ram + addr);}
+static inline uint64_t ram_ldh(hwaddr addr) {return (int64_t)*(int16_t*)(ram + addr);}
+static inline uint64_t ram_ldw(hwaddr addr) {return (int64_t)*(int32_t*)(ram + addr);}
+static inline uint64_t ram_ldd(hwaddr addr) {return (int64_t)*(int64_t*)(ram + addr);}
+static inline uint64_t ram_ldub(hwaddr addr) {return *(uint8_t*)(ram + addr);}
+static inline uint64_t ram_lduh(hwaddr addr) {return *(uint16_t*)(ram + addr);}
+static inline uint64_t ram_lduw(hwaddr addr) {return *(uint32_t*)(ram + addr);}
+static inline uint64_t ram_ldud(hwaddr addr) {return *(uint64_t*)(ram + addr);}
+static inline void ram_stb(hwaddr addr, uint64_t data) {*(uint8_t*)(ram + addr) = data;}
+static inline void ram_sth(hwaddr addr, uint64_t data) {*(uint16_t*)(ram + addr) = data;}
+static inline void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
+static inline void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
 #endif
 
 G_NORETURN void cpu_loop_exit(CPUState *cpu);
 
-static target_ulong ldq_phys(void* as, hwaddr addr) {
+static inline target_ulong ldq_phys(void* as, hwaddr addr) {
     return ram_ldd(addr);
 }
 
@@ -640,7 +640,10 @@ static inline void cpu_clear_tc(CPULoongArchState *env) {
     memset(env->tc_fetch, -1, sizeof(env->tc_fetch));
     // memset(env->inscache, 0, sizeof(env->inscache));
 }
-
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, void*), void* arg, int insn) {
     INSCache* ic = &env->inscache[IC_INDEX(env->pc)];
     ic->trans_func = trans_func;
@@ -652,6 +655,9 @@ static inline void cpu_put_ic(CPULoongArchState *env, bool (*trans_func)(void*, 
     ic->insn = insn;
     // fprintf(stderr, "put %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
     INSCache* ic = &env->inscache[IC_INDEX(env->pc)];

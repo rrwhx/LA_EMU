@@ -109,7 +109,7 @@ static inline double second(void){
 #define __4K (4 * 1024ULL)
 
 extern FILE* logfile;
-static void qemu_log(const char *fmt, ...)
+static inline void qemu_log(const char *fmt, ...)
 {
     FILE *f = logfile;
     va_list ap;

@@ -55,10 +55,8 @@ typedef enum {
     EXT_ZERO,
 } DisasExtend;
 
-static inline int64_t gpr_src(CPULoongArchState *env, int reg_num, DisasExtend src_ext)
+__attribute__((unused)) static inline int64_t gpr_src(CPULoongArchState *env, int reg_num, DisasExtend src_ext)
 {
-    int64_t t;
-
     if (reg_num == 0) {
         return 0;
     }
@@ -626,7 +624,7 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
         return ha;
     }
     int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-    int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
+    check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
     tc->va = page_addr;
     tc->pa = ha & TARGET_PAGE_MASK;
     return ha;
@@ -645,7 +643,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
         // fprintf(stderr, "%lx %lx\n", addr, ha);
     } else {
         int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-        int r = check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
+        check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
         tc->va = page_addr;
         tc->pa = ha & TARGET_PAGE_MASK;
     }
@@ -673,7 +671,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
     }
 }
 static uint64_t do_io_ld(hwaddr ha, int size) {
-    uint64_t data;
+    uint64_t data = 'x';
     switch (ha)
     {
     case 0x1fe00120:

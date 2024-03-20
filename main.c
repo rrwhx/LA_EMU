@@ -72,19 +72,17 @@ void usage(void) {
     exit(EXIT_SUCCESS);
 }
 
-static void user_ram_memcpy (void *__restrict __dest, const void *__restrict __src, size_t __n) {
-    lsassert(!((uintptr_t)__dest & 0xfff));
-    void* dst = mmap(__dest, __n, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-    lsassert(dst != MAP_FAILED);
-    memcpy(__dest, __src, __n);
-}
-
+#if defined(USER_MODE)
 static target_ulong user_setup_stack() {
     void* dst = mmap(NULL, SZ_4G, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(dst != MAP_FAILED);
     return (target_ulong)(dst + SZ_4G - 64);
 }
+#endif
 
+#define elfhdr Elf64_Ehdr
+#define elf_shdr Elf64_Shdr
+#define elf_phdr Elf64_Phdr
 #ifndef USER_MODE
 static char* alloc_ram(uint64_t ram_size) {
     void* start = mmap(NULL, ram_size + SZ_2G, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -95,20 +93,14 @@ static char* alloc_ram(uint64_t ram_size) {
     lsassert(part2 != MAP_FAILED);
     return part1;
 }
-#endif
-
-#define elfhdr Elf64_Ehdr
-#define elf_shdr Elf64_Shdr
-#define elf_phdr Elf64_Phdr
 
 bool load_elf(const char* filename, uint64_t* entry_addr) {
-    int size, i, total_size;
+    int size, i;
     uint64_t mem_size, file_size;
     uint8_t e_ident[EI_NIDENT];
     uint8_t *data = NULL;
     int ret = 1;
     elfhdr ehdr;
-    elf_shdr *symtab, *strtab, *shdr_table = NULL;
     elf_phdr *phdr = NULL, *ph;
     int fd = open(filename, O_RDONLY);
     if (fd < 0) {
@@ -143,18 +135,12 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
     if (read(fd, phdr, size) != size)
         goto fail;
 
-    total_size = 0;
     for(i = 0; i < ehdr.e_phnum; i++) {
         ph = &phdr[i];
         if (ph->p_type == PT_LOAD) {
             mem_size = ph->p_memsz; /* Size of the ROM */
             file_size = ph->p_filesz; /* Size of the allocated data */
-#if defined(USER_MODE)
-                data = (uint8_t*)malloc(mem_size);
-                memset(data, 0, mem_size);
-#else
-                data = (uint8_t*)malloc(file_size);
-#endif
+            data = (uint8_t*)malloc(file_size);
             if (ph->p_filesz > 0) {
                 if (lseek(fd, ph->p_offset, SEEK_SET) < 0) {
                     goto fail;
@@ -163,11 +149,7 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
                     goto fail;
                 }
                 // ram_writen(ph->p_paddr & 0xfffffff, data, file_size);
-#if defined(USER_MODE)
-                user_ram_memcpy((void*)ph->p_paddr, data, mem_size);
-#else
                 memcpy(ram + (ph->p_paddr & 0xfffffff), data, file_size);
-#endif
                 qemu_log_mask(CPU_LOG_PAGE, "%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
             }
         }
@@ -177,6 +159,7 @@ fail:
     close(fd);
     return ret;
 }
+#endif
 
 #if defined(USER_MODE)
 char *exec_path;
@@ -186,13 +169,10 @@ abi_ulong e_phoff;
 abi_ulong e_phnum;
 
 bool load_elf_user(const char* filename, uint64_t* entry_addr) {
-    int size, i, total_size;
-    uint64_t mem_size, file_size;
+    int size, i;
     uint8_t e_ident[EI_NIDENT];
-    uint8_t *data = NULL;
     int ret = 1;
     elfhdr ehdr;
-    elf_shdr *symtab, *strtab, *shdr_table = NULL;
     elf_phdr *phdr = NULL, *ph;
     int fd = open(filename, O_RDONLY);
     if (fd < 0) {
@@ -229,7 +209,6 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
     if (read(fd, phdr, size) != size)
         goto fail;
 
-    total_size = 0;
     uint64_t loaddr = -1, hiaddr = 0;
     for(i = 0; i < ehdr.e_phnum; i++) {
         ph = &phdr[i];
@@ -664,7 +643,7 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
         ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
     } else {
         int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
-        int r = check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
+        check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
         // fprintf(stderr, "va:%lx,pa:%lx\n", addr, ha);
         tc->va = page_addr;
         tc->pa = ha & TARGET_PAGE_MASK;
@@ -828,7 +807,6 @@ int main(int argc, char** argv, char **envp) {
     if (argc < 2) {
         usage();
     }
-    char* end;
     int c;
     while ((c = getopt(argc, argv, "+m:k:d:D:")) != -1) {
         switch (c) {

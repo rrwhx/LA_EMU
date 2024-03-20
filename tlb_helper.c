@@ -285,24 +285,24 @@ static void raise_mmu_exception(CPULoongArchState *env, target_ulong address,
    }
 }
 
-static void invalidate_tlb_entry(CPULoongArchState *env, int index)
-{
-    target_ulong addr, mask, pagesize;
-    uint8_t tlb_ps;
-    LoongArchTLB *tlb = &env->tlb[index];
+// static void invalidate_tlb_entry(CPULoongArchState *env, int index)
+// {
+//     target_ulong addr, mask, pagesize;
+//     uint8_t tlb_ps;
+//     LoongArchTLB *tlb = &env->tlb[index];
 
-    int mmu_idx = cpu_mmu_index(env, false);
-    uint8_t tlb_v0 = FIELD_EX64(tlb->tlb_entry0, TLBENTRY, V);
-    uint8_t tlb_v1 = FIELD_EX64(tlb->tlb_entry1, TLBENTRY, V);
-    uint64_t tlb_vppn = FIELD_EX64(tlb->tlb_misc, TLB_MISC, VPPN);
+//     int mmu_idx = cpu_mmu_index(env, false);
+//     uint8_t tlb_v0 = FIELD_EX64(tlb->tlb_entry0, TLBENTRY, V);
+//     uint8_t tlb_v1 = FIELD_EX64(tlb->tlb_entry1, TLBENTRY, V);
+//     uint64_t tlb_vppn = FIELD_EX64(tlb->tlb_misc, TLB_MISC, VPPN);
 
-    if (index >= LOONGARCH_STLB) {
-        tlb_ps = FIELD_EX64(tlb->tlb_misc, TLB_MISC, PS);
-    } else {
-        tlb_ps = FIELD_EX64(env->CSR_STLBPS, CSR_STLBPS, PS);
-    }
-    pagesize = MAKE_64BIT_MASK(tlb_ps, 1);
-    mask = MAKE_64BIT_MASK(0, tlb_ps + 1);
+//     if (index >= LOONGARCH_STLB) {
+//         tlb_ps = FIELD_EX64(tlb->tlb_misc, TLB_MISC, PS);
+//     } else {
+//         tlb_ps = FIELD_EX64(env->CSR_STLBPS, CSR_STLBPS, PS);
+//     }
+//     pagesize = MAKE_64BIT_MASK(tlb_ps, 1);
+//     mask = MAKE_64BIT_MASK(0, tlb_ps + 1);
 
     // if (tlb_v0) {
     //     addr = (tlb_vppn << R_TLB_MISC_VPPN_SHIFT) & ~mask;    /* even */
@@ -315,22 +315,22 @@ static void invalidate_tlb_entry(CPULoongArchState *env, int index)
     //     tlb_flush_range_by_mmuidx(env_cpu(env), addr, pagesize,
     //                               mmu_idx, TARGET_LONG_BITS);
     // }
-}
+// }
 
-static void invalidate_tlb(CPULoongArchState *env, int index)
-{
-    LoongArchTLB *tlb;
-    uint16_t csr_asid, tlb_asid, tlb_g;
+// static void invalidate_tlb(CPULoongArchState *env, int index)
+// {
+//     LoongArchTLB *tlb;
+//     uint16_t csr_asid, tlb_asid, tlb_g;
 
-    csr_asid = FIELD_EX64(env->CSR_ASID, CSR_ASID, ASID);
-    tlb = &env->tlb[index];
-    tlb_asid = FIELD_EX64(tlb->tlb_misc, TLB_MISC, ASID);
-    tlb_g = FIELD_EX64(tlb->tlb_entry0, TLBENTRY, G);
-    if (tlb_g == 0 && tlb_asid != csr_asid) {
-        return;
-    }
-    invalidate_tlb_entry(env, index);
-}
+//     csr_asid = FIELD_EX64(env->CSR_ASID, CSR_ASID, ASID);
+//     tlb = &env->tlb[index];
+//     tlb_asid = FIELD_EX64(tlb->tlb_misc, TLB_MISC, ASID);
+//     tlb_g = FIELD_EX64(tlb->tlb_entry0, TLBENTRY, G);
+//     if (tlb_g == 0 && tlb_asid != csr_asid) {
+//         return;
+//     }
+//     invalidate_tlb_entry(env, index);
+// }
 
 static void fill_tlb_entry(CPULoongArchState *env, int index)
 {
@@ -438,7 +438,7 @@ void helper_tlbwr(CPULoongArchState *env)
 {
     int index = FIELD_EX64(env->CSR_TLBIDX, CSR_TLBIDX, INDEX);
 
-    invalidate_tlb(env, index);
+    // invalidate_tlb(env, index);
 
     if (FIELD_EX64(env->CSR_TLBIDX, CSR_TLBIDX, NE)) {
         env->tlb[index].tlb_misc = FIELD_DP64(env->tlb[index].tlb_misc,
@@ -481,7 +481,7 @@ void helper_tlbfill(CPULoongArchState *env)
         index = get_random_tlb(LOONGARCH_STLB, LOONGARCH_TLB_MAX - 1);
     }
 
-    invalidate_tlb(env, index);
+    // invalidate_tlb(env, index);
     fill_tlb_entry(env, index);
 }
 
