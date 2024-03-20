@@ -350,7 +350,7 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
                 if (!p) {
                     ret = -TARGET_ERANGE;
                 } else {
-                    ret = (abi_long)p;
+                    ret = strlen(p);
                 }
             }
             return ret;
