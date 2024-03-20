@@ -835,7 +835,7 @@ int main(int argc, char** argv, char **envp) {
     }
     char* end;
     int c;
-    while ((c = getopt(argc, argv, "m:k:d:D:")) != -1) {
+    while ((c = getopt(argc, argv, "+m:k:d:D:")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
