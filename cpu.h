@@ -62,10 +62,6 @@ typedef enum MMUAccessType {
 #define TARGET_PHYS_ADDR_SPACE_BITS 48
 #define TARGET_VIRT_ADDR_SPACE_BITS 48
 
-#define TARGET_PAGE_BITS 12
-
-#define TARGET_PAGE_SIZE   (1 << TARGET_PAGE_BITS)
-#define TARGET_PAGE_MASK   ((target_ulong)-1 << TARGET_PAGE_BITS)
 
 #define TARGET_LONG_SIZE (TARGET_LONG_BITS / 8)
 
@@ -86,6 +82,17 @@ typedef uint64_t target_ulong;
 #define MO_TL MO_64
 #else
 #error TARGET_LONG_SIZE undefined
+#endif
+
+#if !defined(USER_MODE)
+#define TARGET_PAGE_BITS 12
+
+#define TARGET_PAGE_SIZE   (1 << TARGET_PAGE_BITS)
+#define TARGET_PAGE_MASK   ((target_ulong)-1 << TARGET_PAGE_BITS)
+#else
+extern target_ulong TARGET_PAGE_BITS;
+extern target_ulong TARGET_PAGE_SIZE;
+extern target_ulong TARGET_PAGE_MASK;
 #endif
 
 #define TARGET_PHYS_MASK MAKE_64BIT_MASK(0, TARGET_PHYS_ADDR_SPACE_BITS)

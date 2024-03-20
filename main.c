@@ -167,6 +167,9 @@ char real_exec_path[PATH_MAX];
 struct image_info info;
 abi_ulong e_phoff;
 abi_ulong e_phnum;
+target_ulong TARGET_PAGE_BITS;
+target_ulong TARGET_PAGE_SIZE;
+target_ulong TARGET_PAGE_MASK;
 
 bool load_elf_user(const char* filename, uint64_t* entry_addr) {
     int size, i;
@@ -293,9 +296,12 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
                 memset((void*)end, 0, ROUND_UP(end, TARGET_PAGE_SIZE) - end);
                 abi_ulong align_bss = TARGET_PAGE_ALIGN(vaddr_ef);
                 abi_ulong end_bss = TARGET_PAGE_ALIGN(vaddr_em);
-                void* r = mmap((void*)align_bss, end_bss - align_bss,
-                        elf_prot, MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0);
-                lsassert(r != MAP_FAILED);
+                fprintf(stderr, "%p %lx\n", (void*)align_bss, end_bss - align_bss);
+                if (align_bss != end_bss) {
+                    void* r = mmap((void*)align_bss, end_bss - align_bss,
+                            elf_prot, MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0);
+                    lsassert(r != MAP_FAILED);
+                }
             }
             /* Find the full program boundaries.  */
             if (elf_prot & PROT_EXEC) {
@@ -839,6 +845,12 @@ int main(int argc, char** argv, char **envp) {
 #endif
     uint64_t entry_addr;
 #if defined(USER_MODE)
+    TARGET_PAGE_SIZE = getpagesize();
+    TARGET_PAGE_BITS = ctz64(TARGET_PAGE_SIZE);
+    TARGET_PAGE_MASK = ((target_ulong)-1 << TARGET_PAGE_BITS);
+
+    qemu_log_mask(CPU_LOG_PAGE, "TARGET_PAGE_SIZE:%lx TARGET_PAGE_BITS:%ld TARGET_PAGE_MASK:%lx\n", TARGET_PAGE_SIZE, TARGET_PAGE_BITS, TARGET_PAGE_MASK);
+
     kernel_filename = argv[optind];
     load_elf_user(kernel_filename, &entry_addr);
     target_set_brk(info.brk);
