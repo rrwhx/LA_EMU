@@ -2558,22 +2558,22 @@ static bool trans_vffinth_d_w(CPULoongArchState *env, arg_vffinth_d_w *a) {__NOT
 static bool trans_vffint_s_l(CPULoongArchState *env, arg_vffint_s_l *a) {__NOT_IMPLEMENTED__}
 
 static inline void seq_b(CPULoongArchState *env, arg_vseq_b *a, uint32_t oprsz) {
-    for (size_t i = 0; i < oprsz/8; i++) {
+    for (size_t i = 0; i < oprsz/1; i++) {
         env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i] == env->fpr[a->vk].vreg.B[i] ? -1 : 0;
     }
 }
 static inline void seq_h(CPULoongArchState *env, arg_vseq_b *a, uint32_t oprsz) {
-    for (size_t i = 0; i < oprsz/16; i++) {
+    for (size_t i = 0; i < oprsz/2; i++) {
         env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[i] == env->fpr[a->vk].vreg.H[i] ? -1 : 0;
     }
 }
 static inline void seq_w(CPULoongArchState *env, arg_vseq_b *a, uint32_t oprsz) {
-    for (size_t i = 0; i < oprsz/32; i++) {
+    for (size_t i = 0; i < oprsz/4; i++) {
         env->fpr[a->vd].vreg.W[i] = env->fpr[a->vj].vreg.W[i] == env->fpr[a->vk].vreg.W[i] ? -1 : 0;
     }
 }
 static inline void seq_d(CPULoongArchState *env, arg_vseq_b *a, uint32_t oprsz) {
-    for (size_t i = 0; i < oprsz/64; i++) {
+    for (size_t i = 0; i < oprsz/8; i++) {
         env->fpr[a->vd].vreg.D[i] = env->fpr[a->vj].vreg.D[i] == env->fpr[a->vk].vreg.D[i] ? -1 : 0;
     }
 }
@@ -2695,11 +2695,11 @@ static bool trans_vreplvei_w(CPULoongArchState *env, arg_vreplvei_w *a) {__NOT_I
 static bool trans_vreplvei_d(CPULoongArchState *env, arg_vreplvei_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vbsll_v(CPULoongArchState *env, arg_vbsll_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_vbsrl_v(CPULoongArchState *env, arg_vbsrl_v *a) {
-    a->imm &= 0xf;
-    for (int i = 0; i < (16 - a->imm); i ++) {
-        env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i + a->imm];
+    int imm = a->imm & 0xf;
+    for (int i = 0; i < (16 - imm); i ++) {
+        env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i + imm];
     }
-    for (int i = (16 - a->imm); i < 16; i ++) {
+    for (int i = (16 - imm); i < 16; i ++) {
         env->fpr[a->vd].vreg.B[i] = 0;
     }
     env->pc += 4;
