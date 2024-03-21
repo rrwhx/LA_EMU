@@ -300,7 +300,6 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
                 memset((void*)end, 0, ROUND_UP(end, TARGET_PAGE_SIZE) - end);
                 abi_ulong align_bss = TARGET_PAGE_ALIGN(vaddr_ef);
                 abi_ulong end_bss = TARGET_PAGE_ALIGN(vaddr_em);
-                fprintf(stderr, "%p %lx\n", (void*)align_bss, end_bss - align_bss);
                 if (align_bss != end_bss) {
                     void* r = mmap((void*)align_bss, end_bss - align_bss,
                             elf_prot, MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0);
