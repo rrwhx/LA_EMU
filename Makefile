@@ -1,6 +1,10 @@
 CC=gcc
+OPT_FLAG = -O2 -flto=auto
+ifeq (${DEBUG},1)
+	OPT_FLAG = -Og
+endif
 # CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
-CFLAGS ?= -g -O2 -MMD -MP -I. -Iinclude -DCONFIG_INT128 -Wall
+CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -DCONFIG_INT128 -Wall
 LDFLAGS = -lm
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)
