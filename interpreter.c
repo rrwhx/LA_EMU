@@ -2200,10 +2200,22 @@ static bool trans_vexth_hu_bu(CPULoongArchState *env, arg_vexth_hu_bu *a) {__NOT
 static bool trans_vexth_wu_hu(CPULoongArchState *env, arg_vexth_wu_hu *a) {__NOT_IMPLEMENTED__}
 static bool trans_vexth_du_wu(CPULoongArchState *env, arg_vexth_du_wu *a) {__NOT_IMPLEMENTED__}
 static bool trans_vexth_qu_du(CPULoongArchState *env, arg_vexth_qu_du *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsigncov_b(CPULoongArchState *env, arg_vsigncov_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsigncov_h(CPULoongArchState *env, arg_vsigncov_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsigncov_w(CPULoongArchState *env, arg_vsigncov_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsigncov_d(CPULoongArchState *env, arg_vsigncov_d *a) {__NOT_IMPLEMENTED__}
+#define gen_trans_vsigncov(op, size) \
+static bool glue(trans_, op)(CPULoongArchState *env, arg_vvv *a) {   \
+    int oprsz = size;                                                   \
+    uint32_t desc = simd_desc(oprsz, oprsz, 0);                         \
+    glue(helper_, op)(&env->fpr[a->vd], &env->fpr[a->vj], &env->fpr[a->vk], desc);          \
+    env->pc += 4;                                                       \
+    return true;                                                        \
+}
+gen_trans_vsigncov(vsigncov_b, 16)
+gen_trans_vsigncov(vsigncov_h, 16)
+gen_trans_vsigncov(vsigncov_w, 16)
+gen_trans_vsigncov(vsigncov_d, 16)
+// static bool trans_vsigncov_b(CPULoongArchState *env, arg_vsigncov_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsigncov_h(CPULoongArchState *env, arg_vsigncov_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsigncov_w(CPULoongArchState *env, arg_vsigncov_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsigncov_d(CPULoongArchState *env, arg_vsigncov_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vmskltz_b(CPULoongArchState *env, arg_vmskltz_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_vmskltz_h(CPULoongArchState *env, arg_vmskltz_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_vmskltz_w(CPULoongArchState *env, arg_vmskltz_w *a) {__NOT_IMPLEMENTED__}
@@ -2583,22 +2595,59 @@ static bool trans_vfrstp_b(CPULoongArchState *env, arg_vfrstp_b *a) {__NOT_IMPLE
 static bool trans_vfrstp_h(CPULoongArchState *env, arg_vfrstp_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrstpi_b(CPULoongArchState *env, arg_vfrstpi_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrstpi_h(CPULoongArchState *env, arg_vfrstpi_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfadd_s(CPULoongArchState *env, arg_vfadd_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfadd_d(CPULoongArchState *env, arg_vfadd_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfsub_s(CPULoongArchState *env, arg_vfsub_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfsub_d(CPULoongArchState *env, arg_vfsub_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfmul_s(CPULoongArchState *env, arg_vfmul_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfmul_d(CPULoongArchState *env, arg_vfmul_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfdiv_s(CPULoongArchState *env, arg_vfdiv_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfdiv_d(CPULoongArchState *env, arg_vfdiv_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfmadd_s(CPULoongArchState *env, arg_vfmadd_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfmadd_d(CPULoongArchState *env, arg_vfmadd_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfmsub_s(CPULoongArchState *env, arg_vfmsub_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfmsub_d(CPULoongArchState *env, arg_vfmsub_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfnmadd_s(CPULoongArchState *env, arg_vfnmadd_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfnmadd_d(CPULoongArchState *env, arg_vfnmadd_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfnmsub_s(CPULoongArchState *env, arg_vfnmsub_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfnmsub_d(CPULoongArchState *env, arg_vfnmsub_d *a) {__NOT_IMPLEMENTED__}
+
+#define gen_trans_vvv(op, size) \
+static bool glue(trans_, op)(CPULoongArchState *env, arg_vvv *a) {   \
+    int oprsz = size;                                                   \
+    uint32_t desc = simd_desc(oprsz, oprsz, 0);                         \
+    glue(helper_, op)(&env->fpr[a->vd], &env->fpr[a->vj], &env->fpr[a->vk], env, desc);          \
+    env->pc += 4;                                                       \
+    return true;                                                        \
+}
+
+gen_trans_vvv(vfadd_s, 16)
+gen_trans_vvv(vfadd_d, 16)
+gen_trans_vvv(vfsub_s, 16)
+gen_trans_vvv(vfsub_d, 16)
+gen_trans_vvv(vfmul_s, 16)
+gen_trans_vvv(vfmul_d, 16)
+gen_trans_vvv(vfdiv_s, 16)
+gen_trans_vvv(vfdiv_d, 16)
+
+// static bool trans_vfadd_s(CPULoongArchState *env, arg_vfadd_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfadd_d(CPULoongArchState *env, arg_vfadd_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfsub_s(CPULoongArchState *env, arg_vfsub_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfsub_d(CPULoongArchState *env, arg_vfsub_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfmul_s(CPULoongArchState *env, arg_vfmul_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfmul_d(CPULoongArchState *env, arg_vfmul_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfdiv_s(CPULoongArchState *env, arg_vfdiv_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfdiv_d(CPULoongArchState *env, arg_vfdiv_d *a) {__NOT_IMPLEMENTED__}
+#define gen_trans_vvvv(op, size) \
+static bool glue(trans_, op)(CPULoongArchState *env, arg_vvvv *a) {   \
+    int oprsz = size;                                                   \
+    uint32_t desc = simd_desc(oprsz, oprsz, 0);                         \
+    glue(helper_, op)(&env->fpr[a->vd], &env->fpr[a->vj], &env->fpr[a->vk], &env->fpr[a->va], env, desc);          \
+    env->pc += 4;                                                       \
+    return true;                                                        \
+}
+
+gen_trans_vvvv(vfmadd_s, 16)
+gen_trans_vvvv(vfmadd_d, 16)
+gen_trans_vvvv(vfmsub_s, 16)
+gen_trans_vvvv(vfmsub_d, 16)
+gen_trans_vvvv(vfnmadd_s, 16)
+gen_trans_vvvv(vfnmadd_d, 16)
+gen_trans_vvvv(vfnmsub_s, 16)
+gen_trans_vvvv(vfnmsub_d, 16)
+
+// static bool trans_vfmadd_s(CPULoongArchState *env, arg_vfmadd_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfmadd_d(CPULoongArchState *env, arg_vfmadd_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfmsub_s(CPULoongArchState *env, arg_vfmsub_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfmsub_d(CPULoongArchState *env, arg_vfmsub_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfnmadd_s(CPULoongArchState *env, arg_vfnmadd_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfnmadd_d(CPULoongArchState *env, arg_vfnmadd_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfnmsub_s(CPULoongArchState *env, arg_vfnmsub_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfnmsub_d(CPULoongArchState *env, arg_vfnmsub_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfmax_s(CPULoongArchState *env, arg_vfmax_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfmax_d(CPULoongArchState *env, arg_vfmax_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfmin_s(CPULoongArchState *env, arg_vfmin_s *a) {__NOT_IMPLEMENTED__}
@@ -2607,6 +2656,14 @@ static bool trans_vfmaxa_s(CPULoongArchState *env, arg_vfmaxa_s *a) {__NOT_IMPLE
 static bool trans_vfmaxa_d(CPULoongArchState *env, arg_vfmaxa_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfmina_s(CPULoongArchState *env, arg_vfmina_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfmina_d(CPULoongArchState *env, arg_vfmina_d *a) {__NOT_IMPLEMENTED__}
+#define gen_trans_vv(op, size) \
+static bool glue(trans_, op)(CPULoongArchState *env, arg_vv *a) {      \
+    int oprsz = size;                                                   \
+    uint32_t desc = simd_desc(oprsz, oprsz, 0);                         \
+    glue(helper_, op)(&env->fpr[a->vd], &env->fpr[a->vj], env, desc);   \
+    env->pc += 4;                                                       \
+    return true;                                                        \
+}
 static bool trans_vflogb_s(CPULoongArchState *env, arg_vflogb_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vflogb_d(CPULoongArchState *env, arg_vflogb_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfclass_s(CPULoongArchState *env, arg_vfclass_s *a) {__NOT_IMPLEMENTED__}
@@ -2617,10 +2674,16 @@ static bool trans_vfrecip_s(CPULoongArchState *env, arg_vfrecip_s *a) {__NOT_IMP
 static bool trans_vfrecip_d(CPULoongArchState *env, arg_vfrecip_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrsqrt_s(CPULoongArchState *env, arg_vfrsqrt_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrsqrt_d(CPULoongArchState *env, arg_vfrsqrt_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfcvtl_s_h(CPULoongArchState *env, arg_vfcvtl_s_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfcvth_s_h(CPULoongArchState *env, arg_vfcvth_s_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfcvtl_d_s(CPULoongArchState *env, arg_vfcvtl_d_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfcvth_d_s(CPULoongArchState *env, arg_vfcvth_d_s *a) {__NOT_IMPLEMENTED__}
+
+gen_trans_vv(vfcvtl_s_h, 16)
+gen_trans_vv(vfcvth_s_h, 16)
+gen_trans_vv(vfcvtl_d_s, 16)
+gen_trans_vv(vfcvth_d_s, 16)
+
+// static bool trans_vfcvtl_s_h(CPULoongArchState *env, arg_vfcvtl_s_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfcvth_s_h(CPULoongArchState *env, arg_vfcvth_s_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfcvtl_d_s(CPULoongArchState *env, arg_vfcvtl_d_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vfcvth_d_s(CPULoongArchState *env, arg_vfcvth_d_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfcvt_h_s(CPULoongArchState *env, arg_vfcvt_h_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfcvt_s_d(CPULoongArchState *env, arg_vfcvt_s_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrint_s(CPULoongArchState *env, arg_vfrint_s *a) {__NOT_IMPLEMENTED__}
@@ -2662,13 +2725,22 @@ static bool trans_vftintrzl_l_s(CPULoongArchState *env, arg_vftintrzl_l_s *a) {_
 static bool trans_vftintrzh_l_s(CPULoongArchState *env, arg_vftintrzh_l_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vftintrnel_l_s(CPULoongArchState *env, arg_vftintrnel_l_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vftintrneh_l_s(CPULoongArchState *env, arg_vftintrneh_l_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffint_s_w(CPULoongArchState *env, arg_vffint_s_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffint_s_wu(CPULoongArchState *env, arg_vffint_s_wu *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffint_d_l(CPULoongArchState *env, arg_vffint_d_l *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffint_d_lu(CPULoongArchState *env, arg_vffint_d_lu *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffintl_d_w(CPULoongArchState *env, arg_vffintl_d_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffinth_d_w(CPULoongArchState *env, arg_vffinth_d_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vffint_s_l(CPULoongArchState *env, arg_vffint_s_l *a) {__NOT_IMPLEMENTED__}
+
+gen_trans_vv(vffint_s_w, 16)
+gen_trans_vv(vffint_s_wu, 16)
+gen_trans_vv(vffint_d_l, 16)
+gen_trans_vv(vffint_d_lu, 16)
+gen_trans_vv(vffintl_d_w, 16)
+gen_trans_vv(vffinth_d_w, 16)
+gen_trans_vvv(vffint_s_l, 16)
+
+// static bool trans_vffint_s_w(CPULoongArchState *env, arg_vffint_s_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vffint_s_wu(CPULoongArchState *env, arg_vffint_s_wu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vffint_d_l(CPULoongArchState *env, arg_vffint_d_l *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vffint_d_lu(CPULoongArchState *env, arg_vffint_d_lu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vffintl_d_w(CPULoongArchState *env, arg_vffintl_d_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vffinth_d_w(CPULoongArchState *env, arg_vffinth_d_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vffint_s_l(CPULoongArchState *env, arg_vffint_s_l *a) {__NOT_IMPLEMENTED__}
 
 static inline void seq_b(CPULoongArchState *env, arg_vseq_b *a, uint32_t oprsz) {
     for (size_t i = 0; i < oprsz/1; i++) {
@@ -2802,10 +2874,10 @@ static bool trans_vreplve_b(CPULoongArchState *env, arg_vreplve_b *a) {__NOT_IMP
 static bool trans_vreplve_h(CPULoongArchState *env, arg_vreplve_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_vreplve_w(CPULoongArchState *env, arg_vreplve_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_vreplve_d(CPULoongArchState *env, arg_vreplve_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vreplvei_b(CPULoongArchState *env, arg_vreplvei_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_vreplvei_h(CPULoongArchState *env, arg_vreplvei_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vreplvei_w(CPULoongArchState *env, arg_vreplvei_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vreplvei_d(CPULoongArchState *env, arg_vreplvei_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_vreplvei_b(CPULoongArchState *env, arg_vreplvei_b *a) { uint32_t ele_cnt = 16 / 1; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[a->imm]; } env->pc += 4; return true;}
+static bool trans_vreplvei_h(CPULoongArchState *env, arg_vreplvei_h *a) { uint32_t ele_cnt = 16 / 2; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[a->imm]; } env->pc += 4; return true;}
+static bool trans_vreplvei_w(CPULoongArchState *env, arg_vreplvei_w *a) { uint32_t ele_cnt = 16 / 4; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.W[i] = env->fpr[a->vj].vreg.W[a->imm]; } env->pc += 4; return true;}
+static bool trans_vreplvei_d(CPULoongArchState *env, arg_vreplvei_d *a) { uint32_t ele_cnt = 16 / 8; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.D[i] = env->fpr[a->vj].vreg.D[a->imm]; } env->pc += 4; return true;}
 static bool trans_vbsll_v(CPULoongArchState *env, arg_vbsll_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_vbsrl_v(CPULoongArchState *env, arg_vbsrl_v *a) {
     int imm = a->imm & 0xf;
