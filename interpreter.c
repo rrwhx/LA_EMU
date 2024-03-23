@@ -4014,8 +4014,18 @@ static bool trans_xvextrins_w(CPULoongArchState *env, arg_xvextrins_w *a) {__NOT
 // static bool trans_xvfadd_s(CPULoongArchState *env, arg_xvfadd_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfclass_d(CPULoongArchState *env, arg_xvfclass_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfclass_s(CPULoongArchState *env, arg_xvfclass_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcmp_cond_d(CPULoongArchState *env, arg_xvfcmp_cond_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcmp_cond_s(CPULoongArchState *env, arg_xvfcmp_cond_s *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvfcmp_cond_d(CPULoongArchState *env, arg_xvfcmp_cond_d *a) {
+    uint32_t flags = get_fcmp_flags(a->fcond >> 1);
+    (a->fcond & 1) ? helper_vfcmp_s_d(env, 32, a->vd, a->vj, a->vk, flags) : helper_vfcmp_c_d(env, 32, a->vd, a->vj, a->vk, flags);
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvfcmp_cond_s(CPULoongArchState *env, arg_xvfcmp_cond_s *a) {
+    uint32_t flags = get_fcmp_flags(a->fcond >> 1);
+    (a->fcond & 1) ? helper_vfcmp_s_s(env, 32, a->vd, a->vj, a->vk, flags) : helper_vfcmp_c_s(env, 32, a->vd, a->vj, a->vk, flags);
+    env->pc += 4;
+    return true;
+}
 gen_trans_vved(xvfcvtl_s_h, 32, vfcvtl_s_h)
 gen_trans_vved(xvfcvth_s_h, 32, vfcvth_s_h)
 gen_trans_vved(xvfcvtl_d_s, 32, vfcvtl_d_s)
@@ -4076,14 +4086,18 @@ static bool trans_xvfrintrp_s(CPULoongArchState *env, arg_xvfrintrp_s *a) {__NOT
 static bool trans_xvfrintrz_d(CPULoongArchState *env, arg_xvfrintrz_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintrz_s(CPULoongArchState *env, arg_xvfrintrz_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrint_s(CPULoongArchState *env, arg_xvfrint_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfrsqrt_d(CPULoongArchState *env, arg_xvfrsqrt_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfrsqrt_s(CPULoongArchState *env, arg_xvfrsqrt_s *a) {__NOT_IMPLEMENTED__}
+gen_trans_vved(xvfrsqrt_d, 32, vfsqrt_d)
+gen_trans_vved(xvfrsqrt_s, 32, vfsqrt_s)
+// static bool trans_xvfrsqrt_d(CPULoongArchState *env, arg_xvfrsqrt_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfrsqrt_s(CPULoongArchState *env, arg_xvfrsqrt_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrstp_b(CPULoongArchState *env, arg_xvfrstp_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrstp_h(CPULoongArchState *env, arg_xvfrstp_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrstpi_b(CPULoongArchState *env, arg_xvfrstpi_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrstpi_h(CPULoongArchState *env, arg_xvfrstpi_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfsqrt_d(CPULoongArchState *env, arg_xvfsqrt_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfsqrt_s(CPULoongArchState *env, arg_xvfsqrt_s *a) {__NOT_IMPLEMENTED__}
+gen_trans_vved(xvfsqrt_d, 32, vfsqrt_d)
+gen_trans_vved(xvfsqrt_s, 32, vfsqrt_s)
+// static bool trans_xvfsqrt_d(CPULoongArchState *env, arg_xvfsqrt_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfsqrt_s(CPULoongArchState *env, arg_xvfsqrt_s *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfsub_d(CPULoongArchState *env, arg_xvfsub_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfsub_s(CPULoongArchState *env, arg_xvfsub_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvftinth_l_s(CPULoongArchState *env, arg_xvftinth_l_s *a) {__NOT_IMPLEMENTED__}
