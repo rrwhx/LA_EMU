@@ -46,6 +46,7 @@
 #define TARGET_NR_mremap 216
 #define TARGET_NR_mmap 222
 #define TARGET_NR_prlimit64 261
+#define TARGET_NR_renameat2 276
 
 
 static abi_ulong target_brk, initial_target_brk;
@@ -455,6 +456,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return do_mmap(arg1, arg2, arg3, arg4, arg5, arg6);
         case TARGET_NR_prlimit64:
             return get_errno(prlimit(arg1, arg2, (void*)arg3, (void*)arg4));
+        case TARGET_NR_renameat2:
+            return get_errno(renameat2(arg1, (void*)arg2, arg3, (void*)4, arg5));
         default:
             lsassertm(0, "unimplement syscall %d\n", num);
     }
