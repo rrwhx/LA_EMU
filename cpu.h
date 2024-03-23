@@ -14,6 +14,10 @@
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
 
+#if !defined(CONFIG_INT128)
+    #error "must define CONFIG_INT128"
+#endif
+
 typedef struct TLBCache {
     uint64_t va;
     uint64_t pa;
