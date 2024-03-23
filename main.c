@@ -184,7 +184,7 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
     int fd = open(filename, O_RDONLY);
     if (fd < 0) {
         perror(filename);
-        goto fail;
+        exit(EXIT_FAILURE);
     }
 
     if (read(fd, e_ident, sizeof(e_ident)) != sizeof(e_ident))
