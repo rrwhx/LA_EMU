@@ -1282,7 +1282,7 @@ static bool trans_frint_d(CPULoongArchState *env, arg_frint_d *a) {return gen_ff
 static bool trans_fcopysign_s(CPULoongArchState *env, arg_fcopysign_s *a) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = deposit64(src2, 0, 63, src1);
+    TCGv dest = deposit64(src2, 0, 31, src1);
     set_fpr(env, a->fd, dest);
     env->pc += 4;
     return true;
@@ -1290,7 +1290,7 @@ static bool trans_fcopysign_s(CPULoongArchState *env, arg_fcopysign_s *a) {
 static bool trans_fcopysign_d(CPULoongArchState *env, arg_fcopysign_d *a) {
     TCGv src1 = get_fpr(ctx, a->fj);
     TCGv src2 = get_fpr(ctx, a->fk);
-    TCGv dest = deposit64(src2, 0, 31, src1);
+    TCGv dest = deposit64(src2, 0, 63, src1);
     set_fpr(env, a->fd, dest);
     env->pc += 4;
     return true;
