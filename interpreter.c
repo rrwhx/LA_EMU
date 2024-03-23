@@ -3992,12 +3992,18 @@ static bool trans_xvfclass_d(CPULoongArchState *env, arg_xvfclass_d *a) {__NOT_I
 static bool trans_xvfclass_s(CPULoongArchState *env, arg_xvfclass_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfcmp_cond_d(CPULoongArchState *env, arg_xvfcmp_cond_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfcmp_cond_s(CPULoongArchState *env, arg_xvfcmp_cond_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcvth_d_s(CPULoongArchState *env, arg_xvfcvth_d_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcvt_h_s(CPULoongArchState *env, arg_xvfcvt_h_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcvth_s_h(CPULoongArchState *env, arg_xvfcvth_s_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcvtl_d_s(CPULoongArchState *env, arg_xvfcvtl_d_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcvtl_s_h(CPULoongArchState *env, arg_xvfcvtl_s_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfcvt_s_d(CPULoongArchState *env, arg_xvfcvt_s_d *a) {__NOT_IMPLEMENTED__}
+gen_trans_vved(xvfcvtl_s_h, 32, vfcvtl_s_h)
+gen_trans_vved(xvfcvth_s_h, 32, vfcvth_s_h)
+gen_trans_vved(xvfcvtl_d_s, 32, vfcvtl_d_s)
+gen_trans_vved(xvfcvth_d_s, 32, vfcvth_d_s)
+gen_trans_vvved(xvfcvt_h_s, 32, vfcvt_h_s)
+gen_trans_vvved(xvfcvt_s_d, 32, vfcvt_s_d)
+// static bool trans_xvfcvth_d_s(CPULoongArchState *env, arg_xvfcvth_d_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfcvt_h_s(CPULoongArchState *env, arg_xvfcvt_h_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfcvth_s_h(CPULoongArchState *env, arg_xvfcvth_s_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfcvtl_d_s(CPULoongArchState *env, arg_xvfcvtl_d_s *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfcvtl_s_h(CPULoongArchState *env, arg_xvfcvtl_s_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvfcvt_s_d(CPULoongArchState *env, arg_xvfcvt_s_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfdiv_d(CPULoongArchState *env, arg_xvfdiv_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfdiv_s(CPULoongArchState *env, arg_xvfdiv_s *a) {__NOT_IMPLEMENTED__}
 gen_trans_vved(xvffint_s_w, 32, vffint_s_w)
