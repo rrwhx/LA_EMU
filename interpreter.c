@@ -3969,13 +3969,14 @@ static bool trans_xvbitsel_v(CPULoongArchState *env, arg_xvbitsel_v *a) {
 // static bool trans_xvbitset_w(CPULoongArchState *env, arg_xvbitset_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvbsll_v(CPULoongArchState *env, arg_xvbsll_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvbsrl_v(CPULoongArchState *env, arg_xvbsrl_v *a) {
-    int vlen = 32;
+    int vlen = 16;
     int imm = a->imm & (vlen - 1);
     for (int i = 0; i < (vlen - imm); i ++) {
         env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i + imm];
-    }
+        env->fpr[a->vd].vreg.B[i + vlen] = env->fpr[a->vj].vreg.B[i + imm + vlen];    }
     for (int i = (vlen - imm); i < vlen; i ++) {
         env->fpr[a->vd].vreg.B[i] = 0;
+        env->fpr[a->vd].vreg.B[i + vlen] = 0;
     }
     env->pc += 4;
     return true;
@@ -4086,8 +4087,8 @@ static bool trans_xvfrecip_s(CPULoongArchState *env, arg_xvfrecip_s *a) {__NOT_I
 // static bool trans_xvfrintrz_d(CPULoongArchState *env, arg_xvfrintrz_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfrintrz_s(CPULoongArchState *env, arg_xvfrintrz_s *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfrint_s(CPULoongArchState *env, arg_xvfrint_s *a) {__NOT_IMPLEMENTED__}
-gen_trans_vved(xvfrsqrt_d, 32, vfsqrt_d)
-gen_trans_vved(xvfrsqrt_s, 32, vfsqrt_s)
+gen_trans_vved(xvfrsqrt_d, 32, vfrsqrt_d)
+gen_trans_vved(xvfrsqrt_s, 32, vfrsqrt_s)
 // static bool trans_xvfrsqrt_d(CPULoongArchState *env, arg_xvfrsqrt_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvfrsqrt_s(CPULoongArchState *env, arg_xvfrsqrt_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrstp_b(CPULoongArchState *env, arg_xvfrstp_b *a) {__NOT_IMPLEMENTED__}
