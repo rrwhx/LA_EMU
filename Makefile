@@ -5,7 +5,7 @@ ifeq (${DEBUG},1)
 endif
 # CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
 CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -DCONFIG_INT128 -Wall
-LDFLAGS = -lm
+LDFLAGS = -lm ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)
    LDFLAGS+=-Wl,-Tlink_script/loongarch64.lds
