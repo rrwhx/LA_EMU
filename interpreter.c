@@ -1879,9 +1879,7 @@ static bool trans_xvadd_h(CPULoongArchState *env, arg_vadd_h *a) {return vadd_h(
 static bool trans_xvadd_w(CPULoongArchState *env, arg_vadd_w *a) {return vadd_w(env, a, 32);}
 static bool trans_xvadd_d(CPULoongArchState *env, arg_vadd_d *a) {return vadd_d(env, a, 32);}
 static bool trans_vadd_q(CPULoongArchState *env, arg_vadd_q *a) {
-    __int128_t vj = *(__int128_t*)(void*)&env->fpr[a->vj];
-    __int128_t vk = *(__int128_t*)(void*)&env->fpr[a->vk];
-    *(__int128_t*)(void*)&env->fpr[a->vd] = vj + vk;
+    env->fpr[a->vd].vreg.Q[0] = env->fpr[a->vj].vreg.Q[0] + env->fpr[a->vk].vreg.Q[0];
     env->pc += 4;
     return true;
 }
@@ -1898,9 +1896,7 @@ static bool trans_xvsub_h(CPULoongArchState *env, arg_vsub_h *a) {return vsub_h(
 static bool trans_xvsub_w(CPULoongArchState *env, arg_vsub_w *a) {return vsub_w(env, a, 32);}
 static bool trans_xvsub_d(CPULoongArchState *env, arg_vsub_d *a) {return vsub_d(env, a, 32);}
 static bool trans_vsub_q(CPULoongArchState *env, arg_vsub_q *a) {
-    __int128_t vj = *(__int128_t*)(void*)&env->fpr[a->vj];
-    __int128_t vk = *(__int128_t*)(void*)&env->fpr[a->vk];
-    *(__int128_t*)(void*)&env->fpr[a->vd] = vj - vk;
+    env->fpr[a->vd].vreg.Q[0] = env->fpr[a->vj].vreg.Q[0] - env->fpr[a->vk].vreg.Q[0];
     env->pc += 4;
     return true;
 }
@@ -3912,7 +3908,12 @@ gen_trans_vvd(vext2xv_wu_hu, 32, vext2xv_wu_hu)
 // static bool trans_xvaddi_du(CPULoongArchState *env, arg_xvaddi_du *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvaddi_hu(CPULoongArchState *env, arg_xvaddi_hu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvaddi_wu(CPULoongArchState *env, arg_xvaddi_wu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvadd_q(CPULoongArchState *env, arg_xvadd_q *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvadd_q(CPULoongArchState *env, arg_xvadd_q *a) {
+    env->fpr[a->vd].vreg.Q[0] = env->fpr[a->vj].vreg.Q[0] + env->fpr[a->vk].vreg.Q[0];
+    env->fpr[a->vd].vreg.Q[1] = env->fpr[a->vj].vreg.Q[1] + env->fpr[a->vk].vreg.Q[1];
+    env->pc += 4;
+    return true;
+}
 // static bool trans_xvadd_w(CPULoongArchState *env, arg_xvadd_w *a) {__NOT_IMPLEMENTED__}
 gen_trans_vvvd(xvaddwev_d_w, 32, vaddwev_d_w)
 gen_trans_vvvd(xvaddwev_d_wu, 32, vaddwev_d_wu)
@@ -4933,7 +4934,12 @@ static bool trans_xvstx(CPULoongArchState *env, arg_xvstx *a) {
 // static bool trans_xvsubi_du(CPULoongArchState *env, arg_xvsubi_du *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvsubi_hu(CPULoongArchState *env, arg_xvsubi_hu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvsubi_wu(CPULoongArchState *env, arg_xvsubi_wu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsub_q(CPULoongArchState *env, arg_xvsub_q *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvsub_q(CPULoongArchState *env, arg_xvsub_q *a) {
+    env->fpr[a->vd].vreg.Q[0] = env->fpr[a->vj].vreg.Q[0] - env->fpr[a->vk].vreg.Q[0];
+    env->fpr[a->vd].vreg.Q[1] = env->fpr[a->vj].vreg.Q[1] - env->fpr[a->vk].vreg.Q[1];
+    env->pc += 4;
+    return true;
+}
 // static bool trans_xvsub_w(CPULoongArchState *env, arg_xvsub_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvsubwev_d_w(CPULoongArchState *env, arg_xvsubwev_d_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvsubwev_d_wu(CPULoongArchState *env, arg_xvsubwev_d_wu *a) {__NOT_IMPLEMENTED__}
