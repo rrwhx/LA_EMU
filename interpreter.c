@@ -4308,10 +4308,10 @@ gen_trans_vvid(xvpickve_d, 32, xvpickve_d)
 gen_trans_vvid(xvpickve_w, 32, xvpickve_w)
 // static bool trans_xvpickve_d(CPULoongArchState *env, arg_xvpickve_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvpickve_w(CPULoongArchState *env, arg_xvpickve_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrepl128vei_b(CPULoongArchState *env, arg_xvrepl128vei_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrepl128vei_d(CPULoongArchState *env, arg_xvrepl128vei_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrepl128vei_h(CPULoongArchState *env, arg_xvrepl128vei_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrepl128vei_w(CPULoongArchState *env, arg_xvrepl128vei_w *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvrepl128vei_b(CPULoongArchState *env, arg_xvrepl128vei_b *a) { uint32_t ele_cnt = 16 / 1; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[a->imm]; env->fpr[a->vd].vreg.B[i + ele_cnt] = env->fpr[a->vj].vreg.B[a->imm + ele_cnt]; } env->pc += 4; return true;}
+static bool trans_xvrepl128vei_h(CPULoongArchState *env, arg_xvrepl128vei_h *a) { uint32_t ele_cnt = 16 / 2; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[a->imm]; env->fpr[a->vd].vreg.H[i + ele_cnt] = env->fpr[a->vj].vreg.H[a->imm + ele_cnt]; } env->pc += 4; return true;}
+static bool trans_xvrepl128vei_w(CPULoongArchState *env, arg_xvrepl128vei_w *a) { uint32_t ele_cnt = 16 / 4; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.W[i] = env->fpr[a->vj].vreg.W[a->imm]; env->fpr[a->vd].vreg.W[i + ele_cnt] = env->fpr[a->vj].vreg.W[a->imm + ele_cnt]; } env->pc += 4; return true;}
+static bool trans_xvrepl128vei_d(CPULoongArchState *env, arg_xvrepl128vei_d *a) { uint32_t ele_cnt = 16 / 8; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.D[i] = env->fpr[a->vj].vreg.D[a->imm]; env->fpr[a->vd].vreg.D[i + ele_cnt] = env->fpr[a->vj].vreg.D[a->imm + ele_cnt]; } env->pc += 4; return true;}
 // static bool trans_xvreplgr2vr_b(CPULoongArchState *env, arg_xvreplgr2vr_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvreplgr2vr_d(CPULoongArchState *env, arg_xvreplgr2vr_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvreplgr2vr_h(CPULoongArchState *env, arg_xvreplgr2vr_h *a) {__NOT_IMPLEMENTED__}
