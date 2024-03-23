@@ -3039,6 +3039,10 @@ static bool trans_vbitclr_b(CPULoongArchState *env, arg_vbitclr_b *a) {return vb
 static bool trans_vbitclr_h(CPULoongArchState *env, arg_vbitclr_h *a) {return vbitclr_h(env, a, 16);}
 static bool trans_vbitclr_w(CPULoongArchState *env, arg_vbitclr_w *a) {return vbitclr_w(env, a, 16);}
 static bool trans_vbitclr_d(CPULoongArchState *env, arg_vbitclr_d *a) {return vbitclr_d(env, a, 16);}
+static bool trans_xvbitclr_b(CPULoongArchState *env, arg_vbitclr_b *a) {return vbitclr_b(env, a, 32);}
+static bool trans_xvbitclr_h(CPULoongArchState *env, arg_vbitclr_h *a) {return vbitclr_h(env, a, 32);}
+static bool trans_xvbitclr_w(CPULoongArchState *env, arg_vbitclr_w *a) {return vbitclr_w(env, a, 32);}
+static bool trans_xvbitclr_d(CPULoongArchState *env, arg_vbitclr_d *a) {return vbitclr_d(env, a, 32);}
 static inline bool vbitclri_b(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UB[i] = env->fpr[a->vj].vreg.UB[i] & (~(1ull << a->imm));}env->pc += 4;return true;}
 static inline bool vbitclri_h(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UH[i] = env->fpr[a->vj].vreg.UH[i] & (~(1ull << a->imm));}env->pc += 4;return true;}
 static inline bool vbitclri_w(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UW[i] = env->fpr[a->vj].vreg.UW[i] & (~(1ull << a->imm));}env->pc += 4;return true;}
@@ -3047,6 +3051,10 @@ static bool trans_vbitclri_b(CPULoongArchState *env, arg_vbitclri_b *a) {return 
 static bool trans_vbitclri_h(CPULoongArchState *env, arg_vbitclri_h *a) {return vbitclri_h(env, a, 16);}
 static bool trans_vbitclri_w(CPULoongArchState *env, arg_vbitclri_w *a) {return vbitclri_w(env, a, 16);}
 static bool trans_vbitclri_d(CPULoongArchState *env, arg_vbitclri_d *a) {return vbitclri_d(env, a, 16);}
+static bool trans_xvbitclri_b(CPULoongArchState *env, arg_vbitclri_b *a) {return vbitclri_b(env, a, 32);}
+static bool trans_xvbitclri_h(CPULoongArchState *env, arg_vbitclri_h *a) {return vbitclri_h(env, a, 32);}
+static bool trans_xvbitclri_w(CPULoongArchState *env, arg_vbitclri_w *a) {return vbitclri_w(env, a, 32);}
+static bool trans_xvbitclri_d(CPULoongArchState *env, arg_vbitclri_d *a) {return vbitclri_d(env, a, 32);}
 static inline bool vbitset_b(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UB[i] = env->fpr[a->vj].vreg.UB[i] | ((1ull << (env->fpr[a->vk].vreg.UB[i] & 0x7)));}env->pc += 4;return true;}
 static inline bool vbitset_h(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UH[i] = env->fpr[a->vj].vreg.UH[i] | ((1ull << (env->fpr[a->vk].vreg.UH[i] & 0xf)));}env->pc += 4;return true;}
 static inline bool vbitset_w(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UW[i] = env->fpr[a->vj].vreg.UW[i] | ((1ull << (env->fpr[a->vk].vreg.UW[i] & 0x1f)));}env->pc += 4;return true;}
@@ -3055,6 +3063,10 @@ static bool trans_vbitset_b(CPULoongArchState *env, arg_vbitset_b *a) {return vb
 static bool trans_vbitset_h(CPULoongArchState *env, arg_vbitset_h *a) {return vbitset_h(env, a, 16);}
 static bool trans_vbitset_w(CPULoongArchState *env, arg_vbitset_w *a) {return vbitset_w(env, a, 16);}
 static bool trans_vbitset_d(CPULoongArchState *env, arg_vbitset_d *a) {return vbitset_d(env, a, 16);}
+static bool trans_xvbitset_b(CPULoongArchState *env, arg_vbitset_b *a) {return vbitset_b(env, a, 32);}
+static bool trans_xvbitset_h(CPULoongArchState *env, arg_vbitset_h *a) {return vbitset_h(env, a, 32);}
+static bool trans_xvbitset_w(CPULoongArchState *env, arg_vbitset_w *a) {return vbitset_w(env, a, 32);}
+static bool trans_xvbitset_d(CPULoongArchState *env, arg_vbitset_d *a) {return vbitset_d(env, a, 32);}
 static inline bool vbitseti_b(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UB[i] = env->fpr[a->vj].vreg.UB[i] | ((1ull << a->imm));}env->pc += 4;return true;}
 static inline bool vbitseti_h(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UH[i] = env->fpr[a->vj].vreg.UH[i] | ((1ull << a->imm));}env->pc += 4;return true;}
 static inline bool vbitseti_w(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UW[i] = env->fpr[a->vj].vreg.UW[i] | ((1ull << a->imm));}env->pc += 4;return true;}
@@ -3063,6 +3075,10 @@ static bool trans_vbitseti_b(CPULoongArchState *env, arg_vbitseti_b *a) {return 
 static bool trans_vbitseti_h(CPULoongArchState *env, arg_vbitseti_h *a) {return vbitseti_h(env, a, 16);}
 static bool trans_vbitseti_w(CPULoongArchState *env, arg_vbitseti_w *a) {return vbitseti_w(env, a, 16);}
 static bool trans_vbitseti_d(CPULoongArchState *env, arg_vbitseti_d *a) {return vbitseti_d(env, a, 16);}
+static bool trans_xvbitseti_b(CPULoongArchState *env, arg_vbitseti_b *a) {return vbitseti_b(env, a, 32);}
+static bool trans_xvbitseti_h(CPULoongArchState *env, arg_vbitseti_h *a) {return vbitseti_h(env, a, 32);}
+static bool trans_xvbitseti_w(CPULoongArchState *env, arg_vbitseti_w *a) {return vbitseti_w(env, a, 32);}
+static bool trans_xvbitseti_d(CPULoongArchState *env, arg_vbitseti_d *a) {return vbitseti_d(env, a, 32);}
 static inline bool vbitrev_b(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UB[i] = env->fpr[a->vj].vreg.UB[i] ^ ((1ull << (env->fpr[a->vk].vreg.UB[i] & 0x7)));}env->pc += 4;return true;}
 static inline bool vbitrev_h(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UH[i] = env->fpr[a->vj].vreg.UH[i] ^ ((1ull << (env->fpr[a->vk].vreg.UH[i] & 0xf)));}env->pc += 4;return true;}
 static inline bool vbitrev_w(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UW[i] = env->fpr[a->vj].vreg.UW[i] ^ ((1ull << (env->fpr[a->vk].vreg.UW[i] & 0x1f)));}env->pc += 4;return true;}
@@ -3071,6 +3087,10 @@ static bool trans_vbitrev_b(CPULoongArchState *env, arg_vbitrev_b *a) {return vb
 static bool trans_vbitrev_h(CPULoongArchState *env, arg_vbitrev_h *a) {return vbitrev_h(env, a, 16);}
 static bool trans_vbitrev_w(CPULoongArchState *env, arg_vbitrev_w *a) {return vbitrev_w(env, a, 16);}
 static bool trans_vbitrev_d(CPULoongArchState *env, arg_vbitrev_d *a) {return vbitrev_d(env, a, 16);}
+static bool trans_xvbitrev_b(CPULoongArchState *env, arg_vbitrev_b *a) {return vbitrev_b(env, a, 32);}
+static bool trans_xvbitrev_h(CPULoongArchState *env, arg_vbitrev_h *a) {return vbitrev_h(env, a, 32);}
+static bool trans_xvbitrev_w(CPULoongArchState *env, arg_vbitrev_w *a) {return vbitrev_w(env, a, 32);}
+static bool trans_xvbitrev_d(CPULoongArchState *env, arg_vbitrev_d *a) {return vbitrev_d(env, a, 32);}
 static inline bool vbitrevi_b(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UB[i] = env->fpr[a->vj].vreg.UB[i] ^ (1 << a->imm);}env->pc += 4;return true;}
 static inline bool vbitrevi_h(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UH[i] = env->fpr[a->vj].vreg.UH[i] ^ (1 << a->imm);}env->pc += 4;return true;}
 static inline bool vbitrevi_w(CPULoongArchState *env, arg_vv_i *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.UW[i] = env->fpr[a->vj].vreg.UW[i] ^ (1 << a->imm);}env->pc += 4;return true;}
@@ -3079,6 +3099,10 @@ static bool trans_vbitrevi_b(CPULoongArchState *env, arg_vbitrevi_b *a) {return 
 static bool trans_vbitrevi_h(CPULoongArchState *env, arg_vbitrevi_h *a) {return vbitrevi_h(env, a, 16);}
 static bool trans_vbitrevi_w(CPULoongArchState *env, arg_vbitrevi_w *a) {return vbitrevi_w(env, a, 16);}
 static bool trans_vbitrevi_d(CPULoongArchState *env, arg_vbitrevi_d *a) {return vbitrevi_d(env, a, 16);}
+static bool trans_xvbitrevi_b(CPULoongArchState *env, arg_vbitrevi_b *a) {return vbitrevi_b(env, a, 32);}
+static bool trans_xvbitrevi_h(CPULoongArchState *env, arg_vbitrevi_h *a) {return vbitrevi_h(env, a, 32);}
+static bool trans_xvbitrevi_w(CPULoongArchState *env, arg_vbitrevi_w *a) {return vbitrevi_w(env, a, 32);}
+static bool trans_xvbitrevi_d(CPULoongArchState *env, arg_vbitrevi_d *a) {return vbitrevi_d(env, a, 32);}
 gen_trans_vvvd(vfrstp_b, 16, vfrstp_b)
 gen_trans_vvvd(vfrstp_h, 16, vfrstp_h)
 gen_trans_vvid(vfrstpi_b, 16, vfrstpi_b)
@@ -3905,22 +3929,22 @@ static bool trans_xvavgr_w(CPULoongArchState *env, arg_xvavgr_w *a) {__NOT_IMPLE
 static bool trans_xvavgr_wu(CPULoongArchState *env, arg_xvavgr_wu *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvavg_w(CPULoongArchState *env, arg_xvavg_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvavg_wu(CPULoongArchState *env, arg_xvavg_wu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclr_b(CPULoongArchState *env, arg_xvbitclr_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclr_d(CPULoongArchState *env, arg_xvbitclr_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclr_h(CPULoongArchState *env, arg_xvbitclr_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclri_b(CPULoongArchState *env, arg_xvbitclri_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclri_d(CPULoongArchState *env, arg_xvbitclri_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclri_h(CPULoongArchState *env, arg_xvbitclri_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclri_w(CPULoongArchState *env, arg_xvbitclri_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitclr_w(CPULoongArchState *env, arg_xvbitclr_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrev_b(CPULoongArchState *env, arg_xvbitrev_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrev_d(CPULoongArchState *env, arg_xvbitrev_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrev_h(CPULoongArchState *env, arg_xvbitrev_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrevi_b(CPULoongArchState *env, arg_xvbitrevi_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrevi_d(CPULoongArchState *env, arg_xvbitrevi_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrevi_h(CPULoongArchState *env, arg_xvbitrevi_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrevi_w(CPULoongArchState *env, arg_xvbitrevi_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitrev_w(CPULoongArchState *env, arg_xvbitrev_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclr_b(CPULoongArchState *env, arg_xvbitclr_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclr_d(CPULoongArchState *env, arg_xvbitclr_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclr_h(CPULoongArchState *env, arg_xvbitclr_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclri_b(CPULoongArchState *env, arg_xvbitclri_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclri_d(CPULoongArchState *env, arg_xvbitclri_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclri_h(CPULoongArchState *env, arg_xvbitclri_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclri_w(CPULoongArchState *env, arg_xvbitclri_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitclr_w(CPULoongArchState *env, arg_xvbitclr_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrev_b(CPULoongArchState *env, arg_xvbitrev_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrev_d(CPULoongArchState *env, arg_xvbitrev_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrev_h(CPULoongArchState *env, arg_xvbitrev_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrevi_b(CPULoongArchState *env, arg_xvbitrevi_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrevi_d(CPULoongArchState *env, arg_xvbitrevi_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrevi_h(CPULoongArchState *env, arg_xvbitrevi_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrevi_w(CPULoongArchState *env, arg_xvbitrevi_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitrev_w(CPULoongArchState *env, arg_xvbitrev_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvbitseli_b(CPULoongArchState *env, arg_xvbitseli_b *a) {
     for (size_t i = 0; i < 32; i++) {
         env->fpr[a->vd].vreg.B[i] = ((~env->fpr[a->vd].vreg.B[i]) & env->fpr[a->vj].vreg.B[i]) | (env->fpr[a->vd].vreg.B[i] & a->imm);
@@ -3935,14 +3959,14 @@ static bool trans_xvbitsel_v(CPULoongArchState *env, arg_xvbitsel_v *a) {
     env->pc += 4;
     return true;
 }
-static bool trans_xvbitset_b(CPULoongArchState *env, arg_xvbitset_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitset_d(CPULoongArchState *env, arg_xvbitset_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitset_h(CPULoongArchState *env, arg_xvbitset_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitseti_b(CPULoongArchState *env, arg_xvbitseti_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitseti_d(CPULoongArchState *env, arg_xvbitseti_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitseti_h(CPULoongArchState *env, arg_xvbitseti_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitseti_w(CPULoongArchState *env, arg_xvbitseti_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvbitset_w(CPULoongArchState *env, arg_xvbitset_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitset_b(CPULoongArchState *env, arg_xvbitset_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitset_d(CPULoongArchState *env, arg_xvbitset_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitset_h(CPULoongArchState *env, arg_xvbitset_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitseti_b(CPULoongArchState *env, arg_xvbitseti_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitseti_d(CPULoongArchState *env, arg_xvbitseti_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitseti_h(CPULoongArchState *env, arg_xvbitseti_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitseti_w(CPULoongArchState *env, arg_xvbitseti_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvbitset_w(CPULoongArchState *env, arg_xvbitset_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvbsll_v(CPULoongArchState *env, arg_xvbsll_v *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvbsrl_v(CPULoongArchState *env, arg_xvbsrl_v *a) {
     int vlen = 32;
