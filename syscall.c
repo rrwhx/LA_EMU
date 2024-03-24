@@ -32,6 +32,7 @@
 #define TARGET_NR_rt_sigaction 134
 #define TARGET_NR_times 153
 #define TARGET_NR_getrusage 165
+#define TARGET_NR_umask 166
 #define TARGET_NR_gettimeofday 169
 #define TARGET_NR_getpid 172
 #define TARGET_NR_getppid 173
@@ -427,6 +428,8 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return get_errno(times((void*)arg1));
         case TARGET_NR_getrusage:
             return get_errno(getrusage(arg1, (void*)arg2));
+        case TARGET_NR_umask:
+            return get_errno(umask(arg1));
         case TARGET_NR_gettimeofday:
             ret = get_errno(gettimeofday((void*)arg1, (void*)arg2));
             return ret;
