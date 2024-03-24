@@ -16,7 +16,36 @@
 #include "user.h"
 #endif
 
+__thread CPULoongArchState *current_env;
+static void show_register(CPULoongArchState *env) {
+    fprintf(stderr, "pc:0x%lx\n", env->pc);
+    for (int i = 0; i <32; i++) {
+        fprintf(stderr, "r%02d:%016lx    ", i, env->gpr[i]);
+        if ((i + 1) % 4 == 0) {
+            fprintf(stderr, "\n");
+        }
+    }
+}
+int check_signal;
 // # define ELF_CLASS  ELFCLASS64
+static void sigaction_entry(int signal, siginfo_t *si, void *arg) {
+    // ucontext_t* c = (ucontext_t*)arg;
+    printf("signal:%d, at address %p\n", signal, si->si_addr);
+    check_signal = 1;
+    return;
+}
+
+static void setup_signal(void) {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = sigaction_entry;
+    sa.sa_flags   = SA_SIGINFO;
+    if (sigaction(SIGINT, &sa, NULL)) {
+        printf("signal %d:%s register failed\n", SIGINT, strsignal(SIGINT));
+        exit(1);
+    }
+}
 
 const char * const regnames[32] = {
     "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
@@ -662,18 +691,117 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     return insn;
 #endif
 }
+static target_ulong fetch_breakpoints[4];
+static int64_t singlestep = -1;
+static int debug_handle_continue(const char* str) {
+    return 1;
+}
+static int debug_handle_quit(const char* str) {
+    exit(EXIT_SUCCESS);
+    return 0;
+}
+
+static int debug_handle_break(const char* str) {
+    int r = sscanf(str, "%*s%lx", &fetch_breakpoints[0]);
+    if (r != 1) {
+        return 1;
+    }
+    fprintf(stderr, "set Breakpoint 1 at 0x%lx\n", fetch_breakpoints[0]);
+    return 0;
+}
+
+static int debug_handle_info(const char* str) {
+    char buf[1024];
+    int r = sscanf(str, "%*s%s", buf);
+    if (r != 1) {
+        return 1;
+    }
+    if (strcmp(buf, "r") == 0) {
+        show_register(current_env);
+    }
+    return 0;
+}
+
+static int debug_handle_singlestep(const char* str) {
+    int r = sscanf(str, "%*s%lx", &singlestep);
+    if (r != 1) {
+        singlestep = 1;
+    }
+    return 1;
+}
+
+typedef struct debug_cmd {
+    char shortcut;
+    const char *name;
+    int (*func)(const char*);
+} debug_cmd;
+const debug_cmd debugcmds[] = {
+    {'c', "continue", debug_handle_continue},
+    {'q', "quit", debug_handle_quit},
+    {'b', "break", debug_handle_break},
+    {'i', "info", debug_handle_info},
+    {'s', "si", debug_handle_singlestep},
+    {0, NULL, NULL},
+};
+
+static void handle_debug(void) {
+    do {
+        char* line_buff = NULL;
+        size_t line_len;
+        fprintf(stderr, "(debug)");fflush(stderr);
+        ssize_t r = getline(&line_buff, &line_len, stdin);
+        if (r <= 0) {
+            fprintf(stderr, "quit\n");
+            exit(EXIT_SUCCESS);
+        } else if(r > 1) {
+            const debug_cmd* item;
+            for (item = debugcmds; item->name != NULL; item++) {
+                size_t name_len = strlen(item->name);
+                if ((line_buff[0] == item->shortcut && isspace(line_buff[1])) || (strncmp(line_buff, item->name, name_len) == 0 && isspace(line_buff[name_len]))) {
+                    break;
+                }
+            }
+            if (item->func) {
+                int r = item->func(line_buff);
+                if (r < 0) {
+                    fprintf(stderr, "cannot prase %s\n", line_buff);
+                } else if (r > 0) {
+                    break;
+                }
+            } else {
+                fprintf(stderr, "cannot prase %s\n", line_buff);
+            }
+        }
+    } while (1);
+}
 
 int val;
 
 static void exec_env(CPULoongArchState *env) {
     INSCache* ic;
+    current_env = env;
     while (1) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
+                if (unlikely(check_signal)) {
+                    check_signal = 0;
+                    fprintf(stderr, "Program received signal SIGINT, Interrupt.");
+                    fprintf(stderr, "pc:%lx\n", env->pc);
+                    handle_debug();
+                }
+                if (unlikely(env->pc == fetch_breakpoints[0])) {
+                    fprintf(stderr, "hit Breakpoint %d pc:0x%lx\n", 1, env->pc);
+                    handle_debug();
+                }
+                if (unlikely(singlestep == 0)) {
+                    fprintf(stderr, "singlestep pc:0x%lx\n", env->pc);
+                    handle_debug();
+                }
                 if (unlikely(qemu_loglevel_mask(CPU_LOG_EXEC))) {
                     qemu_log("pc:%lx\n", env->pc);
                 }
+                -- singlestep;
                 insn = fetch(env, &ic);
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
@@ -817,7 +945,7 @@ int main(int argc, char** argv, char **envp) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:k:d:D:")) != -1) {
+    while ((c = getopt(argc, argv, "+m:k:d:D:g")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -830,6 +958,9 @@ int main(int argc, char** argv, char **envp) {
                 break;
             case 'D':
                 handle_logfile(optarg);
+                break;
+            case 'g':
+                check_signal = 1;
                 break;
             case '?':
                 usage();
@@ -868,6 +999,7 @@ int main(int argc, char** argv, char **envp) {
 #else
     load_elf(kernel_filename, &entry_addr);
 #endif
+    setup_signal();
     qemu_log_mask(CPU_LOG_PAGE, "entry_addr:%lx\n", entry_addr);
 
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
