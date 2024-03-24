@@ -2,6 +2,7 @@
 #include "user.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <asm/unistd.h>
 #include <sys/mman.h>
 #include <sys/sysinfo.h>
@@ -17,8 +18,11 @@
 #define TARGET_NR_fstatfs 44
 #define TARGET_NR_ftruncate 46
 #define TARGET_NR_faccessat 48
+#define TARGET_NR_chdir 49
 #define TARGET_NR_openat 56
 #define TARGET_NR_close 57
+#define TARGET_NR_pipe2 59
+#define TARGET_NR_getdents64 61
 #define TARGET_NR_lseek 62
 #define TARGET_NR_read 63
 #define TARGET_NR_write 64
@@ -362,10 +366,17 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return get_errno(ioctl(arg1, arg2, arg3));
         case TARGET_NR_faccessat:
             return get_errno(faccessat(arg1, (void*)arg2, arg3, 0));
+        case TARGET_NR_chdir:
+            return get_errno(chdir((void*)arg1));
         case TARGET_NR_ftruncate:
             return get_errno(ftruncate(arg1, arg2));
         case TARGET_NR_close:
             return get_errno(close(arg1));
+        case TARGET_NR_pipe2:
+            return get_errno(pipe2((void*)arg1, arg2));
+        case TARGET_NR_getdents64:
+            fprintf(stderr, "lxy: %s:%d %s warning TARGET_NR_getdents64\n", __FILE__,__LINE__,__func__);
+            return get_errno(getdents64(arg1, (void*)arg2, arg3));
         case TARGET_NR_lseek:
             return get_errno(lseek(arg1, arg2, arg3));
         case TARGET_NR_read:
