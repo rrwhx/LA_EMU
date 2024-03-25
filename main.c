@@ -766,6 +766,7 @@ static void handle_debug(void) {
                 if (r < 0) {
                     fprintf(stderr, "cannot prase %s\n", line_buff);
                 } else if (r > 0) {
+                    fprintf(stderr, "Continuing.\n");
                     break;
                 }
             } else {
