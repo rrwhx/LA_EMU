@@ -766,6 +766,12 @@ static int debug_handle_break(const char* str) {
     return 0;
 }
 
+static int debug_handle_delete(const char* str) {
+    fprintf(stderr, "delete Breakpoint 1 at 0x%lx\n", fetch_breakpoints[0]);
+    fetch_breakpoints[0] = 0;
+    return 0;
+}
+
 static int debug_handle_info(const char* str) {
     char buf[1024];
     int r = sscanf(str, "%*s%s", buf);
@@ -949,6 +955,7 @@ const debug_cmd debugcmds[] = {
     {'c', "continue", debug_handle_continue},
     {'q', "quit", debug_handle_quit},
     {'b', "break", debug_handle_break},
+    {'d', "delete", debug_handle_delete},
     {'i', "info", debug_handle_info},
     {'s', "si", debug_handle_singlestep},
     {'x', "x", debug_handle_x},
