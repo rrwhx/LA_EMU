@@ -17,15 +17,71 @@
 #endif
 
 __thread CPULoongArchState *current_env;
+
+const char *const loongarch_r_alias[32] =
+{
+    "zer", "ra", "tp", "sp", "a0", "a1", "a2", "a3",
+    "a4",   "a5", "a6", "a7", "t0", "t1", "t2", "t3",
+    "t4",   "t5", "t6", "t7", "t8", "r21","fp", "s0",
+    "s1",   "s2", "s3", "s4", "s5", "s6", "s7", "s8",
+};
+
+const char *const loongarch_f_alias[32] =
+{
+    "fa0", "fa1", "fa2",  "fa3",  "fa4",  "fa5",  "fa6",  "fa7",
+    "ft0", "ft1", "ft2",  "ft3",  "ft4",  "ft5",  "ft6",  "ft7",
+    "ft8", "ft9", "ft10", "ft11", "ft12", "ft13", "ft14", "ft15",
+    "fs0", "fs1", "fs2",  "fs3",  "fs4",  "fs5",  "fs6",  "fs7",
+};
+#define GETBIT(__a, __index) ((__a >> __index) & 1)
+#define GETBITS(__a, __index, __len) ((__a >> __index) & ((1 << __len) - 1))
+void dump_vzoui(int fcsr) {
+    fprintf(stderr, "%c%c%c%c%c", GETBIT(fcsr, 4) ? 'V' : '-',  GETBIT(fcsr, 3) ? 'Z' : '-',  GETBIT(fcsr, 2) ? 'O' : '-',  GETBIT(fcsr, 1) ? 'U' : '-',  GETBIT(fcsr, 0) ? 'I' : '-');
+}
+
+void dump_fcsr(int fcsr) {
+    int rm = (fcsr >> 8) & 0x3;
+    static const char* rm_mode[4] = {
+        "RNE",
+        "RZ",
+        "RP",
+        "RM",
+    };
+    // printf("    Enables:V:%d, Z:%d, O:%d, U:%d, I:%d\n", GETBIT(fcsr, 4), GETBIT(fcsr, 3), GETBIT(fcsr, 2), GETBIT(fcsr, 1), GETBIT(fcsr, 0));
+    // printf("    RM     :%d(%s)\n", rm, rm_mode[rm]);
+    // printf("    Flags  :V:%d, Z:%d, O:%d, U:%d, I:%d\n", GETBIT(fcsr, 20), GETBIT(fcsr, 19), GETBIT(fcsr, 18), GETBIT(fcsr, 17), GETBIT(fcsr, 16));
+    // printf("    Cause  :V:%d, Z:%d, O:%d, U:%d, I:%d\n", GETBIT(fcsr, 28), GETBIT(fcsr, 27), GETBIT(fcsr, 26), GETBIT(fcsr, 25), GETBIT(fcsr, 24));
+
+    fprintf(stderr, "RM:%d(%s)", rm, rm_mode[rm]);
+    fprintf(stderr, ",Enables:");dump_vzoui(GETBITS(fcsr, 0, 5));
+    fprintf(stderr, ",Flags:");dump_vzoui(GETBITS(fcsr, 16, 5));
+    fprintf(stderr, ",Cause:");dump_vzoui(GETBITS(fcsr, 24, 5));
+    fprintf(stderr, "\n");
+}
+
 static void show_register(CPULoongArchState *env) {
     fprintf(stderr, "pc:0x%lx\n", env->pc);
     for (int i = 0; i <32; i++) {
-        fprintf(stderr, "r%02d:%016lx    ", i, env->gpr[i]);
+        fprintf(stderr, "r%02d/%-3s:%016lx    ", i, loongarch_r_alias[i], env->gpr[i]);
         if ((i + 1) % 4 == 0) {
             fprintf(stderr, "\n");
         }
     }
 }
+
+static void show_register_fpr(CPULoongArchState *env) {
+    for (int i = 0; i <32; i++) {
+        fprintf(stderr, "f%02d   {f = 0x%08x, d = 0x%016lx} {f = %.6f\t, d = %.12f\t}\n",
+            i, env->fpr[i].vreg.W[0], env->fpr[i].vreg.D[0], *(float*)&env->fpr[i], *(double*)&env->fpr[i]);
+    }
+    for (int i = 0; i <8; i++) {
+        fprintf(stderr, "fcc%d:%d ", i, env->cf[i]);
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "fcsr:%08x\n", env->fcsr0);
+    dump_fcsr(env->fcsr0);
+}
+
 int check_signal;
 // # define ELF_CLASS  ELFCLASS64
 static void sigaction_entry(int signal, siginfo_t *si, void *arg) {
@@ -704,7 +760,7 @@ static int debug_handle_quit(const char* str) {
 static int debug_handle_break(const char* str) {
     int r = sscanf(str, "%*s%lx", &fetch_breakpoints[0]);
     if (r != 1) {
-        return 1;
+        return -1;
     }
     fprintf(stderr, "set Breakpoint 1 at 0x%lx\n", fetch_breakpoints[0]);
     return 0;
@@ -716,8 +772,12 @@ static int debug_handle_info(const char* str) {
     if (r != 1) {
         return 1;
     }
-    if (strcmp(buf, "r") == 0) {
+    if (strcmp(buf, "r") == 0 || strcmp(buf, "gpr") == 0) {
         show_register(current_env);
+    } else if (strcmp(buf, "fpr") == 0) {
+        show_register_fpr(current_env);
+    } else {
+        return -1;
     }
     return 0;
 }
