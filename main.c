@@ -790,6 +790,156 @@ static int debug_handle_singlestep(const char* str) {
     return 1;
 }
 
+void format_printf_b(void* addr, char format) {
+    switch (format)
+    {
+        case 'o': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // octal
+        case 'x': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // hexadecimal
+        case 'd': fprintf(stderr, "%p 0x%d\n", addr, *(uint8_t*)addr); break; // decimal
+        case 'u': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // unsigned decimal
+        case 't': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // binary
+        case 'f': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // floating point
+        case 'a': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // address
+        case 'c': fprintf(stderr, "%p %c\n", addr, *(uint8_t*)addr); break; // char
+        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
+        case 'i': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // instruction
+        default:
+            fprintf(stderr, "unknown format:%c\n", format);
+    }
+}
+void format_printf_h(void* addr, char format) {
+    switch (format)
+    {
+        case 'o': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // octal
+        case 'x': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // hexadecimal
+        case 'd': fprintf(stderr, "%p 0x%d\n", addr, *(uint16_t*)addr); break; // decimal
+        case 'u': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // unsigned decimal
+        case 't': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // binary
+        case 'f': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // floating point
+        case 'a': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // address
+        case 'c': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // char
+        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
+        case 'i': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // instruction
+        default:
+            fprintf(stderr, "unknown format:%c\n", format);
+    }
+}
+void format_printf_w(void* addr, char format) {
+    switch (format)
+    {
+        case 'o': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // octal
+        case 'x': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // hexadecimal
+        case 'd': fprintf(stderr, "%p 0x%d\n", addr, *(uint32_t*)addr); break; // decimal
+        case 'u': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // unsigned decimal
+        case 't': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // binary
+        case 'f': fprintf(stderr, "%p %f\n", addr, *(float*)addr); break; // floating point
+        case 'a': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // address
+        case 'c': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // char
+        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
+        case 'i': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // instruction
+        default:
+            fprintf(stderr, "unknown format:%c\n", format);
+    }
+}
+void format_printf_g(void* addr, char format) {
+    switch (format)
+    {
+        case 'o': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // octal
+        case 'x': fprintf(stderr, "%p 0x%ld\n", addr, *(uint64_t*)addr); break; // hexadecimal
+        case 'd': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // decimal
+        case 'u': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // unsigned decimal
+        case 't': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // binary
+        case 'f': fprintf(stderr, "%p %f\n", addr, *(double*)addr); break; // floating point
+        case 'a': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // address
+        case 'c': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // char
+        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
+        case 'i': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // instruction
+        default:
+            fprintf(stderr, "unknown format:%c\n", format);
+    }
+}
+
+int format_printf(target_ulong addr, int index, char format, char size) {
+    switch (size)
+    {
+        case 'b': format_printf_b((void*)(addr + index * 1), format); break;
+        case 'h': format_printf_h((void*)(addr + index * 2), format); break;
+        case 'w': format_printf_w((void*)(addr + index * 4), format); break;
+        case 'g': format_printf_g((void*)(addr + index * 8), format); break;
+        default:
+            fprintf(stderr, "unknown size:%c\n", size);
+    }
+    return 0;
+}
+
+bool is_format(char c) {
+    switch (c)
+    {
+        case 'o': return true;
+        case 'x': return true;
+        case 'd': return true;
+        case 'u': return true;
+        case 't': return true;
+        case 'f': return true;
+        case 'a': return true;
+        case 'c': return true;
+        case 's': return true;
+        case 'i': return true;
+        default:
+            return false;
+    }
+    return false;
+}
+
+bool is_size(char c) {
+    switch (c)
+    {
+        case 'b': return true;
+        case 'h': return true;
+        case 'w': return true;
+        case 'g': return true;
+        default:
+            return false;
+    }
+    return false;
+}
+
+static int debug_handle_x(const char* str) {
+    char format = 'x';
+    char size = 'w';
+    int len = 1;
+    target_ulong addr;
+    const char* end = str + 1;
+    if (str[1] == '/') {
+        end = str + 2;
+        if (isdigit(str[2])) {
+            len = strtol(str + 2, (char**)&end, 0);
+            fprintf(stderr, "str %p %p %d\n", str + 2, end, len);
+        }
+        while (!isspace(*end)) {
+            if (is_size(*end)) {
+                size = *end;
+            } else if (is_format(*end)) {
+                format = *end;
+            } else {
+                fprintf(stderr, "unknown size or format:%c\n", *end);
+            }
+            ++ end;
+        }
+    }
+    int r = sscanf(end, "%lx", &addr);
+    if (r != 1) {
+        fprintf(stderr, "can not prase %s\n", str);
+        return 0;
+    }
+    // fprintf(stderr, "addr:%lx len:%d size:%c format:%c\n", addr, len, size, format);
+    for (int i = 0; i < len; i++) {
+        format_printf(addr, i, format, size);
+    }
+
+    return 0;
+}
+
 typedef struct debug_cmd {
     char shortcut;
     const char *name;
@@ -801,8 +951,13 @@ const debug_cmd debugcmds[] = {
     {'b', "break", debug_handle_break},
     {'i', "info", debug_handle_info},
     {'s', "si", debug_handle_singlestep},
+    {'x', "x", debug_handle_x},
     {0, NULL, NULL},
 };
+
+static inline bool is_sep(char c) {
+    return isspace(c) || c == '/';
+}
 
 static void handle_debug(void) {
     do {
@@ -811,13 +966,13 @@ static void handle_debug(void) {
         fprintf(stderr, "(debug)");fflush(stderr);
         ssize_t r = getline(&line_buff, &line_len, stdin);
         if (r <= 0) {
-            fprintf(stderr, "quit\n");
+            fprintf(stderr, "\nquit\n");
             exit(EXIT_SUCCESS);
         } else if(r > 1) {
             const debug_cmd* item;
             for (item = debugcmds; item->name != NULL; item++) {
                 size_t name_len = strlen(item->name);
-                if ((line_buff[0] == item->shortcut && isspace(line_buff[1])) || (strncmp(line_buff, item->name, name_len) == 0 && isspace(line_buff[name_len]))) {
+                if ((line_buff[0] == item->shortcut && is_sep(line_buff[1])) || (strncmp(line_buff, item->name, name_len) == 0 && is_sep(line_buff[name_len]))) {
                     break;
                 }
             }
