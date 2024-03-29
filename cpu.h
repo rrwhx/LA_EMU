@@ -682,5 +682,7 @@ static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
 
 #include "helper.h"
 
+extern __thread CPULoongArchState *current_env;
+int exec_env(CPULoongArchState *env);
 
 #endif /* LOONGARCH_CPU_H */

@@ -12,6 +12,7 @@
 #include "sizes.h"
 #include "cpu.h"
 
+#include "gdbserver.h"
 #if defined(USER_MODE)
 #include "user.h"
 #endif
@@ -1000,27 +1001,38 @@ static void handle_debug(void) {
 
 int val;
 
-static void exec_env(CPULoongArchState *env) {
+int exec_env(CPULoongArchState *env) {
     INSCache* ic;
     current_env = env;
     while (1) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
-                if (unlikely(check_signal)) {
-                    check_signal = 0;
-                    fprintf(stderr, "Program received signal SIGINT, Interrupt.");
-                    fprintf(stderr, "pc:%lx\n", env->pc);
-                    handle_debug();
+                // if (unlikely(check_signal)) {
+                //     check_signal = 0;
+                //     fprintf(stderr, "Program received signal SIGINT, Interrupt.");
+                //     fprintf(stderr, "pc:%lx\n", env->pc);
+                //     handle_debug();
+                // }
+                // if (unlikely(env->pc == fetch_breakpoints[0])) {
+                //     fprintf(stderr, "hit Breakpoint %d pc:0x%lx\n", 1, env->pc);
+                //     handle_debug();
+                // }
+                // if (unlikely(singlestep == 0)) {
+                //     fprintf(stderr, "singlestep pc:0x%lx\n", env->pc);
+                //     handle_debug();
+                // }
+
+                if (gdbserver_has_message) {
+                    return 1;
                 }
-                if (unlikely(env->pc == fetch_breakpoints[0])) {
-                    fprintf(stderr, "hit Breakpoint %d pc:0x%lx\n", 1, env->pc);
-                    handle_debug();
+                for (int i = 0; i < GDB_FETCCH_BREAKPOINT_NUM; i++) {
+                    if (env->pc == gdb_fetch_breakpoint[i]) {
+                        fprintf(stderr, "hit breakpoint %lx\n", env->pc);
+                        return 2;
+                    }
                 }
-                if (unlikely(singlestep == 0)) {
-                    fprintf(stderr, "singlestep pc:0x%lx\n", env->pc);
-                    handle_debug();
-                }
+
                 if (unlikely(qemu_loglevel_mask(CPU_LOG_EXEC))) {
                     qemu_log("pc:%lx\n", env->pc);
                 }
@@ -1222,7 +1234,7 @@ int main(int argc, char** argv, char **envp) {
 #else
     load_elf(kernel_filename, &entry_addr);
 #endif
-    setup_signal();
+    // setup_signal();
     qemu_log_mask(CPU_LOG_PAGE, "entry_addr:%lx\n", entry_addr);
 
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
@@ -1300,7 +1312,14 @@ int main(int argc, char** argv, char **envp) {
     // }
     qemu_log_mask(CPU_LOG_PAGE, "init sp %lx\n", sp);
 #endif
-    exec_env(env);
+    current_env = env;
+    if (check_signal) {
+        gdbserver_init(1234);
+        gdbserver_has_message = 1;
+        gdbserver_loop();
+    } else {
+        exec_env(env);
+    }
     fprintf(stderr, "end from main %s %d\n", __FILE__, __LINE__);
     return 0;
 }
