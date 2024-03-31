@@ -289,18 +289,21 @@ void gdbserver_handle_message() {
                 for (size_t i = 0; i < 32; i++) {
                     convert_u64(current_env->gpr[i], send_buf_tmp, i * 16);
                 }
-                // new world
-                convert_u64(0x1234567812345678, send_buf_tmp, 32 * 16);
-                convert_u64(current_env->pc,    send_buf_tmp, 33 * 16);
-                convert_u64(0x1234567812345678, send_buf_tmp, 34 * 16);
-                send_message_ack(sock_fd);
-                send_message_n(sock_fd, send_buf_tmp, 35 * 16);
+                if (new_abi) {
+                    // new world
+                    convert_u64(0x1234567812345678, send_buf_tmp, 32 * 16);
+                    convert_u64(current_env->pc,    send_buf_tmp, 33 * 16);
+                    convert_u64(0x1234567812345678, send_buf_tmp, 34 * 16);
+                    send_message_ack(sock_fd);
+                    send_message_n(sock_fd, send_buf_tmp, 35 * 16);
+                } else {
+                    // old world
+                    convert_u64(current_env->pc,    send_buf_tmp, 32 * 16);
+                    convert_u64(0x1234567812345678, send_buf_tmp, 33 * 16);
+                    send_message_ack(sock_fd);
+                    send_message_n(sock_fd, send_buf_tmp, 34 * 16);
+                }
 
-                // old world
-                // convert_u64(current_env->pc,    send_buf_tmp, 32 * 16);
-                // convert_u64(0x1234567812345678, send_buf_tmp, 33 * 16);
-                // send_message_ack(sock_fd);
-                // send_message_n(sock_fd, send_buf_tmp, 34 * 16);
             }
             break;
         case 'm' : {
