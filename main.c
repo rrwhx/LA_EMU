@@ -18,6 +18,7 @@
 #endif
 
 bool new_abi;
+bool determined;
 __thread CPULoongArchState *current_env;
 
 const char *const loongarch_r_alias[32] =
@@ -1041,8 +1042,8 @@ int exec_env(CPULoongArchState *env) {
                 insn = fetch(env, &ic);
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
-                env->icount ++;
 #endif
+                env->icount ++;
                 if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_CPU))) {
                     for (int i = 0; i <32; i++) {
                         qemu_log("%d:%lx ", i, env->gpr[i]);
@@ -1181,7 +1182,7 @@ int main(int argc, char** argv, char **envp) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:nk:d:D:g")) != -1) {
+    while ((c = getopt(argc, argv, "+m:nk:d:D:gz")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -1200,6 +1201,9 @@ int main(int argc, char** argv, char **envp) {
                 break;
             case 'g':
                 check_signal = 1;
+                break;
+            case 'z':
+                determined = 1;
                 break;
             case '?':
                 usage();

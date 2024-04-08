@@ -12,8 +12,12 @@
 
 #include <stdalign.h>
 
-static inline long long la_get_tval(void){
-    return nano_second() / 10;
+static inline long long la_get_tval(CPULoongArchState *env){
+    if (determined) {
+        return current_env->icount;
+    } else {
+        return nano_second() / 10;
+    }
 }
 
 #define __NOT_IMPLEMENTED__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
@@ -1149,7 +1153,7 @@ static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *a) {__NOT_IMPLE
 static bool trans_rdtimel_w(CPULoongArchState *env, arg_rdtimel_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_rdtimeh_w(CPULoongArchState *env, arg_rdtimeh_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_rdtime_d(CPULoongArchState *env, arg_rdtime_d *a) {
-    env->gpr[a->rd] = la_get_tval();
+    env->gpr[a->rd] = la_get_tval(env);
     env->gpr[a->rj] = 0;
     env->pc += 4;
     return true;
@@ -1595,7 +1599,7 @@ static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7]; break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID; break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; break;
-        case LOONGARCH_CSR_TVAL           :old_v = la_get_tval(); break;
+        case LOONGARCH_CSR_TVAL           :old_v = la_get_tval(env); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; break;
         case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR; break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; break;
@@ -1744,7 +1748,7 @@ static bool trans_csrxchg(CPULoongArchState *env, arg_csrxchg *a) {
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7];     env->CSR_SAVE[7] &= (~mask);     env->CSR_SAVE[7] |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID;         env->CSR_TID &= (~mask);         env->CSR_TID |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG;        env->CSR_TCFG &= (~mask);        env->CSR_TCFG |= (env->gpr[a->rd] & mask); break;
-        case LOONGARCH_CSR_TVAL           :old_v = la_get_tval();        env->CSR_TVAL &= (~mask);        env->CSR_TVAL |= (env->gpr[a->rd] & mask); break;
+        case LOONGARCH_CSR_TVAL           :old_v = la_get_tval(env);        env->CSR_TVAL &= (~mask);        env->CSR_TVAL |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC;        env->CSR_CNTC &= (~mask);        env->CSR_CNTC |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR;       env->CSR_TICLR &= (~mask);       env->CSR_TICLR |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL;      env->CSR_LLBCTL &= (~mask);      env->CSR_LLBCTL |= (env->gpr[a->rd] & mask); break;

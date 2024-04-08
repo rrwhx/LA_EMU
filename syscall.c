@@ -433,7 +433,14 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             exit(arg1);
             lsassert(0);
         case TARGET_NR_clock_gettime:
-            ret = get_errno(clock_gettime(arg1, (void*)arg2));
+            if (determined) {
+                struct timespec* p = (void*)arg2;
+                p->tv_sec = cpu_env->icount / 1000000000;
+                p->tv_nsec = cpu_env->icount % 1000000000;
+                ret = 0;
+            } else {
+                ret = get_errno(clock_gettime(arg1, (void*)arg2));
+            }
             return ret;
         case TARGET_NR_times:
             return get_errno(times((void*)arg1));
@@ -442,7 +449,14 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
         case TARGET_NR_umask:
             return get_errno(umask(arg1));
         case TARGET_NR_gettimeofday:
-            ret = get_errno(gettimeofday((void*)arg1, (void*)arg2));
+            if (determined) {
+                struct timeval* p = (void*)arg1;
+                p->tv_sec = cpu_env->icount / 1000000000;
+                p->tv_usec = (cpu_env->icount % 1000000000) / 1000000;
+                ret = 0;
+            } else {
+                ret = get_errno(gettimeofday((void*)arg1, (void*)arg2));
+            }
             return ret;
         case TARGET_NR_getpid:
             return get_errno(getpid());

@@ -685,5 +685,6 @@ static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
 extern __thread CPULoongArchState *current_env;
 int exec_env(CPULoongArchState *env);
 extern bool new_abi;
+extern bool determined;
 
 #endif /* LOONGARCH_CPU_H */
