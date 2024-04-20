@@ -466,6 +466,7 @@ typedef struct CPUArchState {
     uint64_t ecount;
     uint64_t syscall_count;
     uint64_t ic_hit_count;
+    int64_t timer_counter;
 } CPULoongArchState;
 
 typedef CPULoongArchState CPUArchState;
@@ -687,4 +688,5 @@ int exec_env(CPULoongArchState *env);
 extern bool new_abi;
 extern bool determined;
 
+void loongarch_cpu_set_irq(void *opaque, int irq, int level);
 #endif /* LOONGARCH_CPU_H */

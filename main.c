@@ -700,27 +700,25 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
 }
 
 
-// void loongarch_cpu_set_irq(void *opaque, int irq, int level)
-// {
-//     LoongArchCPU *cpu = opaque;
-//     CPULoongArchState *env = &cpu->env;
-//     CPUState *cs = CPU(cpu);
+void loongarch_cpu_set_irq(void *opaque, int irq, int level)
+{
+    LoongArchCPU *cpu = opaque;
+    CPULoongArchState *env = &cpu->env;
+    CPUState *cs = CPU(cpu);
 
-//     if (irq < 0 || irq >= N_IRQS) {
-//         return;
-//     }
+    if (irq < 0 || irq >= N_IRQS) {
+        return;
+    }
 
-//     if (kvm_enabled()) {
-//         kvm_loongarch_set_interrupt(cpu, irq, level);
-//     } else if (tcg_enabled()) {
-//         env->CSR_ESTAT = deposit64(env->CSR_ESTAT, irq, 1, level != 0);
-//         if (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS)) {
-//             cpu_interrupt(cs, CPU_INTERRUPT_HARD);
-//         } else {
-//             cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
-//         }
-//     }
-// }
+    env->CSR_ESTAT = deposit64(env->CSR_ESTAT, irq, 1, level != 0);
+    if (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS)) {
+        // cpu_interrupt(cs, CPU_INTERRUPT_HARD);
+        cs->exception_index = EXCCODE_INT;
+        loongarch_cpu_do_interrupt(cs);
+    } else {
+        // cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
+    }
+}
 
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
 #if defined(USER_MODE)
@@ -1054,6 +1052,18 @@ int exec_env(CPULoongArchState *env) {
                 if(unlikely(!r)) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
                 }
+#ifndef USER_MODE
+                env->timer_counter -= (env->CSR_TCFG & 0x1);
+                if (env->timer_counter == 0) {
+                    env->timer_counter = INT64_MAX;
+                    if (env->CSR_TCFG & 0x2) {
+                        env->timer_counter = (env->CSR_TCFG & 0xfffffffffffcUL);
+                    } else {
+                        env->CSR_TCFG &= 0xfffffffffffeUL;
+                    }
+                    loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 1);
+                }
+#endif
             }
         } else {
             loongarch_cpu_do_interrupt(env_cpu(env));
@@ -1253,6 +1263,7 @@ int main(int argc, char** argv, char **envp) {
     cpu_reset(env);
     loongarch_la464_initfn(env);
     cpu_clear_tc(env);
+    env->timer_counter = INT64_MAX;
     env->pc = entry_addr;
 #if defined(USER_MODE)
     target_ulong sp = user_setup_stack();

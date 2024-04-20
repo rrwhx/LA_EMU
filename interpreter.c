@@ -6,6 +6,8 @@
 
 #if defined(USER_MODE)
 #include "user.h"
+#else
+#include "serial.h"
 #endif
 
 #include "util.h"
@@ -660,17 +662,26 @@ static bool is_io(hwaddr ha) {
     return ha >= 0x10000000 && ha < 0x90000000;
 #endif
 }
+
+#define UART_BASE 0x1fe001e0
+#define UART_END 0x1fe001e7
+#if defined(USER_MODE)
+static void do_io_st(hwaddr ha, uint64_t data, int size) {}
+static uint64_t do_io_ld(hwaddr ha, int size) { return 0;}
+#else
 static void do_io_st(hwaddr ha, uint64_t data, int size) {
     switch (ha)
     {
-    case 0x1fe001e0:
+    case UART_BASE ... UART_END:
+        serial_ioport_write(NULL, ha - UART_BASE, data, size);
+        break;
     case 0x1fe002e0:
             fprintf(stderr, "%c", (char)(data));
             fflush(stdout);
         break;
     
     default:
-        fprintf(stderr, "do_io_st, addr:%lx, data:%lx, size:%d\n", ha, data, size);
+        fprintf(stderr, "do_io_st, pc:%lx, addr:%lx, data:%lx, size:%d\n", current_env->pc, ha, data, size);
         // assert(0);
     }
 }
@@ -678,6 +689,9 @@ static uint64_t do_io_ld(hwaddr ha, int size) {
     uint64_t data = 'x';
     switch (ha)
     {
+    case UART_BASE ... UART_END:
+        data = serial_ioport_read(NULL, ha - UART_BASE, size);
+        break;
     case 0x1fe00120:
             data = 'a';
         break;
@@ -687,6 +701,7 @@ static uint64_t do_io_ld(hwaddr ha, int size) {
     }
     return data;
 }
+#endif
 
 static uint64_t add_addr(int64_t base, int64_t disp) {
     return (uint64_t)(base + disp);
@@ -1599,7 +1614,7 @@ static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7]; break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID; break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; break;
-        case LOONGARCH_CSR_TVAL           :old_v = la_get_tval(env); break;
+        case LOONGARCH_CSR_TVAL           :old_v = env->timer_counter; break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; break;
         case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR; break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; break;
@@ -1631,6 +1646,16 @@ static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {
             fprintf(stderr, "NOT IMPLEMENTED %s %x\n", __func__, a->csr);
     }
     env->gpr[a->rd] = old_v;
+    switch (a->csr)
+    {
+    case LOONGARCH_CSR_TID:    fprintf(stderr, "%s pc:%lx CSR_TID:%lx\n", __func__, env->pc, env->CSR_TID); break;
+    case LOONGARCH_CSR_TCFG:   fprintf(stderr, "%s pc:%lx CSR_TCFG:%lx\n", __func__, env->pc, env->CSR_TCFG); break;
+    case LOONGARCH_CSR_TVAL:   fprintf(stderr, "%s pc:%lx CSR_TVAL:%lx\n", __func__, env->pc, env->CSR_TVAL); break;
+    case LOONGARCH_CSR_CNTC:   fprintf(stderr, "%s pc:%lx CSR_CNTC:%lx\n", __func__, env->pc, env->CSR_CNTC); break;
+    case LOONGARCH_CSR_TICLR:  fprintf(stderr, "%s pc:%lx CSR_TICLR:%lx\n", __func__, env->pc, env->CSR_TICLR); break;
+    default:
+        break;
+    }
     env->pc += 4;
     return true;
 }
@@ -1672,10 +1697,20 @@ static bool trans_csrwr(CPULoongArchState *env, arg_csrwr *a) {
         case LOONGARCH_CSR_SAVE(6)        :old_v = env->CSR_SAVE[6]; env->CSR_SAVE[6] = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7]; env->CSR_SAVE[7] = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID; env->CSR_TID = env->gpr[a->rd]; break;
-        case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; env->CSR_TCFG = env->gpr[a->rd]; break;
+        case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; env->CSR_TCFG = env->gpr[a->rd];
+            if (env->CSR_TCFG & 1) {
+                env->timer_counter = (env->CSR_TCFG & 0xfffffffffffcUL) * 100;
+            } else {
+                env->timer_counter = -1;
+            }
+            break;
         case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL; env->CSR_TVAL = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; env->CSR_CNTC = env->gpr[a->rd]; break;
-        case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR; env->CSR_TICLR = env->gpr[a->rd]; break;
+        case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR; env->CSR_TICLR = env->gpr[a->rd];
+            if (env->gpr[a->rd] & 1) {
+                loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 0);
+            }
+        break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; env->CSR_LLBCTL = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_IMPCTL1        :old_v = env->CSR_IMPCTL1; env->CSR_IMPCTL1 = env->gpr[a->rd]; break;
         case LOONGARCH_CSR_IMPCTL2        :old_v = env->CSR_IMPCTL2; env->CSR_IMPCTL2 = env->gpr[a->rd]; break;
@@ -1705,6 +1740,16 @@ static bool trans_csrwr(CPULoongArchState *env, arg_csrwr *a) {
             fprintf(stderr, "NOT IMPLEMENTED %s %x\n", __func__, a->csr);
     }
     env->gpr[a->rd] = old_v;
+    switch (a->csr)
+    {
+    case LOONGARCH_CSR_TID:    fprintf(stderr, "%s pc:%lx CSR_TID:%lx\n", __func__, env->pc, env->CSR_TID); break;
+    case LOONGARCH_CSR_TCFG:   fprintf(stderr, "%s pc:%lx CSR_TCFG:%lx\n", __func__, env->pc, env->CSR_TCFG); break;
+    case LOONGARCH_CSR_TVAL:   fprintf(stderr, "%s pc:%lx CSR_TVAL:%lx\n", __func__, env->pc, env->CSR_TVAL); break;
+    case LOONGARCH_CSR_CNTC:   fprintf(stderr, "%s pc:%lx CSR_CNTC:%lx\n", __func__, env->pc, env->CSR_CNTC); break;
+    case LOONGARCH_CSR_TICLR:  fprintf(stderr, "%s pc:%lx CSR_TICLR:%lx\n", __func__, env->pc, env->CSR_TICLR); break;
+    default:
+        break;
+    }
     env->pc += 4;
     return true;
 }
@@ -1747,10 +1792,20 @@ static bool trans_csrxchg(CPULoongArchState *env, arg_csrxchg *a) {
         case LOONGARCH_CSR_SAVE(6)        :old_v = env->CSR_SAVE[6];     env->CSR_SAVE[6] &= (~mask);     env->CSR_SAVE[6] |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7];     env->CSR_SAVE[7] &= (~mask);     env->CSR_SAVE[7] |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID;         env->CSR_TID &= (~mask);         env->CSR_TID |= (env->gpr[a->rd] & mask); break;
-        case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG;        env->CSR_TCFG &= (~mask);        env->CSR_TCFG |= (env->gpr[a->rd] & mask); break;
+        case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG;
+            if (env->CSR_TCFG & 1) {
+                env->timer_counter = (env->CSR_TCFG & 0xfffffffffffcUL) * 100;
+            } else {
+                env->timer_counter = -1;
+            }
+            break;
         case LOONGARCH_CSR_TVAL           :old_v = la_get_tval(env);        env->CSR_TVAL &= (~mask);        env->CSR_TVAL |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC;        env->CSR_CNTC &= (~mask);        env->CSR_CNTC |= (env->gpr[a->rd] & mask); break;
-        case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR;       env->CSR_TICLR &= (~mask);       env->CSR_TICLR |= (env->gpr[a->rd] & mask); break;
+        case LOONGARCH_CSR_TICLR          :old_v = env->CSR_TICLR;
+            if (env->gpr[a->rd] & 1) {
+                loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 0);
+            }
+        break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL;      env->CSR_LLBCTL &= (~mask);      env->CSR_LLBCTL |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_IMPCTL1        :old_v = env->CSR_IMPCTL1;     env->CSR_IMPCTL1 &= (~mask);     env->CSR_IMPCTL1 |= (env->gpr[a->rd] & mask); break;
         case LOONGARCH_CSR_IMPCTL2        :old_v = env->CSR_IMPCTL2;     env->CSR_IMPCTL2 &= (~mask);     env->CSR_IMPCTL2 |= (env->gpr[a->rd] & mask); break;
@@ -1780,6 +1835,16 @@ static bool trans_csrxchg(CPULoongArchState *env, arg_csrxchg *a) {
             fprintf(stderr, "NOT IMPLEMENTED %s %x\n", __func__, a->csr);
     }
     env->gpr[a->rd] = old_v;
+    switch (a->csr)
+    {
+    case LOONGARCH_CSR_TID:    fprintf(stderr, "%s pc:%lx CSR_TID:%lx\n", __func__, env->pc, env->CSR_TID); break;
+    case LOONGARCH_CSR_TCFG:   fprintf(stderr, "%s pc:%lx CSR_TCFG:%lx\n", __func__, env->pc, env->CSR_TCFG); break;
+    case LOONGARCH_CSR_TVAL:   fprintf(stderr, "%s pc:%lx CSR_TVAL:%lx\n", __func__, env->pc, env->CSR_TVAL); break;
+    case LOONGARCH_CSR_CNTC:   fprintf(stderr, "%s pc:%lx CSR_CNTC:%lx\n", __func__, env->pc, env->CSR_CNTC); break;
+    case LOONGARCH_CSR_TICLR:  fprintf(stderr, "%s pc:%lx CSR_TICLR:%lx\n", __func__, env->pc, env->CSR_TICLR); break;
+    default:
+        break;
+    }
     env->pc += 4;
     return true;
 }
@@ -1872,7 +1937,11 @@ static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {
     cpu_clear_tc(env);
     return true;
 }
-static bool trans_idle(CPULoongArchState *env, arg_idle *a) {__NOT_IMPLEMENTED_EXIT__}
+static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
+    // fprintf(stderr, "NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);
+    env->pc += 4;
+    return true;
+}
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}
 static inline bool vadd_b(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i] + env->fpr[a->vk].vreg.B[i];}env->pc += 4;return true;}
 static inline bool vadd_h(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[i] + env->fpr[a->vk].vreg.H[i];}env->pc += 4;return true;}
