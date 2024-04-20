@@ -1790,21 +1790,25 @@ static bool trans_iocsrrd_b(CPULoongArchState *env, arg_iocsrrd_b *a) {
 }
 static bool trans_iocsrrd_h(CPULoongArchState *env, arg_iocsrrd_h *a) {
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
+    a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrrd_w(CPULoongArchState *env, arg_iocsrrd_w *a) {
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
+    a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrrd_d(CPULoongArchState *env, arg_iocsrrd_d *a) {
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
+    a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrwr_b(CPULoongArchState *env, arg_iocsrwr_b *a) {
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
+    a->rd = 0;
     env->pc += 4;
     return true;
 }
