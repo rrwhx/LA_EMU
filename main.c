@@ -1251,6 +1251,7 @@ int main(int argc, char** argv, char **envp) {
     }
 #else
     load_elf(kernel_filename, &entry_addr);
+    fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
 #endif
     // setup_signal();
     qemu_log_mask(CPU_LOG_PAGE, "entry_addr:%lx\n", entry_addr);

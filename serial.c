@@ -1,7 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <assert.h>
+#include <time.h>
+
+#include <unistd.h>
+
 // #include "util.h"
+
 
 #define UART_LCR_DLAB   0x80    /* Divisor latch access bit */
 
@@ -114,12 +120,32 @@ struct SerialState {
 typedef struct SerialState SerialState;
 
 SerialState s;
+char input = 'x';
+bool input_vaild;
 
-uint64_t serial_ioport_read(void *opaque, long addr, unsigned size) {
+void try_read() {
+    if (!input_vaild) {
+        if (read(0, &input, 1) == 1) {
+            input_vaild = true;
+        }
+    }
+}
+
+uint64_t serial_ioport_read(void* opaque, long addr, unsigned size) {
+    try_read();
     uint32_t ret = 0;
-    switch (addr)
-    {
-    case 0: fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size); break;
+    switch (addr) {
+    case 0:
+        if (s.lcr & UART_LCR_DLAB) {
+            ret = (s.divider) & 0Xff;
+        } else {
+            if (!input_vaild) {
+                fprintf(stderr, "lxy: %s:%d %s serial read, while input is empty\n", __FILE__,__LINE__,__func__);
+            }
+            ret = input;
+            input_vaild = false;
+        }
+        break;
     case 1:
         if (s.lcr & UART_LCR_DLAB) {
             ret = (s.divider >> 8) & 0Xff;
@@ -127,49 +153,70 @@ uint64_t serial_ioport_read(void *opaque, long addr, unsigned size) {
             ret = s.ier;
         }
         break;
-    case 2: 
-        ret = UART_IIR_NO_INT;
-        ;break;
-    case 3: fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);break;
-    case 4: fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);break;
-    case 5: 
-        ret = s.lsr;
+    case 2:
+        ret = 0;
+        if (input_vaild) {
+            s.iir = UART_IIR_RDI;
+        } else if ((s.iir & UART_IIR_ID) == UART_IIR_THRI) {
+            s.thr_ipending = 0;
+        }
         break;
-    case 6: 
+    case 3:
+        fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);
+        break;
+    case 4:
+        fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);
+        break;
+    case 5:
+        ret = s.lsr;
+        // dr ready
+        if (input_vaild) {
+            ret |= 1;
+        }
+        break;
+    case 6:
         ret = UART_MSR_DCD | UART_MSR_DSR | UART_MSR_CTS;
         break;
-    case 7: fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);break;
+    case 7:
+        fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);
+        break;
     default:
         assert(0);
         break;
     }
-    // fprintf(stderr, "serial_ioport_read, addr:%lx, data:%x, size:%d\n", addr, ret, size);
     return ret;
 }
-void serial_ioport_write(void *opaque, long addr, uint64_t val, unsigned size) {
-    switch (addr)
-    {
+void serial_ioport_write(void* opaque, long addr, uint64_t val, unsigned size) {
+    try_read();
+    switch (addr) {
     case 0:
         if (s.lcr & UART_LCR_DLAB) {
-            s.divider = (s.divider & 0xff00) | (val & 0xff) ;
+            s.divider = (s.divider & 0xff00) | (val & 0xff);
         } else {
-            fprintf(stdout, "%c", (char)val);
-            fflush(stdout);
+            fprintf(stderr, "%c", (char)val);
+            fflush(stderr);
             s.lsr |= (UART_LSR_TEMT | UART_LSR_THRE);
+            if (input_vaild) {
+                s.iir |= UART_IIR_RDI;
+                s.thr_ipending = false;
+            } else {
+                s.iir |= UART_IIR_THRI;
+                s.thr_ipending = true;
+            }
         }
         break;
-    case 1: 
+    case 1:
         if (s.lcr & UART_LCR_DLAB) {
-            s.divider = (s.divider & 0xff) | ((val << 8) & 0xff) ;
+            s.divider = (s.divider & 0xff) | ((val << 8) & 0xff);
         } else {
-            uint8_t changed = (s.ier ^ val) & 0x0f;
-            if (changed) {
-                fprintf(stderr, "serial ier changed\n");
-            }
+            // uint8_t changed = (s.ier ^ val) & 0x0f;
+            // if (changed) {
+            //     fprintf(stderr, "serial ier changed\n");
+            // }
             s.ier = val & 0x0f;
         }
         break;
-    case 2:
+    case 2: {
         uint8_t changed = (s.fcr ^ val) & 0xff;
         if (changed) {
             fprintf(stderr, "serial ier changed\n");
@@ -181,24 +228,28 @@ void serial_ioport_write(void *opaque, long addr, uint64_t val, unsigned size) {
             fprintf(stderr, "serial fcr XMIT Fifo Reset\n");
         }
         s.fcr = val & 0xC9;
-        break;
+    } break;
     case 3:
         s.lcr = val;
         s.last_break_enable = (val >> 6) & 1;
         break;
     case 4: {
-            int old_mcr = s.mcr;
-            s.mcr = val & 0x1f;
-            if (val & UART_MCR_LOOP)
-                break;
-        }
+        // int old_mcr = s.mcr;
+        s.mcr = val & 0x1f;
+        if (val & UART_MCR_LOOP)
+            break;
+    } break;
+    case 5:
+        fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);
         break;
-    case 5: fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);break;
-    case 6: fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);break;
-    case 7: fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);break;
+    case 6:
+        fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);
+        break;
+    case 7:
+        fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);
+        break;
     default:
         assert(0);
         break;
     }
-    // fprintf(stderr, "serial_ioport_write, addr:%lx, data:%lx, size:%d\n", addr, val, size);
 }
