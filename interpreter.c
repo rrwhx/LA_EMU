@@ -680,6 +680,13 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
             fflush(stdout);
         break;
     
+    case 0x100d0014:
+        fprintf(stderr,"lxy: %s:%d %s poweroff@100d0014 data:%x\n",__FILE__, __LINE__, __FUNCTION__, (int)data);
+        if ((data & 0x3c00) == 0x3c00) {
+            fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", current_env->icount, current_env->ic_hit_count, current_env->syscall_count, current_env->ecount);
+            exit(0);
+        }
+        break;
     default:
         fprintf(stderr, "do_io_st, pc:%lx, addr:%lx, data:%lx, size:%d\n", current_env->pc, ha, data, size);
         // assert(0);
@@ -694,6 +701,9 @@ static uint64_t do_io_ld(hwaddr ha, int size) {
         break;
     case 0x1fe00120:
             data = 'a';
+        break;
+    case 0x100d0014:
+        data = 0;
         break;
     default:
         fprintf(stderr, "do_io_ld, addr:%lx, size:%d\n", ha, size);
