@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <termios.h>
 #include <sys/mman.h>
 
 #include <elf.h>
@@ -1306,6 +1307,15 @@ int main(int argc, char** argv, char **envp) {
     }
 #else
     load_elf(kernel_filename, &entry_addr);
+
+    // set no echo
+    struct termios term;
+    tcgetattr(STDIN_FILENO, &term);
+
+    term.c_lflag &= ~ECHO;
+    term.c_lflag &= ~ICANON;
+    tcsetattr(STDIN_FILENO, 0, &term);
+
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
 
 
