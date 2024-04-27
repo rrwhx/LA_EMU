@@ -18,6 +18,12 @@
     #error "must define CONFIG_INT128"
 #endif
 
+#define TIME_SCALE 1
+
+#define TIMER_PERIOD                (10 * TIME_SCALE) /* 10 ns period for 100 MHz frequency */
+#define CONSTANT_TIMER_TICK_MASK    0xfffffffffffcUL
+#define CONSTANT_TIMER_ENABLE       0x1UL
+
 typedef struct TLBCache {
     uint64_t va;
     uint64_t pa;
@@ -467,6 +473,8 @@ typedef struct CPUArchState {
     uint64_t syscall_count;
     uint64_t ic_hit_count;
     int64_t timer_counter;
+    timer_t timerid;
+    volatile sig_atomic_t timer_int;
 } CPULoongArchState;
 
 typedef CPULoongArchState CPUArchState;

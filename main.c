@@ -94,8 +94,19 @@ static void sigaction_entry(int signal, siginfo_t *si, void *arg) {
     return;
 }
 
+static void sigaction_entry_timer(int signal, siginfo_t *si, void *arg) {
+    timer_t id = *((timer_t*)si->si_value.sival_ptr);
+    // printf("Caught signal %d,id=%lx -- ", signal,(long)id);
+    if (id==current_env->timerid) {
+        qemu_log_mask(CPU_LOG_TIMER, "TIMER alarmed, icount:%ld\n", current_env->icount);
+        current_env->timer_int = true;
+    } else {
+        fprintf(stderr, "TIMER, it's somebody else!\n");
+    }
+}
 static void setup_signal(void) {
     struct sigaction sa;
+#if 0
     memset(&sa, 0, sizeof(struct sigaction));
     sigemptyset(&sa.sa_mask);
     sa.sa_sigaction = sigaction_entry;
@@ -104,6 +115,15 @@ static void setup_signal(void) {
         printf("signal %d:%s register failed\n", SIGINT, strsignal(SIGINT));
         exit(1);
     }
+#endif
+
+#ifndef USER_MODE
+    memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = sigaction_entry_timer;
+    sa.sa_flags     = SA_SIGINFO;
+    lsassert (sigaction(SIGRTMIN, &sa, NULL) == 0);
+#endif
 }
 
 const char * const regnames[32] = {
@@ -1004,6 +1024,7 @@ int val;
 int exec_env(CPULoongArchState *env) {
     INSCache* ic;
     current_env = env;
+    CPUState* cs = env_cpu(env);
     while (1) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
@@ -1053,20 +1074,40 @@ int exec_env(CPULoongArchState *env) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
                 }
 #ifndef USER_MODE
-                env->timer_counter -= (env->CSR_TCFG & 0x1);
-                if (env->timer_counter == 0) {
-                    env->timer_counter = INT64_MAX;
+                // env->timer_counter -= (env->CSR_TCFG & 0x1);
+                // if (env->timer_counter == 0) {
+                //     env->timer_counter = INT64_MAX;
+                //     if (env->CSR_TCFG & 0x2) {
+                //         env->timer_counter = (env->CSR_TCFG & 0xfffffffffffcUL);
+                //     } else {
+                //         env->CSR_TCFG &= 0xfffffffffffeUL;
+                //     }
+                //     loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 1);
+                // }
+                if (env->timer_int) {
+                    env->timer_int = false;
+                    env->CSR_ESTAT |= (1 << IRQ_TIMER);
                     if (env->CSR_TCFG & 0x2) {
-                        env->timer_counter = (env->CSR_TCFG & 0xfffffffffffcUL);
+                        struct itimerspec its;
+                        uint64_t counter = (env->CSR_TCFG & 0xfffffffffffcUL) * TIMER_PERIOD;
+                        its.it_value.tv_sec = counter / 1000000000;
+                        its.it_value.tv_nsec = counter % 1000000000;
+                        its.it_interval.tv_sec = 0;
+                        its.it_interval.tv_nsec = 0;
+                        lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
                     } else {
                         env->CSR_TCFG &= 0xfffffffffffeUL;
                     }
-                    loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 1);
+                    // loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 1);
+                }
+                if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) && FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS)) {
+                    cs->exception_index = EXCCODE_INT;
+                    loongarch_cpu_do_interrupt(cs);
                 }
 #endif
             }
         } else {
-            loongarch_cpu_do_interrupt(env_cpu(env));
+            loongarch_cpu_do_interrupt(cs);
             env->ecount ++;
         }
     }
@@ -1157,6 +1198,8 @@ const QEMULogItem qemu_log_items[] = {
       "open a separate log file per thread; filename must contain '%d'" },
     { CPU_LOG_TB_VPU, "vpu",
       "include VPU registers in the 'cpu' logging" },
+    { CPU_LOG_TIMER, "timer",
+      "log timer amd timer csr read/write" },
     { 0, NULL, NULL },
 };
 
@@ -1222,6 +1265,7 @@ int main(int argc, char** argv, char **envp) {
                 abort();
         }
     }
+    setup_signal();
     // fprintf(stderr, "optind %d \n", optind);
     // for (int i = optind; i < argc; i++) {
     //     fprintf(stderr, "%s\n", argv[i]);
@@ -1252,8 +1296,16 @@ int main(int argc, char** argv, char **envp) {
 #else
     load_elf(kernel_filename, &entry_addr);
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
+
+
+    timer_t timerid;
+    struct sigevent sev;
+    sev.sigev_notify = SIGEV_SIGNAL;
+    sev.sigev_signo = SIGRTMIN;
+    sev.sigev_value.sival_ptr = &timerid;
+    lsassert (timer_create(CLOCK_MONOTONIC, &sev, &timerid) == 0);
+
 #endif
-    // setup_signal();
     qemu_log_mask(CPU_LOG_PAGE, "entry_addr:%lx\n", entry_addr);
 
     LoongArchCPU* cpu = aligned_alloc(64, sizeof(LoongArchCPU));
@@ -1265,6 +1317,9 @@ int main(int argc, char** argv, char **envp) {
     loongarch_la464_initfn(env);
     cpu_clear_tc(env);
     env->timer_counter = INT64_MAX;
+#ifndef USER_MODE
+    env->timerid = timerid;
+#endif
     env->pc = entry_addr;
 #if defined(USER_MODE)
     target_ulong sp = user_setup_stack();

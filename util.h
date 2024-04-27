@@ -140,6 +140,7 @@ static inline void qemu_log(const char *fmt, ...)
 #define LOG_STRACE         (1 << 19)
 #define LOG_PER_THREAD     (1 << 20)
 #define CPU_LOG_TB_VPU     (1 << 21)
+#define CPU_LOG_TIMER      (1 << 22)
 
 extern int qemu_loglevel;
 static inline bool qemu_loglevel_mask(int mask)
