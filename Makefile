@@ -5,6 +5,9 @@ ifeq (${DEBUG},1)
 endif
 # CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
 CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -DCONFIG_INT128 -Wall
+ifeq (${GDB},1)
+	CFLAGS += -DCONFIG_GDB
+endif
 LDFLAGS = -lm ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)

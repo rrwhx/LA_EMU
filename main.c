@@ -62,7 +62,7 @@ void dump_fcsr(int fcsr) {
     fprintf(stderr, "\n");
 }
 
-static void show_register(CPULoongArchState *env) {
+__attribute__((noinline)) static void show_register(CPULoongArchState *env) {
     fprintf(stderr, "pc:0x%lx\n", env->pc);
     for (int i = 0; i <32; i++) {
         fprintf(stderr, "r%02d/%-3s:%016lx    ", i, loongarch_r_alias[i], env->gpr[i]);
@@ -72,7 +72,7 @@ static void show_register(CPULoongArchState *env) {
     }
 }
 
-static void show_register_fpr(CPULoongArchState *env) {
+__attribute__((noinline)) static void show_register_fpr(CPULoongArchState *env) {
     for (int i = 0; i <32; i++) {
         fprintf(stderr, "f%02d   {f = 0x%08x, d = 0x%016lx} {f = %.6f\t, d = %.12f\t}\n",
             i, env->fpr[i].vreg.W[0], env->fpr[i].vreg.D[0], *(float*)&env->fpr[i], *(double*)&env->fpr[i]);
@@ -87,13 +87,16 @@ static void show_register_fpr(CPULoongArchState *env) {
 
 int check_signal;
 // # define ELF_CLASS  ELFCLASS64
+#if 0
 static void sigaction_entry(int signal, siginfo_t *si, void *arg) {
     // ucontext_t* c = (ucontext_t*)arg;
     printf("signal:%d, at address %p\n", signal, si->si_addr);
     check_signal = 1;
     return;
 }
+#endif
 
+#ifndef USER_MODE
 static void sigaction_entry_timer(int signal, siginfo_t *si, void *arg) {
     timer_t id = *((timer_t*)si->si_value.sival_ptr);
     // printf("Caught signal %d,id=%lx -- ", signal,(long)id);
@@ -104,25 +107,21 @@ static void sigaction_entry_timer(int signal, siginfo_t *si, void *arg) {
         fprintf(stderr, "TIMER, it's somebody else!\n");
     }
 }
-static void setup_signal(void) {
-    struct sigaction sa;
-#if 0
-    memset(&sa, 0, sizeof(struct sigaction));
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = sigaction_entry;
-    sa.sa_flags   = SA_SIGINFO;
-    if (sigaction(SIGINT, &sa, NULL)) {
-        printf("signal %d:%s register failed\n", SIGINT, strsignal(SIGINT));
-        exit(1);
-    }
-#endif
 
-#ifndef USER_MODE
+static void kernel_setup_signal(void) {
+    struct sigaction sa;
+
     memset(&sa, 0, sizeof(struct sigaction));
     sigemptyset(&sa.sa_mask);
     sa.sa_sigaction = sigaction_entry_timer;
     sa.sa_flags     = SA_SIGINFO;
     lsassert (sigaction(SIGRTMIN, &sa, NULL) == 0);
+}
+#endif
+
+static void setup_signal(void) {
+#ifndef USER_MODE
+    kernel_setup_signal();
 #endif
 }
 
@@ -768,8 +767,9 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     return insn;
 #endif
 }
-static target_ulong fetch_breakpoints[4];
+#if 0
 static int64_t singlestep = -1;
+static target_ulong fetch_breakpoints[4];
 static int debug_handle_continue(const char* str) {
     return 1;
 }
@@ -1018,6 +1018,7 @@ static void handle_debug(void) {
         }
     } while (1);
 }
+#endif
 
 int val;
 
@@ -1044,6 +1045,7 @@ int exec_env(CPULoongArchState *env) {
                 //     handle_debug();
                 // }
 
+#if defined (CONFIG_GDB)
                 if (gdbserver_has_message) {
                     return 1;
                 }
@@ -1053,22 +1055,23 @@ int exec_env(CPULoongArchState *env) {
                         return 2;
                     }
                 }
+#endif
 
                 if (unlikely(qemu_loglevel_mask(CPU_LOG_EXEC))) {
                     qemu_log("pc:%lx\n", env->pc);
                 }
-                -- singlestep;
+                if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_CPU))) {
+                    show_register(env);
+                    if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_FPU))) {
+                        show_register_fpr(env);
+                    }
+                }
+                // -- singlestep;
                 insn = fetch(env, &ic);
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
 #endif
                 env->icount ++;
-                if (unlikely(qemu_loglevel_mask(CPU_LOG_TB_CPU))) {
-                    for (int i = 0; i <32; i++) {
-                        qemu_log("%d:%lx ", i, env->gpr[i]);
-                    }
-                    qemu_log("\n");
-                }
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
@@ -1257,6 +1260,10 @@ int main(int argc, char** argv, char **envp) {
                 handle_logfile(optarg);
                 break;
             case 'g':
+#if !defined (CONFIG_GDB)
+                fprintf(stderr, "please make GDB=1\n");
+                exit(0);
+#endif
                 check_signal = 1;
                 break;
             case 'z':
