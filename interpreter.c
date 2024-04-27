@@ -16,9 +16,9 @@
 
 static inline long long la_get_tval(CPULoongArchState *env){
     if (determined) {
-        return current_env->icount;
+        return current_env->icount / TIME_SCALE;
     } else {
-        return nano_second() / 10 / TIME_SCALE;
+        return nano_second() / TIMER_PERIOD;
     }
 }
 
@@ -1704,16 +1704,28 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID; env->CSR_TID = mask_write(env->CSR_TID, new_v, mask); break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; env->CSR_TCFG = mask_write(env->CSR_TCFG, new_v, mask);
             if (env->CSR_TCFG & 1) {
-                struct itimerspec its;
-                uint64_t counter = (env->CSR_TCFG & 0xfffffffffffcUL) * TIMER_PERIOD;
-                its.it_value.tv_sec = counter / 1000000000;
-                its.it_value.tv_nsec = counter % 1000000000;
-                its.it_interval.tv_sec = 0;
-                its.it_interval.tv_nsec = 0;
-                lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
-                env->timer_counter = (env->CSR_TCFG & 0xfffffffffffcUL) * 100;
+                if (determined) {
+                    env->timer_counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) / TIME_SCALE;
+                } else {
+                    struct itimerspec its;
+                    uint64_t counter = (env->CSR_TCFG & 0xfffffffffffcUL) * TIMER_PERIOD;
+                    its.it_value.tv_sec = counter / 1000000000;
+                    its.it_value.tv_nsec = counter % 1000000000;
+                    its.it_interval.tv_sec = 0;
+                    its.it_interval.tv_nsec = 0;
+                    lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+                }
             } else {
-                env->timer_counter = -1;
+                if (determined) {
+                    env->timer_counter = -1;
+                } else {
+                    struct itimerspec its;
+                    its.it_value.tv_sec = 0;
+                    its.it_value.tv_nsec = 0;
+                    its.it_interval.tv_sec = 0;
+                    its.it_interval.tv_nsec = 0;
+                    lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+                }
             }
             break;
         case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL; env->CSR_TVAL = mask_write(env->CSR_TVAL, new_v, mask); break;
