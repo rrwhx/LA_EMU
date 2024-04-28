@@ -12,6 +12,7 @@
 
 #include "sizes.h"
 #include "cpu.h"
+#include "internals.h"
 
 #include "gdbserver.h"
 #if defined(CONFIG_USER_ONLY)
@@ -446,7 +447,11 @@ fail:
 
 #endif
 
-static void cpu_reset(CPULoongArchState* env) {
+static void cpu_reset(CPUState* cs) {
+    CPULoongArchState *env = cpu_env(cs);
+    env->fcsr0_mask = FCSR0_M1 | FCSR0_M2 | FCSR0_M3;
+    env->fcsr0 = 0x0;
+
     int n;
     /* Set csr registers value after reset */
     env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PLV, 0);
@@ -468,10 +473,12 @@ static void cpu_reset(CPULoongArchState* env) {
 
     env->CSR_ESTAT = env->CSR_ESTAT & (~MAKE_64BIT_MASK(0, 2));
     env->CSR_RVACFG = FIELD_DP64(env->CSR_RVACFG, CSR_RVACFG, RBITS, 0);
+    env->CSR_CPUID = cs->cpu_index;
     env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
     env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, KLO, 0);
     env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 0);
     env->CSR_MERRCTL = FIELD_DP64(env->CSR_MERRCTL, CSR_MERRCTL, ISMERR, 0);
+    env->CSR_TID = cs->cpu_index;
 
     env->CSR_PRCFG3 = FIELD_DP64(env->CSR_PRCFG3, CSR_PRCFG3, TLB_TYPE, 2);
     env->CSR_PRCFG3 = FIELD_DP64(env->CSR_PRCFG3, CSR_PRCFG3, MTLB_ENTRY, 63);
@@ -485,12 +492,18 @@ static void cpu_reset(CPULoongArchState* env) {
         env->CSR_DMW[n] = FIELD_DP64(env->CSR_DMW[n], CSR_DMW, PLV3, 0);
     }
 
+#ifndef CONFIG_USER_ONLY
     env->pc = 0x1c000000;
-    // memset(env->tlb, 0, sizeof(env->tlb));
+    memset(env->tlb, 0, sizeof(env->tlb));
+    // if (kvm_enabled()) {
+    //     kvm_arch_reset_vcpu(env);
+    // }
+#endif
 
-    // restore_fp_status(env);
-    // cs->exception_index = -1;
-    env->CSR_ECFG = 0x7 << 16;
+#ifdef CONFIG_TCG
+    restore_fp_status(env);
+#endif
+    cs->exception_index = -1;
 }
 
 static void loongarch_la464_initfn(CPULoongArchState* env) {
@@ -522,8 +535,10 @@ static void loongarch_la464_initfn(CPULoongArchState* env) {
     data = FIELD_DP32(data, CPUCFG2, FP_DP, 1);
     data = FIELD_DP32(data, CPUCFG2, FP_VER, 1);
     data = FIELD_DP32(data, CPUCFG2, LSX, 1),
+    data = FIELD_DP32(data, CPUCFG2, LASX, 1),
     data = FIELD_DP32(data, CPUCFG2, LLFTP, 1);
     data = FIELD_DP32(data, CPUCFG2, LLFTP_VER, 1);
+    data = FIELD_DP32(data, CPUCFG2, LSPW, 1);
     data = FIELD_DP32(data, CPUCFG2, LAM, 1);
     env->cpucfg[2] = data;
 
@@ -578,22 +593,16 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
     CPULoongArchState *env = &cpu->env;
     bool update_badinstr = 1;
     int cause = -1;
-    const char *name;
     bool tlbfill = FIELD_EX64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR);
     uint32_t vec_size = FIELD_EX64(env->CSR_ECFG, CSR_ECFG, VS);
 
     if (cs->exception_index != EXCCODE_INT) {
-        if (cs->exception_index < 0 ||
-            cs->exception_index >= ARRAY_SIZE(excp_names)) {
-            name = "unknown";
-        } else {
-            name = excp_names[cs->exception_index];
-        }
-
         qemu_log_mask(CPU_LOG_INT,
                      "%s enter: pc " TARGET_FMT_lx " ERA " TARGET_FMT_lx
-                     " TLBRERA " TARGET_FMT_lx " %s exception\n", __func__,
-                     env->pc, env->CSR_ERA, env->CSR_TLBRERA, name);
+                     " TLBRERA " TARGET_FMT_lx " exception: %d (%s)\n",
+                     __func__, env->pc, env->CSR_ERA, env->CSR_TLBRERA,
+                     cs->exception_index,
+                     loongarch_exception_name(cs->exception_index));
     }
 
     switch (cs->exception_index) {
@@ -644,8 +653,7 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
     }
 
     if (update_badinstr) {
-        env->CSR_BADI = 0xbadbad11;
-        // env->CSR_BADI = cpu_ldl_code(env, env->pc);
+        env->CSR_BADI = cpu_ldl_code(env, env->pc);
     }
 
     /* Save PLV and IE */
@@ -1335,7 +1343,7 @@ int main(int argc, char** argv, char **envp) {
     CPUState *cs = CPU(cpu);
     CPULoongArchState* env = &cpu->env;
     cs->env = env;
-    cpu_reset(env);
+    cpu_reset(cs);
     loongarch_la464_initfn(env);
     cpu_clear_tc(env);
     env->timer_counter = INT64_MAX;

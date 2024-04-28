@@ -34,6 +34,7 @@
 // #include "config-host.h"
 #define CONFIG_IOVEC
 #define CONFIG_INT128
+#define CONFIG_TCG
 #define TARGET_LOONGARCH64
 typedef struct Error Error;
 # define G_NORETURN __attribute__ ((__noreturn__))

@@ -30,7 +30,10 @@ void do_raise_exception(CPULoongArchState *env,
 
 const char *loongarch_exception_name(int32_t exception);
 
+#ifdef CONFIG_TCG
 int ieee_ex_to_loongarch(int xcpt);
+void restore_fp_status(CPULoongArchState *env);
+#endif
 
 enum {
     TLBRET_MATCH = 0,

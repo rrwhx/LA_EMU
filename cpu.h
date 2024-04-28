@@ -452,14 +452,8 @@ typedef struct CPUArchState {
 
 #ifndef CONFIG_USER_ONLY
     LoongArchTLB  tlb[LOONGARCH_TLB_MAX];
-
-//     AddressSpace address_space_iocsr;
-//     MemoryRegion system_iocsr;
-//     MemoryRegion iocsr_mem;
-//     bool load_elf;
-//     uint64_t elf_address;
-//     /* Store ipistate to access from this struct */
-//     DeviceState *ipistate;
+    bool load_elf;
+    uint64_t elf_address;
 #endif
 
     // struct CPUArchState* env;
@@ -714,4 +708,7 @@ extern bool new_abi;
 extern bool determined;
 
 void loongarch_cpu_set_irq(void *opaque, int irq, int level);
+static inline uint32_t cpu_ldl_code(CPULoongArchState *env, target_ulong pc) {
+    return 0xcccccccc;
+}
 #endif /* LOONGARCH_CPU_H */
