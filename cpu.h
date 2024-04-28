@@ -616,10 +616,14 @@ static inline uint64_t ram_ldub(hwaddr addr) {return *(uint8_t*)(addr);}
 static inline uint64_t ram_lduh(hwaddr addr) {return *(uint16_t*)(addr);}
 static inline uint64_t ram_lduw(hwaddr addr) {return *(uint32_t*)(addr);}
 static inline uint64_t ram_ldud(hwaddr addr) {return *(uint64_t*)(addr);}
+// static inline Int128  ram_ld128(hwaddr addr) {return *(Int128*)(addr);}
+// static inline VReg    ram_ld256(hwaddr addr) {return *(VReg*)(addr);}
 static inline void ram_stb(hwaddr addr, uint64_t data) {*(uint8_t*)(addr) = data;}
 static inline void ram_sth(hwaddr addr, uint64_t data) {*(uint16_t*)(addr) = data;}
 static inline void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(addr) = data;}
 static inline void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(addr) = data;}
+// static inline void ram_st128(hwaddr addr, Int128 data) {*(Int128*)(addr) = data;}
+// static inline void ram_st256(hwaddr addr, VReg data) {*(VReg*)(addr) = data;}
 #else
 extern char* ram;
 static inline uint64_t ram_ldb(hwaddr addr) {return (int64_t)*(int8_t*)(ram + addr);}
@@ -630,10 +634,14 @@ static inline uint64_t ram_ldub(hwaddr addr) {return *(uint8_t*)(ram + addr);}
 static inline uint64_t ram_lduh(hwaddr addr) {return *(uint16_t*)(ram + addr);}
 static inline uint64_t ram_lduw(hwaddr addr) {return *(uint32_t*)(ram + addr);}
 static inline uint64_t ram_ldud(hwaddr addr) {return *(uint64_t*)(ram + addr);}
+// static inline Int128  ram_ld128(hwaddr addr) {return *(Int128*)(ram + addr);}
+// static inline VReg    ram_ld256(hwaddr addr) {return *(VReg*)(ram + addr);}
 static inline void ram_stb(hwaddr addr, uint64_t data) {*(uint8_t*)(ram + addr) = data;}
 static inline void ram_sth(hwaddr addr, uint64_t data) {*(uint16_t*)(ram + addr) = data;}
 static inline void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr) = data;}
 static inline void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
+// static inline void ram_st128(hwaddr addr, Int128 data) {*(Int128*)(ram + addr) = data;}
+// static inline void ram_st256(hwaddr addr, VReg data) {*(VReg*)(ram + addr) = data;}
 #endif
 
 G_NORETURN void cpu_loop_exit(CPUState *cpu);

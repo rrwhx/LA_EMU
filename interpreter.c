@@ -689,7 +689,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
         break;
     default:
         fprintf(stderr, "do_io_st, pc:%lx, addr:%lx, data:%lx, size:%d\n", current_env->pc, ha, data, size);
-        // assert(0);
+        // lsassert(0);
     }
 }
 static uint64_t do_io_ld(hwaddr ha, int size) {
@@ -718,51 +718,188 @@ static uint64_t add_addr(int64_t base, int64_t disp) {
 }
 
 static int8_t ld_b(CPULoongArchState *env, uint64_t va) {
-    lsassertm(is_aligned(va, 1), "not aligned pc:%lx addr:%lx\n", env->pc, va);
     hwaddr ha = load_pa(env, va);
     return is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ha);
 }
 
 static int16_t ld_h(CPULoongArchState *env, uint64_t va) {
-    lsassertm(is_aligned(va, 2), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    uint64_t data;
+    const int data_size = 2;
     hwaddr ha = load_pa(env, va);
-    return is_io(ha) ? do_io_ld(ha, 2) : ram_ldh(ha);
+    if (is_io(ha)) {
+        data = do_io_ld(ha, data_size);
+    } else {
+        if (is_aligned(va, data_size)) {
+            data = ram_ldh(ha);
+        } else {
+            data = 0;
+            for (int i = (data_size - 1); i >= 0; i--){
+                data |= (((uint16_t)ld_b(env, va + i) & 0xff) << (i * 8)) ;
+            }
+        }
+    }
+    return data;
 }
 
 static int32_t ld_w(CPULoongArchState *env, uint64_t va) {
-    lsassertm(is_aligned(va, 4), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    uint64_t data;
+    const int data_size = 4;
     hwaddr ha = load_pa(env, va);
-    return is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+    if (is_io(ha)) {
+        data = do_io_ld(ha, data_size);
+    } else {
+        if (is_aligned(va, data_size)) {
+            data = ram_ldw(ha);
+        } else {
+            data = 0;
+            for (int i = (data_size - 1); i >= 0; i--){
+                data |= (((uint32_t)ld_b(env, va + i) & 0xff) << (i * 8)) ;
+            }
+        }
+    }
+    return data;
 }
 
 static int64_t ld_d(CPULoongArchState *env, uint64_t va) {
-    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    uint64_t data;
+    const int data_size = 8;
     hwaddr ha = load_pa(env, va);
-    return is_io(ha) ? do_io_ld(ha, 8) : ram_ldd(ha);
+    if (is_io(ha)) {
+        data = do_io_ld(ha, data_size);
+    } else {
+        if (is_aligned(va, data_size)) {
+            data = ram_ldd(ha);
+        } else {
+            data = 0;
+            for (int i = (data_size - 1); i >= 0; i--){
+                data |= (((uint64_t)ld_b(env, va + i) & 0xff) << (i * 8)) ;
+            }
+        }
+    }
+    return data;
 }
 
+// static Int128 ld_128(CPULoongArchState *env, uint64_t va) {
+//     Int128 data;
+//     const int data_size = 16;
+//     hwaddr ha = load_pa(env, va);
+//     if (is_io(ha)) {
+//         lsassert(0);
+//     } else {
+//         if (is_aligned(va, data_size)) {
+//             data = ram_ld128(ha);
+//         } else {
+//             data = 0;
+//             for (int i = (data_size - 1); i >= 0; i--){
+//                 data |= (((Int128)ld_b(env, va + i) & 0xff) << (i * 8));
+//             }
+//         }
+//     }
+//     return data;
+// }
+
+// static VReg ld_256(CPULoongArchState *env, uint64_t va) {
+//     VReg data;
+//     const int data_size = 32;
+//     hwaddr ha = load_pa(env, va);
+//     if (is_io(ha)) {
+//         lsassert(0);
+//     } else {
+//         if (is_aligned(va, data_size)) {
+//             data = ram_ld256(ha);
+//         } else {
+//             for (int i = (data_size - 1); i >= 0; i--){
+//                 data.B[i] = (ld_b(env, va + i) & 0xff) << (i * 8);
+//             }
+//         }
+//     }
+//     return data;
+// }
+
 static void st_b(CPULoongArchState *env, uint64_t va, uint8_t data) {
-    lsassertm(is_aligned(va, 1), "not aligned pc:%lx addr:%lx\n", env->pc, va);
     hwaddr ha = store_pa(env, va);
     is_io(ha) ? do_io_st(ha, data, 1) : ram_stb(ha, data);
 }
 
 static void st_h(CPULoongArchState *env, uint64_t va, uint16_t data) {
-    lsassertm(is_aligned(va, 2), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    const int data_size = 2;
     hwaddr ha = store_pa(env, va);
-    is_io(ha) ? do_io_st(ha, data, 2) : ram_sth(ha, data);
+    if (is_io(ha)) {
+        do_io_st(ha, data, data_size);
+    } else {
+        if (is_aligned(va, data_size)) {
+            ram_sth(ha, data);
+        } else {
+            for (int i = (data_size - 1); i >= 0; i--){
+                st_b(env, va + i, (data >> (i * 8)) & 0xff);
+            }
+        }
+    }
 }
 
 static void st_w(CPULoongArchState *env, uint64_t va, uint32_t data) {
+    const int data_size = 4;
     hwaddr ha = store_pa(env, va);
-    is_io(ha) ? do_io_st(ha, data, 4) : ram_stw(ha, data);
+    if (is_io(ha)) {
+        do_io_st(ha, data, data_size);
+    } else {
+        if (is_aligned(va, data_size)) {
+            ram_stw(ha, data);
+        } else {
+            for (int i = (data_size - 1); i >= 0; i--){
+                st_b(env, va + i, (data >> (i * 8)) & 0xff);
+            }
+        }
+    }
 }
 
 static void st_d(CPULoongArchState *env, uint64_t va, uint64_t data) {
-    lsassertm(is_aligned(va, 8), "not aligned pc:%lx addr:%lx\n", env->pc, va);
+    const int data_size = 8;
     hwaddr ha = store_pa(env, va);
-    is_io(ha) ? do_io_st(ha, data, 8) : ram_std(ha, data);
+    if (is_io(ha)) {
+        do_io_st(ha, data, data_size);
+    } else {
+        if (is_aligned(va, data_size)) {
+            ram_std(ha, data);
+        } else {
+            for (int i = (data_size - 1); i >= 0; i--){
+                st_b(env, va + i, (data >> (i * 8)) & 0xff);
+            }
+        }
+    }
 }
+
+// static void st_128(CPULoongArchState *env, uint64_t va, Int128 data) {
+//     const int data_size = 16;
+//     hwaddr ha = store_pa(env, va);
+//     if (is_io(ha)) {
+//         lsassert(0);
+//     } else {
+//         if (is_aligned(va, data_size)) {
+//             ram_st128(ha, data);
+//         } else {
+//             for (int i = (data_size - 1); i >= 0; i--){
+//                 st_b(env, va + i, (data >> (i * 8)) & 0xff);
+//             }
+//         }
+//     }
+// }
+
+// static void st_256(CPULoongArchState *env, uint64_t va, VReg data) {
+//     const int data_size = 32;
+//     hwaddr ha = store_pa(env, va);
+//     if (is_io(ha)) {
+//         lsassert(0);
+//     } else {
+//         if (is_aligned(va, data_size)) {
+//             ram_st256(ha, data);
+//         } else {
+//             for (int i = (data_size - 1); i >= 0; i--){
+//                 st_b(env, va + i, data.B[i]);
+//             }
+//         }
+//     }
+// }
 
 static bool trans_ld_b(CPULoongArchState *env, arg_ld_b *a) {
     env->gpr[a->rd] = (int64_t)ld_b(env, add_addr(env->gpr[a->rj], a->imm));
@@ -3801,127 +3938,45 @@ gen_trans_vvid(vextrins_b, 16, vextrins_b)
 // static bool trans_vextrins_h(CPULoongArchState *env, arg_vextrins_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_vextrins_b(CPULoongArchState *env, arg_vextrins_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_vld(CPULoongArchState *env, arg_vld *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    env->fpr[a->vd].vreg.D[0] = ram_ldd(ha);
-    env->fpr[a->vd].vreg.D[1] = ram_ldd(ha + 8);
+    uint64_t va = add_addr(env->gpr[a->rj], a->imm);
+    lsassert(!is_io(load_pa(env, va)));
+    env->fpr[a->vd].vreg.D[0] = ld_d(env, va);
+    env->fpr[a->vd].vreg.D[1] = ld_d(env, va + 8);
     env->pc += 4;
     return true;
 }
 static bool trans_vst(CPULoongArchState *env, arg_vst *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    ram_std(ha, env->fpr[a->vd].vreg.D[0]);
-    ram_std(ha + 8, env->fpr[a->vd].vreg.D[1]);
+    uint64_t va = add_addr(env->gpr[a->rj], a->imm);
+    lsassert(!is_io(store_pa(env, va)));
+    st_d(env, va, env->fpr[a->vd].vreg.D[0]);
+    st_d(env, va + 8, env->fpr[a->vd].vreg.D[1]);
     env->pc += 4;
     return true;
 }
 static bool trans_vldx(CPULoongArchState *env, arg_vldx *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    assert(!is_io(ha));
-    env->fpr[a->vd].vreg.D[0] = ram_ldd(ha);
-    env->fpr[a->vd].vreg.D[1] = ram_ldd(ha + 8);
+    uint64_t va = add_addr(env->gpr[a->rj], env->gpr[a->rk]);
+    lsassert(!is_io(load_pa(env, va)));
+    env->fpr[a->vd].vreg.D[0] = ld_d(env, va);
+    env->fpr[a->vd].vreg.D[1] = ld_d(env, va + 8);
     env->pc += 4;
     return true;
 }
 static bool trans_vstx(CPULoongArchState *env, arg_vstx *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + env->gpr[a->rk]);
-    assert(!is_io(ha));
-    ram_std(ha, env->fpr[a->vd].vreg.D[0]);
-    ram_std(ha + 8, env->fpr[a->vd].vreg.D[1]);
+    uint64_t va = add_addr(env->gpr[a->rj], env->gpr[a->rk]);
+    lsassert(!is_io(store_pa(env, va)));
+    st_d(env, va, env->fpr[a->vd].vreg.D[0]);
+    st_d(env, va + 8, env->fpr[a->vd].vreg.D[1]);
     env->pc += 4;
     return true;
 }
-static bool trans_vldrepl_d(CPULoongArchState *env, arg_vldrepl_d *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = ram_ldud(ha);
-    env->fpr[a->vd].vreg.D[0] = data;
-    env->fpr[a->vd].vreg.D[1] = data;
-    env->pc += 4;
-    return true;
-}
-static bool trans_vldrepl_w(CPULoongArchState *env, arg_vldrepl_w *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = ram_lduw(ha);
-    env->fpr[a->vd].vreg.UW[0] = data;
-    env->fpr[a->vd].vreg.UW[1] = data;
-    env->fpr[a->vd].vreg.UW[2] = data;
-    env->fpr[a->vd].vreg.UW[3] = data;
-    env->pc += 4;
-    return true;
-}
-static bool trans_vldrepl_h(CPULoongArchState *env, arg_vldrepl_h *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = ram_lduh(ha);
-    env->fpr[a->vd].vreg.UH[0] = data;
-    env->fpr[a->vd].vreg.UH[1] = data;
-    env->fpr[a->vd].vreg.UH[2] = data;
-    env->fpr[a->vd].vreg.UH[3] = data;
-    env->fpr[a->vd].vreg.UH[4] = data;
-    env->fpr[a->vd].vreg.UH[5] = data;
-    env->fpr[a->vd].vreg.UH[6] = data;
-    env->fpr[a->vd].vreg.UH[7] = data;
-    env->pc += 4;
-    return true;
-}
-static bool trans_vldrepl_b(CPULoongArchState *env, arg_vldrepl_b *a) {
-    hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = ram_ldub(ha);
-    env->fpr[a->vd].vreg.UB[0] = data;
-    env->fpr[a->vd].vreg.UB[1] = data;
-    env->fpr[a->vd].vreg.UB[2] = data;
-    env->fpr[a->vd].vreg.UB[3] = data;
-    env->fpr[a->vd].vreg.UB[4] = data;
-    env->fpr[a->vd].vreg.UB[5] = data;
-    env->fpr[a->vd].vreg.UB[6] = data;
-    env->fpr[a->vd].vreg.UB[7] = data;
-    env->fpr[a->vd].vreg.UB[8] = data;
-    env->fpr[a->vd].vreg.UB[9] = data;
-    env->fpr[a->vd].vreg.UB[10] = data;
-    env->fpr[a->vd].vreg.UB[11] = data;
-    env->fpr[a->vd].vreg.UB[12] = data;
-    env->fpr[a->vd].vreg.UB[13] = data;
-    env->fpr[a->vd].vreg.UB[14] = data;
-    env->fpr[a->vd].vreg.UB[15] = data;
-    env->pc += 4;
-    return true;
-}
-static bool trans_vstelm_d(CPULoongArchState *env, arg_vstelm_d *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = env->fpr[a->vd].vreg.D[a->imm2];
-    ram_std(ha, data);
-    env->pc += 4;
-    return true;
-}
-static bool trans_vstelm_w(CPULoongArchState *env, arg_vstelm_w *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = env->fpr[a->vd].vreg.W[a->imm2];
-    ram_stw(ha, data);
-    env->pc += 4;
-    return true;
-}
-static bool trans_vstelm_h(CPULoongArchState *env, arg_vstelm_h *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = env->fpr[a->vd].vreg.H[a->imm2];
-    ram_sth(ha, data);
-    env->pc += 4;
-    return true;
-}
-static bool trans_vstelm_b(CPULoongArchState *env, arg_vstelm_b *a) {
-    hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    assert(!is_io(ha));
-    int64_t data = env->fpr[a->vd].vreg.B[a->imm2];
-    ram_stb(ha, data);
-    env->pc += 4;
-    return true;
-}
+static bool trans_vldrepl_b(CPULoongArchState *env, arg_vldrepl_b *a) {int8_t data = ld_b(env, add_addr(env->gpr[a->rj], a->imm));for (size_t i = 0; i < 16; i++){env->fpr[a->vd].vreg.B[i] = data;}env->pc += 4;return true;}
+static bool trans_vldrepl_h(CPULoongArchState *env, arg_vldrepl_h *a) {int16_t data = ld_h(env, add_addr(env->gpr[a->rj], a->imm));for (size_t i = 0; i < 8; i++){env->fpr[a->vd].vreg.H[i] = data;}env->pc += 4;return true;}
+static bool trans_vldrepl_w(CPULoongArchState *env, arg_vldrepl_w *a) {int32_t data = ld_w(env, add_addr(env->gpr[a->rj], a->imm));for (size_t i = 0; i < 4; i++){env->fpr[a->vd].vreg.W[i] = data;}env->pc += 4;return true;}
+static bool trans_vldrepl_d(CPULoongArchState *env, arg_vldrepl_d *a) {int64_t data = ld_d(env, add_addr(env->gpr[a->rj], a->imm));for (size_t i = 0; i < 2; i++){env->fpr[a->vd].vreg.D[i] = data;}env->pc += 4;return true;}
+static bool trans_vstelm_b(CPULoongArchState *env, arg_vstelm_b *a) {st_b(env, add_addr(env->gpr[a->rj], a->imm), env->fpr[a->vd].vreg.B[a->imm2]);env->pc += 4;return true;}
+static bool trans_vstelm_h(CPULoongArchState *env, arg_vstelm_h *a) {st_h(env, add_addr(env->gpr[a->rj], a->imm), env->fpr[a->vd].vreg.H[a->imm2]);env->pc += 4;return true;}
+static bool trans_vstelm_w(CPULoongArchState *env, arg_vstelm_w *a) {st_w(env, add_addr(env->gpr[a->rj], a->imm), env->fpr[a->vd].vreg.W[a->imm2]);env->pc += 4;return true;}
+static bool trans_vstelm_d(CPULoongArchState *env, arg_vstelm_d *a) {st_d(env, add_addr(env->gpr[a->rj], a->imm), env->fpr[a->vd].vreg.D[a->imm2]);env->pc += 4;return true;}
 
 
 gen_trans_vvd(vext2xv_d_b, 32, vext2xv_d_b)

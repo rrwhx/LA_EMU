@@ -521,7 +521,7 @@ static void loongarch_la464_initfn(CPULoongArchState* env) {
     data = FIELD_DP32(data, CPUCFG1, IOCSR, 1);
     data = FIELD_DP32(data, CPUCFG1, PALEN, 0x2f);
     data = FIELD_DP32(data, CPUCFG1, VALEN, 0x2f);
-    // data = FIELD_DP32(data, CPUCFG1, UAL, 1);
+    data = FIELD_DP32(data, CPUCFG1, UAL, 1);
     data = FIELD_DP32(data, CPUCFG1, RI, 1);
     data = FIELD_DP32(data, CPUCFG1, EP, 1);
     data = FIELD_DP32(data, CPUCFG1, RPLV, 1);
