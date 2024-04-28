@@ -355,6 +355,7 @@ FIELD(TLB_MISC, PS, 48, 6)
 
 #define LSX_LEN    (128)
 #define LASX_LEN   (256)
+
 typedef union VReg {
     int8_t   B[LASX_LEN / 8];
     int16_t  H[LASX_LEN / 16];
@@ -379,6 +380,7 @@ struct LoongArchTLB {
     uint64_t tlb_entry1;
 };
 typedef struct LoongArchTLB LoongArchTLB;
+
 typedef struct CPUArchState {
     uint64_t gpr[32];
     uint64_t pc;
@@ -451,7 +453,7 @@ typedef struct CPUArchState {
     uint64_t CSR_DERA;
     uint64_t CSR_DSAVE;
 
-// #ifndef CONFIG_USER_ONLY
+#ifndef CONFIG_USER_ONLY
     LoongArchTLB  tlb[LOONGARCH_TLB_MAX];
 
 //     AddressSpace address_space_iocsr;
@@ -461,7 +463,7 @@ typedef struct CPUArchState {
 //     uint64_t elf_address;
 //     /* Store ipistate to access from this struct */
 //     DeviceState *ipistate;
-// #endif
+#endif
 
     // struct CPUArchState* env;
     TLBCache tc_load[TC_NUM];
@@ -531,6 +533,12 @@ static inline CPUState *env_cpu(CPUArchState *env)
     return (void *)env - sizeof(CPUState);
 }
 
+static inline CPUArchState *cpu_env(CPUState *cpu)
+{
+    /* We validate that CPUArchState follows CPUState in cpu-all.h. */
+    return (CPUArchState *)(cpu + 1);
+}
+
 /*
  * LoongArch CPUs has 4 privilege levels.
  * 0 for kernel mode, 3 for user mode.
@@ -538,20 +546,43 @@ static inline CPUState *env_cpu(CPUArchState *env)
  */
 #define MMU_PLV_KERNEL   0
 #define MMU_PLV_USER     3
-#define MMU_IDX_KERNEL   MMU_PLV_KERNEL
-#define MMU_IDX_USER     MMU_PLV_USER
-#define MMU_IDX_DA       4
+#define MMU_KERNEL_IDX   MMU_PLV_KERNEL
+#define MMU_USER_IDX     MMU_PLV_USER
+#define MMU_DA_IDX       4
 
-static inline int cpu_mmu_index(CPULoongArchState *env, bool ifetch)
+static inline int cpu_mmu_index(CPUState *cs, bool ifetch)
 {
-#ifdef CONFIG_USER_ONLY
-    return MMU_IDX_USER;
-#else
+    CPULoongArchState *env = cpu_env(cs);
+
     if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PG)) {
         return FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV);
     }
-    return MMU_IDX_DA;
-#endif
+    return MMU_DA_IDX;
+}
+
+static inline bool is_la64(CPULoongArchState *env)
+{
+    return FIELD_EX32(env->cpucfg[1], CPUCFG1, ARCH) == CPUCFG1_ARCH_LA64;
+}
+
+static inline bool is_va32(CPULoongArchState *env)
+{
+    /* VA32 if !LA64 or VA32L[1-3] */
+    bool va32 = !is_la64(env);
+    uint64_t plv = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV);
+    if (plv >= 1 && (FIELD_EX64(env->CSR_MISC, CSR_MISC, VA32) & (1 << plv))) {
+        va32 = true;
+    }
+    return va32;
+}
+
+static inline void set_pc(CPULoongArchState *env, uint64_t value)
+{
+    if (is_va32(env)) {
+        env->pc = (uint32_t)value;
+    } else {
+        env->pc = value;
+    }
 }
 
 /*
@@ -564,10 +595,6 @@ static inline int cpu_mmu_index(CPULoongArchState *env, bool ifetch)
 #define HW_FLAGS_VA32       0x20
 #define HW_FLAGS_EUEN_ASXE  0x40
 
-
-
-#define CPU_RESOLVING_TYPE TYPE_LOONGARCH_CPU
-
 static inline void cpu_get_tb_cpu_state(CPULoongArchState *env, vaddr *pc,
                                         uint64_t *cs_base, uint32_t *flags)
 {
@@ -576,15 +603,8 @@ static inline void cpu_get_tb_cpu_state(CPULoongArchState *env, vaddr *pc,
     *flags = env->CSR_CRMD & (R_CSR_CRMD_PLV_MASK | R_CSR_CRMD_PG_MASK);
     *flags |= FIELD_EX64(env->CSR_EUEN, CSR_EUEN, FPE) * HW_FLAGS_EUEN_FPE;
     *flags |= FIELD_EX64(env->CSR_EUEN, CSR_EUEN, SXE) * HW_FLAGS_EUEN_SXE;
-}
-
-static inline void set_pc(CPULoongArchState *env, uint64_t value)
-{
-    // if (is_va32(env)) {
-    //     env->pc = (uint32_t)value;
-    // } else {
-        env->pc = value;
-    // }
+    *flags |= FIELD_EX64(env->CSR_EUEN, CSR_EUEN, ASXE) * HW_FLAGS_EUEN_ASXE;
+    *flags |= is_va32(env) * HW_FLAGS_VA32;
 }
 
 int get_physical_address(CPULoongArchState *env, hwaddr *physical,

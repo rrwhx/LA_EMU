@@ -757,7 +757,7 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     if (likely(page_addr == tc->va)) {
         ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
     } else {
-        int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+        int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_KERNEL_IDX : MMU_USER_IDX;
         check_get_physical_address(env, &ha, &prot, addr, MMU_INST_FETCH, mmu_idx);
         // fprintf(stderr, "va:%lx,pa:%lx\n", addr, ha);
         tc->va = page_addr;

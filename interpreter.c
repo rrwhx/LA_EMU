@@ -629,7 +629,7 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
         // fprintf(stderr, "%lx %lx\n", addr, ha);
         return ha;
     }
-    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_KERNEL_IDX : MMU_USER_IDX;
     check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_LOAD, mmu_idx);
     tc->va = page_addr;
     tc->pa = ha & TARGET_PAGE_MASK;
@@ -648,7 +648,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
         ha = (addr & (TARGET_PAGE_SIZE - 1)) | tc->pa;
         // fprintf(stderr, "%lx %lx\n", addr, ha);
     } else {
-        int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_IDX_KERNEL : MMU_IDX_USER;
+        int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_KERNEL_IDX : MMU_USER_IDX;
         check_get_physical_address(env, &ha, &prot, addr, MMU_DATA_STORE, mmu_idx);
         tc->va = page_addr;
         tc->pa = ha & TARGET_PAGE_MASK;

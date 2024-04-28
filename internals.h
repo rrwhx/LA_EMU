@@ -31,6 +31,21 @@ void do_raise_exception(CPULoongArchState *env,
 const char *loongarch_exception_name(int32_t exception);
 
 int ieee_ex_to_loongarch(int xcpt);
+
+enum {
+    TLBRET_MATCH = 0,
+    TLBRET_BADADDR = 1,
+    TLBRET_NOMATCH = 2,
+    TLBRET_INVALID = 3,
+    TLBRET_DIRTY = 4,
+    TLBRET_RI = 5,
+    TLBRET_XI = 6,
+    TLBRET_PE = 7,
+};
+
+bool loongarch_tlb_search(CPULoongArchState *env, target_ulong vaddr,
+                          int *index);
+
 void restore_fp_status(CPULoongArchState *env);
 
 uint64_t read_fcc(CPULoongArchState *env);
