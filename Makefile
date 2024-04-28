@@ -39,7 +39,7 @@ $(BUILD_DIR)/la_emu_user : ${USER_OBJS}
 
 $(BUILD_DIR)/%_user.o : %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -DUSER_MODE=1 -c -o $@ $<
+	$(CC) $(CFLAGS) -DCONFIG_USER_ONLY=1 -c -o $@ $<
 
 $(BUILD_DIR)/la_emu_kernel : ${KERNEL_OBJS}
 	$(CC) $(KERNEL_OBJS) -o $@ $(LDFLAGS)

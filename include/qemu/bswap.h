@@ -145,14 +145,14 @@ CPU_CONVERT(le, 64, uint64_t)
  */
 #if HOST_BIG_ENDIAN
 # define const_le64(_x)                          \
-    ((((_x) & 0x00000000000000ffU) << 56) |      \
-     (((_x) & 0x000000000000ff00U) << 40) |      \
-     (((_x) & 0x0000000000ff0000U) << 24) |      \
-     (((_x) & 0x00000000ff000000U) <<  8) |      \
-     (((_x) & 0x000000ff00000000U) >>  8) |      \
-     (((_x) & 0x0000ff0000000000U) >> 24) |      \
-     (((_x) & 0x00ff000000000000U) >> 40) |      \
-     (((_x) & 0xff00000000000000U) >> 56))
+    ((((_x) & 0x00000000000000ffULL) << 56) |    \
+     (((_x) & 0x000000000000ff00ULL) << 40) |    \
+     (((_x) & 0x0000000000ff0000ULL) << 24) |    \
+     (((_x) & 0x00000000ff000000ULL) <<  8) |    \
+     (((_x) & 0x000000ff00000000ULL) >>  8) |    \
+     (((_x) & 0x0000ff0000000000ULL) >> 24) |    \
+     (((_x) & 0x00ff000000000000ULL) >> 40) |    \
+     (((_x) & 0xff00000000000000ULL) >> 56))
 # define const_le32(_x)                          \
     ((((_x) & 0x000000ffU) << 24) |              \
      (((_x) & 0x0000ff00U) <<  8) |              \
@@ -378,6 +378,48 @@ static inline unsigned long leul_to_cpu(unsigned long v)
 #endif
 }
 
+/* Store v to p as a sz byte value in host order */
+#define DO_STN_LDN_P(END) \
+    static inline void stn_## END ## _p(void *ptr, int sz, uint64_t v)  \
+    {                                                                   \
+        switch (sz) {                                                   \
+        case 1:                                                         \
+            stb_p(ptr, v);                                              \
+            break;                                                      \
+        case 2:                                                         \
+            stw_ ## END ## _p(ptr, v);                                  \
+            break;                                                      \
+        case 4:                                                         \
+            stl_ ## END ## _p(ptr, v);                                  \
+            break;                                                      \
+        case 8:                                                         \
+            stq_ ## END ## _p(ptr, v);                                  \
+            break;                                                      \
+        default:                                                        \
+            g_assert_not_reached();                                     \
+        }                                                               \
+    }                                                                   \
+    static inline uint64_t ldn_## END ## _p(const void *ptr, int sz)    \
+    {                                                                   \
+        switch (sz) {                                                   \
+        case 1:                                                         \
+            return ldub_p(ptr);                                         \
+        case 2:                                                         \
+            return lduw_ ## END ## _p(ptr);                             \
+        case 4:                                                         \
+            return (uint32_t)ldl_ ## END ## _p(ptr);                    \
+        case 8:                                                         \
+            return ldq_ ## END ## _p(ptr);                              \
+        default:                                                        \
+            g_assert_not_reached();                                     \
+        }                                                               \
+    }
+
+DO_STN_LDN_P(he)
+DO_STN_LDN_P(le)
+DO_STN_LDN_P(be)
+
+#undef DO_STN_LDN_P
 
 #undef le_bswap
 #undef be_bswap

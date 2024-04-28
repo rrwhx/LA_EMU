@@ -8,7 +8,7 @@
 #ifndef LOONGARCH_CPU_CSR_H
 #define LOONGARCH_CPU_CSR_H
 
-#include "qemu/registerfields.h"
+#include "hw/registerfields.h"
 
 /* Based on kernel definitions: arch/loongarch/include/asm/loongarch.h */
 

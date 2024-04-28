@@ -14,7 +14,7 @@
 #include "cpu.h"
 
 #include "gdbserver.h"
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
 #include "user.h"
 #endif
 
@@ -97,7 +97,7 @@ static void sigaction_entry(int signal, siginfo_t *si, void *arg) {
 }
 #endif
 
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
 static void sigaction_entry_timer(int signal, siginfo_t *si, void *arg) {
     timer_t id = *((timer_t*)si->si_value.sival_ptr);
     // printf("Caught signal %d,id=%lx -- ", signal,(long)id);
@@ -121,7 +121,7 @@ static void kernel_setup_signal(void) {
 #endif
 
 static void setup_signal(void) {
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
     kernel_setup_signal();
 #endif
 }
@@ -169,14 +169,14 @@ const char *loongarch_exception_name(int32_t exception)
     return excp_names[exception];
 }
 
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
 char* ram;
 #endif
 uint64_t ram_size = SZ_4G;
 char* kernel_filename;
 
 void usage(void) {
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
     fprintf(stderr, "la_emu_kernel -m n[G] -k kernel\n");
 #else
     fprintf(stderr, "usage: la_emu_user [-d exec,cpu,page,strace,unimp] [-D logfile] program [arguments...]\n");
@@ -184,7 +184,7 @@ void usage(void) {
     exit(EXIT_SUCCESS);
 }
 
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
 static target_ulong user_setup_stack() {
     void* dst = mmap(NULL, SZ_4G, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(dst != MAP_FAILED);
@@ -195,7 +195,7 @@ static target_ulong user_setup_stack() {
 #define elfhdr Elf64_Ehdr
 #define elf_shdr Elf64_Shdr
 #define elf_phdr Elf64_Phdr
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
 static char* alloc_ram(uint64_t ram_size) {
     void* start = mmap(NULL, ram_size + SZ_2G, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(start != MAP_FAILED);
@@ -273,7 +273,7 @@ fail:
 }
 #endif
 
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
 char *exec_path;
 char real_exec_path[PATH_MAX];
 struct image_info info;
@@ -741,7 +741,7 @@ void loongarch_cpu_set_irq(void *opaque, int irq, int level)
 }
 
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
         uint32_t insn = ram_lduw(env->pc);
         *ic = cpu_get_ic(env, insn);
         return insn;
@@ -1077,7 +1077,7 @@ int exec_env(CPULoongArchState *env) {
                 if(unlikely(!r)) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
                 }
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
                 if (determined) {
                     env->timer_counter -= (env->CSR_TCFG & CONSTANT_TIMER_ENABLE);
                     if (env->timer_counter == 0) {
@@ -1282,12 +1282,12 @@ int main(int argc, char** argv, char **envp) {
     // for (int i = optind; i < argc; i++) {
     //     fprintf(stderr, "%s\n", argv[i]);
     // }
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
     ram = alloc_ram(ram_size);
     qemu_log("pid:%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size, kernel_filename);
 #endif
     uint64_t entry_addr;
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
     TARGET_PAGE_SIZE = getpagesize();
     TARGET_PAGE_BITS = ctz64(TARGET_PAGE_SIZE);
     TARGET_PAGE_MASK = ((target_ulong)-1 << TARGET_PAGE_BITS);
@@ -1339,11 +1339,11 @@ int main(int argc, char** argv, char **envp) {
     loongarch_la464_initfn(env);
     cpu_clear_tc(env);
     env->timer_counter = INT64_MAX;
-#ifndef USER_MODE
+#ifndef CONFIG_USER_ONLY
     env->timerid = timerid;
 #endif
     env->pc = entry_addr;
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
     target_ulong sp = user_setup_stack();
     int guest_argc = argc - optind;
     char** guest_argv = argv + optind;

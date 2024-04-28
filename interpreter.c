@@ -4,7 +4,7 @@
 #include "tcg/tcg-gvec-desc.h"
 #include "fpu/softfloat.h"
 
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
 #include "user.h"
 #else
 #include "serial.h"
@@ -604,7 +604,7 @@ bool is_two_page(uint64_t addr, int bytes) {
 }
 
 bool is_aligned(uint64_t addr, int bytes) {
-#ifdef USER_MODE
+#ifdef CONFIG_USER_ONLY
         return true;
 #endif
     return is_one_page(addr, bytes);
@@ -616,7 +616,7 @@ bool is_unaligned(uint64_t addr, int bytes) {
 }
 
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
-#ifdef USER_MODE
+#ifdef CONFIG_USER_ONLY
         return addr;
 #endif
     hwaddr ha;
@@ -636,7 +636,7 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     return ha;
 }
 static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
-#ifdef USER_MODE
+#ifdef CONFIG_USER_ONLY
         return addr;
 #endif
     hwaddr ha;
@@ -656,7 +656,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     return ha;
 }
 static bool is_io(hwaddr ha) {
-#ifdef USER_MODE
+#ifdef CONFIG_USER_ONLY
     return false;
 #else
     return ha >= 0x10000000 && ha < 0x90000000;
@@ -665,7 +665,7 @@ static bool is_io(hwaddr ha) {
 
 #define UART_BASE 0x1fe001e0
 #define UART_END 0x1fe001e7
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
 static void do_io_st(hwaddr ha, uint64_t data, int size) {}
 static uint64_t do_io_ld(hwaddr ha, int size) { return 0;}
 #else
@@ -1160,7 +1160,7 @@ static bool trans_break(CPULoongArchState *env, arg_break *a) {
 
 static bool trans_syscall(CPULoongArchState *env, arg_syscall *a) {
     env->syscall_count ++;
-#if defined(USER_MODE)
+#if defined(CONFIG_USER_ONLY)
     target_long ret = do_syscall(env, env->gpr[11],
                         env->gpr[4], env->gpr[5],
                         env->gpr[6], env->gpr[7],

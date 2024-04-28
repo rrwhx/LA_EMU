@@ -10,7 +10,7 @@
 
 #include "util.h"
 #include "qemu/int128.h"
-#include "qemu/registerfields.h"
+#include "hw/registerfields.h"
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
 
@@ -94,7 +94,7 @@ typedef uint64_t target_ulong;
 #error TARGET_LONG_SIZE undefined
 #endif
 
-#if !defined(USER_MODE)
+#if !defined(CONFIG_USER_ONLY)
 #define TARGET_PAGE_BITS 12
 
 #define TARGET_PAGE_SIZE   (1 << TARGET_PAGE_BITS)
@@ -596,7 +596,7 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
 
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic);
 
-#ifdef USER_MODE
+#ifdef CONFIG_USER_ONLY
 static inline uint64_t ram_ldb(hwaddr addr) {return (int64_t)*(int8_t*)(addr);}
 static inline uint64_t ram_ldh(hwaddr addr) {return (int64_t)*(int16_t*)(addr);}
 static inline uint64_t ram_ldw(hwaddr addr) {return (int64_t)*(int32_t*)(addr);}

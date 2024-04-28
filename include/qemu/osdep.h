@@ -26,12 +26,20 @@
  */
 #ifndef QEMU_OSDEP_H
 #define QEMU_OSDEP_H
-#define TARGET_LOONGARCH64
-typedef struct Error Error;
 
 #if !defined _FORTIFY_SOURCE && defined __OPTIMIZE__ && __OPTIMIZE__ && defined __linux__
 # define _FORTIFY_SOURCE 2
 #endif
+
+// #include "config-host.h"
+#define CONFIG_IOVEC
+#define TARGET_LOONGARCH64
+typedef struct Error Error;
+# define G_NORETURN __attribute__ ((__noreturn__))
+#define G_GNUC_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#define g_assert_not_reached abort
+#define g_assert assert
+#include <float.h>
 
 /*
  * HOST_WORDS_BIGENDIAN was replaced with HOST_BIG_ENDIAN. Prevent it from
@@ -127,8 +135,6 @@ QEMU_EXTERN_C int daemon(int, int);
  * because it is redefined there. */
 #include <setjmp.h>
 #include <signal.h>
-
-#include <float.h>
 
 #ifdef CONFIG_IOVEC
 #include <sys/uio.h>
@@ -240,9 +246,6 @@ extern "C" {
 #define assert(x)  g_assert(x)
 #endif
 
-#define g_assert_not_reached abort
-#define g_assert assert
-
 /**
  * qemu_build_not_reached()
  *
@@ -251,6 +254,7 @@ extern "C" {
  * supports QEMU_ERROR, this will be reported at compile time; otherwise
  * this will be reported at link time due to the missing symbol.
  */
+G_NORETURN
 void QEMU_ERROR("code path is reachable")
     qemu_build_not_reached_always(void);
 #if defined(__OPTIMIZE__) && !defined(__NO_INLINE__)
@@ -504,10 +508,17 @@ void qemu_anon_ram_free(void *ptr, size_t size);
 
 #ifdef _WIN32
 #define HAVE_CHARDEV_SERIAL 1
-#elif defined(__linux__) || defined(__sun__) || defined(__FreeBSD__)    \
+#define HAVE_CHARDEV_PARALLEL 1
+#else
+#if defined(__linux__) || defined(__sun__) || defined(__FreeBSD__)   \
     || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__) \
     || defined(__GLIBC__) || defined(__APPLE__)
 #define HAVE_CHARDEV_SERIAL 1
+#endif
+#if defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
+#define HAVE_CHARDEV_PARALLEL 1
+#endif
 #endif
 
 #if defined(__HAIKU__)
@@ -543,6 +554,14 @@ int madvise(char *, size_t, int);
 #  define QEMU_VMALLOC_ALIGN (256 * 4096)
 #elif defined(__linux__) && defined(__sparc__)
 #  define QEMU_VMALLOC_ALIGN MAX(qemu_real_host_page_size(), SHMLBA)
+#elif defined(__linux__) && defined(__loongarch__)
+   /*
+    * For transparent hugepage optimization, it has better be huge page
+    * aligned. LoongArch host system supports two kinds of pagesize: 4K
+    * and 16K, here calculate huge page size from host page size
+    */
+#  define QEMU_VMALLOC_ALIGN (qemu_real_host_page_size() * \
+                         qemu_real_host_page_size() / sizeof(long))
 #else
 #  define QEMU_VMALLOC_ALIGN qemu_real_host_page_size()
 #endif
@@ -605,6 +624,19 @@ bool qemu_write_pidfile(const char *pidfile, Error **errp);
 
 int qemu_get_thread_id(void);
 
+#ifndef CONFIG_IOVEC
+struct iovec {
+    void *iov_base;
+    size_t iov_len;
+};
+/*
+ * Use the same value as Linux for now.
+ */
+#define IOV_MAX 1024
+
+ssize_t readv(int fd, const struct iovec *iov, int iov_cnt);
+ssize_t writev(int fd, const struct iovec *iov, int iov_cnt);
+#endif
 
 #ifdef _WIN32
 static inline void qemu_timersub(const struct timeval *val1,
@@ -623,6 +655,8 @@ static inline void qemu_timersub(const struct timeval *val1,
 #define qemu_timersub timersub
 #endif
 
+ssize_t qemu_write_full(int fd, const void *buf, size_t count)
+    G_GNUC_WARN_UNUSED_RESULT;
 
 void qemu_set_cloexec(int fd);
 
@@ -653,6 +687,8 @@ typedef struct ThreadContext ThreadContext;
  * @area: start address of the are to preallocate
  * @sz: the size of the area to preallocate
  * @max_threads: maximum number of threads to use
+ * @tc: prealloc context threads pointer, NULL if not in use
+ * @async: request asynchronous preallocation, requires @tc
  * @errp: returns an error if this function fails
  *
  * Preallocate memory (populate/prefault page tables writable) for the virtual
@@ -660,10 +696,24 @@ typedef struct ThreadContext ThreadContext;
  * each page in the area was faulted in writable at least once, for example,
  * after allocating file blocks for mapped files.
  *
+ * When setting @async, allocation might be performed asynchronously.
+ * qemu_finish_async_prealloc_mem() must be called to finish any asynchronous
+ * preallocation.
+ *
  * Return: true on success, else false setting @errp with error.
  */
 bool qemu_prealloc_mem(int fd, char *area, size_t sz, int max_threads,
-                       ThreadContext *tc, Error **errp);
+                       ThreadContext *tc, bool async, Error **errp);
+
+/**
+ * qemu_finish_async_prealloc_mem:
+ * @errp: returns an error if this function fails
+ *
+ * Finish all outstanding asynchronous memory preallocation.
+ *
+ * Return: true on success, else false setting @errp with error.
+ */
+bool qemu_finish_async_prealloc_mem(Error **errp);
 
 /**
  * qemu_get_pid_name:

@@ -155,7 +155,6 @@ static inline bool qemu_loglevel_mask(int mask)
         }                                               \
     } while (0)
 
-# define G_NORETURN __attribute__ ((__noreturn__))
 
 #if 1
 #define lsassert(cond)                                                  \
