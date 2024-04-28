@@ -655,13 +655,13 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     }
     return ha;
 }
-static bool is_io(hwaddr ha) {
 #ifdef CONFIG_USER_ONLY
-    return false;
+#define is_io(...) false
 #else
+static bool is_io(hwaddr ha) {
     return ha >= 0x10000000 && ha < 0x90000000;
-#endif
 }
+#endif
 
 #define UART_BASE 0x1fe001e0
 #define UART_END 0x1fe001e7
@@ -1585,6 +1585,35 @@ static bool trans_bgeu(CPULoongArchState *env, arg_bgeu *a) {
     }
     return true;
 }
+
+#ifdef CONFIG_USER_ONLY
+static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {return false;}
+static bool trans_csrwr(CPULoongArchState *env, arg_csrwr *a) {return false;}
+static bool trans_csrxchg(CPULoongArchState *env, arg_csrxchg *a) {return false;}
+static bool trans_iocsrrd_b(CPULoongArchState *env, arg_iocsrrd_b *a) {return false;}
+static bool trans_iocsrrd_h(CPULoongArchState *env, arg_iocsrrd_h *a) {return false;}
+static bool trans_iocsrrd_w(CPULoongArchState *env, arg_iocsrrd_w *a) {return false;}
+static bool trans_iocsrrd_d(CPULoongArchState *env, arg_iocsrrd_d *a) {return false;}
+static bool trans_iocsrwr_b(CPULoongArchState *env, arg_iocsrwr_b *a) {return false;}
+static bool trans_iocsrwr_h(CPULoongArchState *env, arg_iocsrwr_h *a) {return false;}
+static bool trans_iocsrwr_w(CPULoongArchState *env, arg_iocsrwr_w *a) {return false;}
+static bool trans_iocsrwr_d(CPULoongArchState *env, arg_iocsrwr_d *a) {return false;}
+static bool trans_tlbsrch(CPULoongArchState *env, arg_tlbsrch *a) {return false;}
+static bool trans_tlbrd(CPULoongArchState *env, arg_tlbrd *a) {return false;}
+static bool trans_tlbwr(CPULoongArchState *env, arg_tlbwr *a) {return false;}
+static bool trans_tlbfill(CPULoongArchState *env, arg_tlbfill *a) {return false;}
+static bool trans_tlbclr(CPULoongArchState *env, arg_tlbclr *a) {return false;}
+static bool trans_tlbflush(CPULoongArchState *env, arg_tlbflush *a) {return false;}
+static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *a) {return false;}
+static bool trans_cacop(CPULoongArchState *env, arg_cacop *a) {return false;}
+static bool trans_ldpte(CPULoongArchState *env, arg_ldpte *a) {return false;}
+static bool trans_lddir(CPULoongArchState *env, arg_lddir *a) {return false;}
+static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {return false;}
+static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {return false;}
+static bool trans_idle(CPULoongArchState *env, arg_idle *a) {return false;}
+
+#else
+
 static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *a) {
     uint64_t old_v = 0;
     switch (a->csr) {
@@ -1901,6 +1930,7 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
     return true;
 }
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}
+#endif
 static inline bool vadd_b(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i] + env->fpr[a->vk].vreg.B[i];}env->pc += 4;return true;}
 static inline bool vadd_h(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[i] + env->fpr[a->vk].vreg.H[i];}env->pc += 4;return true;}
 static inline bool vadd_w(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.W[i] = env->fpr[a->vj].vreg.W[i] + env->fpr[a->vk].vreg.W[i];}env->pc += 4;return true;}
