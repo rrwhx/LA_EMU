@@ -1314,6 +1314,7 @@ int main(int argc, char** argv, char **envp) {
 
     term.c_lflag &= ~ECHO;
     term.c_lflag &= ~ICANON;
+    term.c_lflag &= ~ISIG;
     tcsetattr(STDIN_FILENO, 0, &term);
 
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
