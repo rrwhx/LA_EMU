@@ -14,9 +14,6 @@
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
 
-#if !defined(CONFIG_INT128)
-    #error "must define CONFIG_INT128"
-#endif
 
 #define TIME_SCALE 1
 
