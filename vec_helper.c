@@ -42,6 +42,59 @@ uint64_t (dup_const)(unsigned vece, uint64_t c)
 }
 
 
+# define tcg_debug_assert(X) \
+    do { if (!(X)) { __builtin_unreachable(); } } while (0)
+
+/* Verify vector size and alignment rules.  OFS should be the OR of all
+   of the operand offsets so that we can check them all at once.  */
+static void check_size_align(uint32_t oprsz, uint32_t maxsz, uint32_t ofs)
+{
+    uint32_t max_align;
+
+    switch (oprsz) {
+    case 8:
+    case 16:
+    case 32:
+        tcg_debug_assert(oprsz <= maxsz);
+        break;
+    default:
+        tcg_debug_assert(oprsz == maxsz);
+        break;
+    }
+    tcg_debug_assert(maxsz <= (8 << SIMD_MAXSZ_BITS));
+
+    max_align = maxsz >= 16 ? 15 : 7;
+    tcg_debug_assert((maxsz & max_align) == 0);
+    tcg_debug_assert((ofs & max_align) == 0);
+}
+
+/* Create a descriptor from components.  */
+uint32_t simd_desc(uint32_t oprsz, uint32_t maxsz, int32_t data)
+{
+    uint32_t desc = 0;
+
+    check_size_align(oprsz, maxsz, 0);
+    tcg_debug_assert(data == sextract32(data, 0, SIMD_DATA_BITS));
+
+    oprsz = (oprsz / 8) - 1;
+    maxsz = (maxsz / 8) - 1;
+
+    /*
+     * We have just asserted in check_size_align that either
+     * oprsz is {8,16,32} or matches maxsz.  Encode the final
+     * case with '2', as that would otherwise map to 24.
+     */
+    if (oprsz == maxsz) {
+        oprsz = 2;
+    }
+
+    desc = deposit32(desc, SIMD_OPRSZ_SHIFT, SIMD_OPRSZ_BITS, oprsz);
+    desc = deposit32(desc, SIMD_MAXSZ_SHIFT, SIMD_MAXSZ_BITS, maxsz);
+    desc = deposit32(desc, SIMD_DATA_SHIFT, SIMD_DATA_BITS, data);
+
+    return desc;
+}
+
 #define DO_ODD_EVEN(NAME, BIT, E1, E2, DO_OP)                        \
 void HELPER(NAME)(void *vd, void *vj, void *vk, uint32_t desc)       \
 {                                                                    \
@@ -2412,12 +2465,11 @@ static void vec_update_fcsr0_mask(CPULoongArchState *env,
         UPDATE_FP_CAUSE(env->fcsr0, flags);
     }
 
-    UPDATE_FP_FLAGS(env->fcsr0, flags);
-    // if (GET_FP_ENABLES(env->fcsr0) & flags) {
-    //     do_raise_exception(env, EXCCODE_FPE, pc);
-    // } else {
-    //     UPDATE_FP_FLAGS(env->fcsr0, flags);
-    // }
+    if (GET_FP_ENABLES(env->fcsr0) & flags) {
+        do_raise_exception(env, EXCCODE_FPE, pc);
+    } else {
+        UPDATE_FP_FLAGS(env->fcsr0, flags);
+    }
 }
 
 static void vec_update_fcsr0(CPULoongArchState *env, uintptr_t pc)
@@ -3520,391 +3572,3 @@ VEXTRINS(vextrins_b, 8, B, 0xf)
 VEXTRINS(vextrins_h, 16, H, 0x7)
 VEXTRINS(vextrins_w, 32, W, 0x3)
 VEXTRINS(vextrins_d, 64, D, 0x1)
-
-
-/* Verify vector size and alignment rules.  OFS should be the OR of all
-   of the operand offsets so that we can check them all at once.  */
-static void check_size_align(uint32_t oprsz, uint32_t maxsz, uint32_t ofs)
-{
-    uint32_t max_align;
-
-    switch (oprsz) {
-    case 8:
-    case 16:
-    case 32:
-        assert(oprsz <= maxsz);
-        break;
-    default:
-        assert(oprsz == maxsz);
-        break;
-    }
-    assert(maxsz <= (8 << SIMD_MAXSZ_BITS));
-
-    max_align = maxsz >= 16 ? 15 : 7;
-    assert((maxsz & max_align) == 0);
-    assert((ofs & max_align) == 0);
-}
-
-/* Create a descriptor from components.  */
-uint32_t simd_desc(uint32_t oprsz, uint32_t maxsz, int32_t data)
-{
-    uint32_t desc = 0;
-
-    check_size_align(oprsz, maxsz, 0);
-    assert(data == sextract32(data, 0, SIMD_DATA_BITS));
-
-    oprsz = (oprsz / 8) - 1;
-    maxsz = (maxsz / 8) - 1;
-
-    /*
-     * We have just asserted in check_size_align that either
-     * oprsz is {8,16,32} or matches maxsz.  Encode the final
-     * case with '2', as that would otherwise map to 24.
-     */
-    if (oprsz == maxsz) {
-        oprsz = 2;
-    }
-
-    desc = deposit32(desc, SIMD_OPRSZ_SHIFT, SIMD_OPRSZ_BITS, oprsz);
-    desc = deposit32(desc, SIMD_MAXSZ_SHIFT, SIMD_MAXSZ_BITS, maxsz);
-    desc = deposit32(desc, SIMD_DATA_SHIFT, SIMD_DATA_BITS, data);
-
-    return desc;
-}
-
-// catagory
-#define SOFTFLOAT_FARITH  8
-#define SOFTFLOAT_FCMP    9
-#define SOFTFLOAT_FCVT   10
-
-// rounding mode
-#define SOFTFLOAT_RM_RNE 0
-#define SOFTFLOAT_RM_RZ  1
-#define SOFTFLOAT_RM_RP  2
-#define SOFTFLOAT_RM_RN  3
-
-// float exception
-#define SOFTFLOAT_EX_I 0
-#define SOFTFLOAT_EX_U 1
-#define SOFTFLOAT_EX_O 2
-#define SOFTFLOAT_EX_Z 3
-#define SOFTFLOAT_EX_V 4
-
-// float comparison condition
-#define SOFTFLOAT_CMP_AF  0x0
-#define SOFTFLOAT_CMP_LT  0x1
-#define SOFTFLOAT_CMP_EQ  0x2
-#define SOFTFLOAT_CMP_LE  0x3
-#define SOFTFLOAT_CMP_UN  0x4
-#define SOFTFLOAT_CMP_ULT 0x5
-#define SOFTFLOAT_CMP_UEQ 0x6
-#define SOFTFLOAT_CMP_ULE 0x7
-#define SOFTFLOAT_CMP_NE  0x8
-#define SOFTFLOAT_CMP_OR  0xa
-#define SOFTFLOAT_CMP_UNE 0xc
-
-// float convertion
-#define SOFTFLOAT_CVT_FCVT  0
-#define SOFTFLOAT_CVT_FFINT 1
-#define SOFTFLOAT_CVT_FTINT 2
-#define SOFTFLOAT_CVT_FRINT 3
-                            
-// float arithmatics
-#define SOFTFLOAT_FADD      0
-#define SOFTFLOAT_FSUB      1
-#define SOFTFLOAT_FMUL      2
-#define SOFTFLOAT_FDIV      3
-#define SOFTFLOAT_FMADD     4
-#define SOFTFLOAT_FMSUB     5
-#define SOFTFLOAT_FNMADD    6
-#define SOFTFLOAT_FNMSUB    7
-#define SOFTFLOAT_FMAX      8
-#define SOFTFLOAT_FMIN      9
-#define SOFTFLOAT_FMAXA     10
-#define SOFTFLOAT_FMINA     11
-#define SOFTFLOAT_FABS      12
-#define SOFTFLOAT_FNEG      13
-#define SOFTFLOAT_FSQRT     14
-#define SOFTFLOAT_FRECIP    15
-#define SOFTFLOAT_FRSQRT    16
-#define SOFTFLOAT_FSCALEB   17
-#define SOFTFLOAT_FLOGB     18
-#define SOFTFLOAT_FCOPYSIGN 19
-#define SOFTFLOAT_FCLASS    20
-
-// fcvt
-#define VFCVTL_S_H        0
-#define VFCVTH_S_H        1
-#define VFCVTL_D_S        2
-#define VFCVTH_D_S        3
-#define VFCVT_H_S         4
-#define VFCVT_S_D         5
-#define VFRINTRNE_S       6
-#define VFRINTRNE_D       7
-#define VFRINTRZ_S        8
-#define VFRINTRZ_D        9
-#define VFRINTRP_S        10
-#define VFRINTRP_D        11
-#define VFRINTRM_S        12
-#define VFRINTRM_D        13
-#define VFRINT_S          14
-#define VFRINT_D          15
-#define VFTINTRNE_W_S     16
-#define VFTINTRNE_L_D     17
-#define VFTINTRZ_W_S      18
-#define VFTINTRZ_L_D      19
-#define VFTINTRP_W_S      20
-#define VFTINTRP_L_D      21
-#define VFTINTRM_W_S      22
-#define VFTINTRM_L_D      23
-#define VFTINT_W_S        24
-#define VFTINT_L_D        25
-#define VFTINTRZ_WU_S     26
-#define VFTINTRZ_LU_D     27
-#define VFTINT_WU_S       28
-#define VFTINT_LU_D       29
-#define VFTINTRNE_W_D     30
-#define VFTINTRZ_W_D      31
-#define VFTINTRP_W_D      32
-#define VFTINTRM_W_D      33
-#define VFTINT_W_D        34
-#define VFTINTRNEL_L_S    35
-#define VFTINTRNEH_L_S    36
-#define VFTINTRZL_L_S     37
-#define VFTINTRZH_L_S     38
-#define VFTINTRPL_L_S     39
-#define VFTINTRPH_L_S     40
-#define VFTINTRML_L_S     41
-#define VFTINTRMH_L_S     42
-#define VFTINTL_L_S       43
-#define VFTINTH_L_S       44
-#define VFFINT_S_W        45
-#define VFFINT_D_L        46
-#define VFFINT_S_WU       47
-#define VFFINT_D_LU       48
-#define VFFINTL_D_W       49
-#define VFFINTH_D_W       50
-#define VFFINT_S_L        51
-
-// fcmp
-#define VFCMP_OP             0
-
-#define SIZE_ELE_SIZE_MASK 0x3
-#define SIZE_SIGN_MASK 0x4
-#define SIZE_IS_VEC_MASK 0x8
-#define SIZE_SIZE_MASK 0x10
-
-#define SIZE_B 0
-#define SIZE_H 1
-#define SIZE_W 2
-#define SIZE_D 3
-
-#define SIZE_B 0
-#define SIGN_U SIZE_SIGN_MASK
-
-#define SIZE_IS_VEC SIZE_IS_VEC_MASK
-
-#define SIZE_IS_VEC128 0
-#define SIZE_IS_VEC256 SIZE_SIZE_MASK
-
-
-
-/* Convert loongarch rounding mode in fcsr0 to IEEE library */
-static const FloatRoundMode ieee_rm[4] = {
-    float_round_nearest_even,
-    float_round_to_zero,
-    float_round_up,
-    float_round_down
-};
-
-uint64_t get_result_vec(uint8_t cat, uint8_t op, uint8_t size, uint8_t rm, void* a, void* b, void* c, void* result, uint8_t* vzoui) {
-    uint32_t oprsz = size & 0x10 ? 32 : 16;
-    int ele_size = size & 0x3;
-    int ext = size & 0x4;
-
-    fprintf(stderr, "[softvec] len:%d, ele_size:%d, ext:%d\n", oprsz, ele_size, ext);
-    uint32_t desc = simd_desc(oprsz, oprsz, 0);
-    CPULoongArchState env = {};
-    set_float_rounding_mode(ieee_rm[rm & 0x3], &env.fp_status);
-
-    if (cat == SOFTFLOAT_FARITH) {
-        if (ele_size == SIZE_D) {
-            switch (op) {
-            case SOFTFLOAT_FADD:    helper_vfadd_d    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FSUB:    helper_vfsub_d    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMUL:    helper_vfmul_d    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FDIV:    helper_vfdiv_d    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMADD:   helper_vfmadd_d   (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FMSUB:   helper_vfmsub_d   (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FNMADD:  helper_vfnmadd_d  (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FNMSUB:  helper_vfnmsub_d  (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FMAX:    helper_vfmax_d    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMIN:    helper_vfmin_d    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMAXA:   helper_vfmaxa_d   (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMINA:   helper_vfmina_d   (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FLOGB:   helper_vflogb_d   (result, a,       &env, desc);break;
-            case SOFTFLOAT_FCLASS:  helper_vfclass_d  (result, a,       &env, desc);break;
-            case SOFTFLOAT_FSQRT:   helper_vfsqrt_d   (result, a,       &env, desc);break;
-            case SOFTFLOAT_FRECIP:  helper_vfrecip_d  (result, a,       &env, desc);break;
-            case SOFTFLOAT_FRSQRT:  helper_vfrsqrt_d  (result, a,       &env, desc);break;
-            // case VFSCALEB: helper_vfscaleb_d (result, a, b, &env, simd_desc(vlen, vlen, 0));break;
-            default:
-                fprintf(stderr, "[softvec] not supportted %s %d\n", __FILE__, __LINE__);
-                break;
-            }
-        } else if (ele_size == SIZE_W) {
-            switch (op) {
-            case SOFTFLOAT_FADD:    helper_vfadd_s    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FSUB:    helper_vfsub_s    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMUL:    helper_vfmul_s    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FDIV:    helper_vfdiv_s    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMADD:   helper_vfmadd_s   (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FMSUB:   helper_vfmsub_s   (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FNMADD:  helper_vfnmadd_s  (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FNMSUB:  helper_vfnmsub_s  (result, a, b, c, &env, desc);break;
-            case SOFTFLOAT_FMAX:    helper_vfmax_s    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMIN:    helper_vfmin_s    (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMAXA:   helper_vfmaxa_s   (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FMINA:   helper_vfmina_s   (result, a, b,    &env, desc);break;
-            case SOFTFLOAT_FLOGB:   helper_vflogb_s   (result, a,       &env, desc);break;
-            case SOFTFLOAT_FCLASS:  helper_vfclass_s  (result, a,       &env, desc);break;
-            case SOFTFLOAT_FSQRT:   helper_vfsqrt_s   (result, a,       &env, desc);break;
-            case SOFTFLOAT_FRECIP:  helper_vfrecip_s  (result, a,       &env, desc);break;
-            case SOFTFLOAT_FRSQRT:  helper_vfrsqrt_s  (result, a,       &env, desc);break;
-            // case VFSCALEB: helper_vfscaleb_s (result, a, b, &env, simd_desc(vlen, vlen, 0));break;
-            default:
-                fprintf(stderr, "[softvec] not supportted %s %d\n", __FILE__, __LINE__);
-                break;
-            }
-        } else {
-            fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
-        }
-    } else if (cat == SOFTFLOAT_FCMP) {
-        // uint32_t flags = get_fcmp_flags(op >> 1);
-        // if (op & 1) {
-        //     if (ele_size == SIZE_D) {
-        //         helper_vfcmp_s_d(&env, oprsz, result, a, b, flags);
-        //     } else if (ele_size == SIZE_W) {
-        //         helper_vfcmp_s_s(&env, oprsz, result, a, b, flags);
-        //     } else {
-        //         fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
-        //     }
-        // } else {
-        //     if (ele_size == SIZE_D) {
-        //         helper_vfcmp_c_d(&env, oprsz, result, a, b, flags);
-        //     } else if (ele_size == SIZE_W) {
-        //         helper_vfcmp_c_s(&env, oprsz, result, a, b, flags);
-        //     } else {
-        //         fprintf(stderr, "[softvec] supportted ele_size:%d %s %d\n", ele_size, __FILE__, __LINE__);
-        //     }
-        // }
-    } else if (cat == SOFTFLOAT_FCVT) {
-        switch (op) {
-        case VFCVTL_S_H:      helper_vfcvtl_s_h    (result, a,    &env, desc); break;
-        case VFCVTH_S_H:      helper_vfcvth_s_h    (result, a,    &env, desc); break;
-        case VFCVTL_D_S:      helper_vfcvtl_d_s    (result, a,    &env, desc); break;
-        case VFCVTH_D_S:      helper_vfcvth_d_s    (result, a,    &env, desc); break;
-        case VFCVT_H_S:       helper_vfcvt_h_s     (result, a, b, &env, desc); break;
-        case VFCVT_S_D:       helper_vfcvt_s_d     (result, a, b, &env, desc); break;
-        case VFRINTRNE_S:     helper_vfrintrne_s   (result, a,    &env, desc); break;
-        case VFRINTRNE_D:     helper_vfrintrne_d   (result, a,    &env, desc); break;
-        case VFRINTRZ_S:      helper_vfrintrz_s    (result, a,    &env, desc); break;
-        case VFRINTRZ_D:      helper_vfrintrz_d    (result, a,    &env, desc); break;
-        case VFRINTRP_S:      helper_vfrintrp_s    (result, a,    &env, desc); break;
-        case VFRINTRP_D:      helper_vfrintrp_d    (result, a,    &env, desc); break;
-        case VFRINTRM_S:      helper_vfrintrm_s    (result, a,    &env, desc); break;
-        case VFRINTRM_D:      helper_vfrintrm_d    (result, a,    &env, desc); break;
-        case VFRINT_S:        helper_vfrint_s      (result, a,    &env, desc); break;
-        case VFRINT_D:        helper_vfrint_d      (result, a,    &env, desc); break;
-        case VFTINTRNE_W_S:   helper_vftintrne_w_s (result, a,    &env, desc); break;
-        case VFTINTRNE_L_D:   helper_vftintrne_l_d (result, a,    &env, desc); break;
-        case VFTINTRZ_W_S:    helper_vftintrz_w_s  (result, a,    &env, desc); break;
-        case VFTINTRZ_L_D:    helper_vftintrz_l_d  (result, a,    &env, desc); break;
-        case VFTINTRP_W_S:    helper_vftintrp_w_s  (result, a,    &env, desc); break;
-        case VFTINTRP_L_D:    helper_vftintrp_l_d  (result, a,    &env, desc); break;
-        case VFTINTRM_W_S:    helper_vftintrm_w_s  (result, a,    &env, desc); break;
-        case VFTINTRM_L_D:    helper_vftintrm_l_d  (result, a,    &env, desc); break;
-        case VFTINT_W_S:      helper_vftint_w_s    (result, a,    &env, desc); break;
-        case VFTINT_L_D:      helper_vftint_l_d    (result, a,    &env, desc); break;
-        case VFTINTRZ_WU_S:   helper_vftintrz_wu_s (result, a,    &env, desc); break;
-        case VFTINTRZ_LU_D:   helper_vftintrz_lu_d (result, a,    &env, desc); break;
-        case VFTINT_WU_S:     helper_vftint_wu_s   (result, a,    &env, desc); break;
-        case VFTINT_LU_D:     helper_vftint_lu_d   (result, a,    &env, desc); break;
-        case VFTINTRNE_W_D:   helper_vftintrne_w_d (result, a, b, &env, desc); break;
-        case VFTINTRZ_W_D:    helper_vftintrz_w_d  (result, a, b, &env, desc); break;
-        case VFTINTRP_W_D:    helper_vftintrp_w_d  (result, a, b, &env, desc); break;
-        case VFTINTRM_W_D:    helper_vftintrm_w_d  (result, a, b, &env, desc); break;
-        case VFTINT_W_D:      helper_vftint_w_d    (result, a, b, &env, desc); break;
-        case VFTINTRNEL_L_S:  helper_vftintrnel_l_s(result, a,    &env, desc); break;
-        case VFTINTRNEH_L_S:  helper_vftintrneh_l_s(result, a,    &env, desc); break;
-        case VFTINTRZL_L_S:   helper_vftintrzl_l_s (result, a,    &env, desc); break;
-        case VFTINTRZH_L_S:   helper_vftintrzh_l_s (result, a,    &env, desc); break;
-        case VFTINTRPL_L_S:   helper_vftintrpl_l_s (result, a,    &env, desc); break;
-        case VFTINTRPH_L_S:   helper_vftintrph_l_s (result, a,    &env, desc); break;
-        case VFTINTRML_L_S:   helper_vftintrml_l_s (result, a,    &env, desc); break;
-        case VFTINTRMH_L_S:   helper_vftintrmh_l_s (result, a,    &env, desc); break;
-        case VFTINTL_L_S:     helper_vftintl_l_s   (result, a,    &env, desc); break;
-        case VFTINTH_L_S:     helper_vftinth_l_s   (result, a,    &env, desc); break;
-        case VFFINT_S_W:      helper_vffint_s_w    (result, a,    &env, desc); break;
-        case VFFINT_D_L:      helper_vffint_d_l    (result, a,    &env, desc); break;
-        case VFFINT_S_WU:     helper_vffint_s_wu   (result, a,    &env, desc); break;
-        case VFFINT_D_LU:     helper_vffint_d_lu   (result, a,    &env, desc); break;
-        case VFFINTL_D_W:     helper_vffintl_d_w   (result, a,    &env, desc); break;
-        case VFFINTH_D_W:     helper_vffinth_d_w   (result, a,    &env, desc); break;
-        case VFFINT_S_L:      helper_vffint_s_l    (result, a, b, &env, desc); break;
-        default:
-            fprintf(stderr, "[softvec] not supportted %s %d\n", __FILE__, __LINE__);
-            break;
-        }
-    } else {
-        fprintf(stderr, "[softvec] not supportted %s %d\n", __FILE__, __LINE__);
-    }
-    *vzoui = GET_FP_CAUSE(env.fcsr0);
-
-    double* result_d = (double*)result;
-    float* result_s = (float*)result;
-    uint64_t* result_i64 = (uint64_t*)result;
-    uint32_t* result_i32 = (uint32_t*)result;
-    if (oprsz == 16) {
-        if (ele_size == 2) {
-            printf("%f %f %f %f\n", result_s[0], result_s[1], result_s[2], result_s[3]);
-            printf("%08x %08x %08x %08x\n", result_i32[0], result_i32[1], result_i32[2], result_i32[3]);
-        } else if (ele_size == 3) {
-            printf("%f %f\n", result_d[0], result_d[1]);
-            printf("%lx %lx\n", result_i64[0], result_i64[1]);
-        }
-    } else if (oprsz == 32) {
-        if (ele_size == 2) {
-            printf("%f %f %f %f %f %f %f %f\n", result_s[0], result_s[1], result_s[2], result_s[3], result_s[4], result_s[5], result_s[6], result_s[7]);
-            printf("%08x %08x %08x %08x %08x %08x %08x %08x\n", result_i32[0], result_i32[1], result_i32[2], result_i32[3], result_i32[4], result_i32[5], result_i32[6], result_i32[7]);
-        } else if (ele_size == 3) {
-            printf("%f %f %f %f\n", result_d[0], result_d[1], result_d[2], result_d[3]);
-            printf("%016lx %016lx %016lx %016lx\n", result_i64[0], result_i64[1], result_i64[2], result_i64[3]);
-        }
-    }
-    printf("vzoui:%x\n", *vzoui);
-    return 0;
-}
-
-
-
-// int main(int argc, char** argv) {
-
-//     double da[] = {1.0, -4.3, 7.6, -0.9};
-//     double db[] = {2.1, -5.4, 8.7, -1.0};
-//     double dc[] = {3.2, -6.5, 9.8, -2.1};
-//     double dresult[4] = {};
-
-//     float fa[] = {1.0, -4.3, 7.6, -0.9, 1.0, -4.3, 7.6, -0.9};
-//     float fb[] = {2.1, -5.4, 8.7, -1.0, 2.1, -5.4, 8.7, -1.0};
-//     float fc[] = {3.2, -6.5, 9.8, -2.1, 3.2, -6.5, 9.8, -2.1};
-//     float fresult[4] = {};
-
-//     uint8_t vzoui = 0;
-
-//     get_result_vec(SOFTFLOAT_FARITH, SOFTFLOAT_FADD, SIZE_IS_VEC128 | 8 | 3, SOFTFLOAT_RM_RNE, da, db, dc, dresult, &vzoui);
-//     get_result_vec(SOFTFLOAT_FARITH, SOFTFLOAT_FADD, SIZE_IS_VEC256 | 8 | 3, SOFTFLOAT_RM_RNE, da, db, dc, dresult, &vzoui);
-
-//     printf("compile ok");
-//     return 0;
-// }
