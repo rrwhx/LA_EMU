@@ -179,9 +179,15 @@ char* kernel_filename;
 void usage(void) {
 #ifndef CONFIG_USER_ONLY
     fprintf(stderr, "la_emu_kernel -m n[G] -k kernel\n");
+    fprintf(stderr, "-m Memory size(kernel mode)\n");
+    fprintf(stderr, "-k Kernel vmlinux(kernel mode)\n");
 #else
     fprintf(stderr, "usage: la_emu_user [-d exec,cpu,page,strace,unimp] [-D logfile] program [arguments...]\n");
 #endif
+    fprintf(stderr, "-d Log info, suupport: exec,cpu,fpu,int\n");
+    fprintf(stderr, "-D Log file\n");
+    fprintf(stderr, "-z Determined events\n");
+    fprintf(stderr, "-g Enable gdbserver\n");
     exit(EXIT_SUCCESS);
 }
 
