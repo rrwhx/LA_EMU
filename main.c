@@ -23,77 +23,26 @@ bool new_abi;
 bool determined;
 __thread CPULoongArchState *current_env;
 
-const char *const loongarch_r_alias[32] =
-{
-    "zer", "ra", "tp", "sp", "a0", "a1", "a2", "a3",
-    "a4",   "a5", "a6", "a7", "t0", "t1", "t2", "t3",
-    "t4",   "t5", "t6", "t7", "t8", "r21","fp", "s0",
-    "s1",   "s2", "s3", "s4", "s5", "s6", "s7", "s8",
-};
+int gdbserver = 0;
+extern int check_signal;
+extern int64_t singlestep;
 
-const char *const loongarch_f_alias[32] =
-{
-    "fa0", "fa1", "fa2",  "fa3",  "fa4",  "fa5",  "fa6",  "fa7",
-    "ft0", "ft1", "ft2",  "ft3",  "ft4",  "ft5",  "ft6",  "ft7",
-    "ft8", "ft9", "ft10", "ft11", "ft12", "ft13", "ft14", "ft15",
-    "fs0", "fs1", "fs2",  "fs3",  "fs4",  "fs5",  "fs6",  "fs7",
-};
-#define GETBIT(__a, __index) ((__a >> __index) & 1)
-#define GETBITS(__a, __index, __len) ((__a >> __index) & ((1 << __len) - 1))
-void dump_vzoui(int fcsr) {
-    fprintf(stderr, "%c%c%c%c%c", GETBIT(fcsr, 4) ? 'V' : '-',  GETBIT(fcsr, 3) ? 'Z' : '-',  GETBIT(fcsr, 2) ? 'O' : '-',  GETBIT(fcsr, 1) ? 'U' : '-',  GETBIT(fcsr, 0) ? 'I' : '-');
-}
+extern void handle_debug_cli(CPULoongArchState *env);
+extern void show_register(CPULoongArchState *env);
+extern void show_register_fpr(CPULoongArchState *env);
+extern void set_fetch_breakpoint(int idx, target_long pc);
 
-void dump_fcsr(int fcsr) {
-    int rm = (fcsr >> 8) & 0x3;
-    static const char* rm_mode[4] = {
-        "RNE",
-        "RZ",
-        "RP",
-        "RM",
-    };
-    // printf("    Enables:V:%d, Z:%d, O:%d, U:%d, I:%d\n", GETBIT(fcsr, 4), GETBIT(fcsr, 3), GETBIT(fcsr, 2), GETBIT(fcsr, 1), GETBIT(fcsr, 0));
-    // printf("    RM     :%d(%s)\n", rm, rm_mode[rm]);
-    // printf("    Flags  :V:%d, Z:%d, O:%d, U:%d, I:%d\n", GETBIT(fcsr, 20), GETBIT(fcsr, 19), GETBIT(fcsr, 18), GETBIT(fcsr, 17), GETBIT(fcsr, 16));
-    // printf("    Cause  :V:%d, Z:%d, O:%d, U:%d, I:%d\n", GETBIT(fcsr, 28), GETBIT(fcsr, 27), GETBIT(fcsr, 26), GETBIT(fcsr, 25), GETBIT(fcsr, 24));
-
-    fprintf(stderr, "RM:%d(%s)", rm, rm_mode[rm]);
-    fprintf(stderr, ",Enables:");dump_vzoui(GETBITS(fcsr, 0, 5));
-    fprintf(stderr, ",Flags:");dump_vzoui(GETBITS(fcsr, 16, 5));
-    fprintf(stderr, ",Cause:");dump_vzoui(GETBITS(fcsr, 24, 5));
-    fprintf(stderr, "\n");
-}
-
-__attribute__((noinline)) static void show_register(CPULoongArchState *env) {
-    fprintf(stderr, "pc:0x%lx\n", env->pc);
-    for (int i = 0; i <32; i++) {
-        fprintf(stderr, "r%02d/%-3s:%016lx    ", i, loongarch_r_alias[i], env->gpr[i]);
-        if ((i + 1) % 4 == 0) {
-            fprintf(stderr, "\n");
-        }
-    }
-}
-
-__attribute__((noinline)) static void show_register_fpr(CPULoongArchState *env) {
-    for (int i = 0; i <32; i++) {
-        fprintf(stderr, "f%02d   {f = 0x%08x, d = 0x%016lx} {f = %.6f\t, d = %.12f\t}\n",
-            i, env->fpr[i].vreg.W[0], env->fpr[i].vreg.D[0], *(float*)&env->fpr[i], *(double*)&env->fpr[i]);
-    }
-    for (int i = 0; i <8; i++) {
-        fprintf(stderr, "fcc%d:%d ", i, env->cf[i]);
-    }
-    fprintf(stderr, "\n");
-    fprintf(stderr, "fcsr:%08x\n", env->fcsr0);
-    dump_fcsr(env->fcsr0);
-}
-
-int check_signal;
 // # define ELF_CLASS  ELFCLASS64
-#if 0
-static void sigaction_entry(int signal, siginfo_t *si, void *arg) {
+
+#ifdef CONFIG_CLI
+static void sigaction_entry_int(int signal, siginfo_t *si, void *arg) {
     // ucontext_t* c = (ucontext_t*)arg;
-    printf("signal:%d, at address %p\n", signal, si->si_addr);
-    check_signal = 1;
+    // printf("signal:%d, at address %p\n", signal, si->si_addr);
+    if (check_signal > 3) {
+        fprintf(stderr, "exit");
+        exit(EXIT_SUCCESS);
+    }
+    check_signal++;
     return;
 }
 #endif
@@ -121,25 +70,26 @@ static void kernel_setup_signal(void) {
 }
 #endif
 
+#ifdef CONFIG_CLI
+static void cli_setup_signal(void) {
+    struct sigaction sa;
+
+    memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = sigaction_entry_int;
+    sa.sa_flags     = SA_SIGINFO;
+    lsassert (sigaction(SIGINT, &sa, NULL) == 0);
+}
+#endif
+
 static void setup_signal(void) {
 #ifndef CONFIG_USER_ONLY
     kernel_setup_signal();
 #endif
+#ifdef CONFIG_CLI
+    cli_setup_signal();
+#endif
 }
-
-const char * const regnames[32] = {
-    "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
-    "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
-    "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
-    "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31",
-};
-
-const char * const fregnames[32] = {
-    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
-    "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15",
-    "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23",
-    "f24", "f25", "f26", "f27", "f28", "f29", "f30", "f31",
-};
 
 static const char * const excp_names[] = {
     [EXCCODE_INT] = "Interrupt",
@@ -782,258 +732,6 @@ static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
     return insn;
 #endif
 }
-#if 0
-static int64_t singlestep = -1;
-static target_ulong fetch_breakpoints[4];
-static int debug_handle_continue(const char* str) {
-    return 1;
-}
-static int debug_handle_quit(const char* str) {
-    exit(EXIT_SUCCESS);
-    return 0;
-}
-
-static int debug_handle_break(const char* str) {
-    int r = sscanf(str, "%*s%lx", &fetch_breakpoints[0]);
-    if (r != 1) {
-        return -1;
-    }
-    fprintf(stderr, "set Breakpoint 1 at 0x%lx\n", fetch_breakpoints[0]);
-    return 0;
-}
-
-static int debug_handle_delete(const char* str) {
-    fprintf(stderr, "delete Breakpoint 1 at 0x%lx\n", fetch_breakpoints[0]);
-    fetch_breakpoints[0] = 0;
-    return 0;
-}
-
-static int debug_handle_info(const char* str) {
-    char buf[1024];
-    int r = sscanf(str, "%*s%s", buf);
-    if (r != 1) {
-        return 1;
-    }
-    if (strcmp(buf, "r") == 0 || strcmp(buf, "gpr") == 0) {
-        show_register(current_env);
-    } else if (strcmp(buf, "fpr") == 0) {
-        show_register_fpr(current_env);
-    } else {
-        return -1;
-    }
-    return 0;
-}
-
-static int debug_handle_singlestep(const char* str) {
-    int r = sscanf(str, "%*s%lx", &singlestep);
-    if (r != 1) {
-        singlestep = 1;
-    }
-    return 1;
-}
-
-void format_printf_b(void* addr, char format) {
-    switch (format)
-    {
-        case 'o': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // octal
-        case 'x': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // hexadecimal
-        case 'd': fprintf(stderr, "%p 0x%d\n", addr, *(uint8_t*)addr); break; // decimal
-        case 'u': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // unsigned decimal
-        case 't': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // binary
-        case 'f': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // floating point
-        case 'a': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // address
-        case 'c': fprintf(stderr, "%p %c\n", addr, *(uint8_t*)addr); break; // char
-        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
-        case 'i': fprintf(stderr, "%p 0x%x\n", addr, *(uint8_t*)addr); break; // instruction
-        default:
-            fprintf(stderr, "unknown format:%c\n", format);
-    }
-}
-void format_printf_h(void* addr, char format) {
-    switch (format)
-    {
-        case 'o': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // octal
-        case 'x': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // hexadecimal
-        case 'd': fprintf(stderr, "%p 0x%d\n", addr, *(uint16_t*)addr); break; // decimal
-        case 'u': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // unsigned decimal
-        case 't': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // binary
-        case 'f': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // floating point
-        case 'a': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // address
-        case 'c': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // char
-        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
-        case 'i': fprintf(stderr, "%p 0x%x\n", addr, *(uint16_t*)addr); break; // instruction
-        default:
-            fprintf(stderr, "unknown format:%c\n", format);
-    }
-}
-void format_printf_w(void* addr, char format) {
-    switch (format)
-    {
-        case 'o': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // octal
-        case 'x': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // hexadecimal
-        case 'd': fprintf(stderr, "%p 0x%d\n", addr, *(uint32_t*)addr); break; // decimal
-        case 'u': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // unsigned decimal
-        case 't': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // binary
-        case 'f': fprintf(stderr, "%p %f\n", addr, *(float*)addr); break; // floating point
-        case 'a': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // address
-        case 'c': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // char
-        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
-        case 'i': fprintf(stderr, "%p 0x%x\n", addr, *(uint32_t*)addr); break; // instruction
-        default:
-            fprintf(stderr, "unknown format:%c\n", format);
-    }
-}
-void format_printf_g(void* addr, char format) {
-    switch (format)
-    {
-        case 'o': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // octal
-        case 'x': fprintf(stderr, "%p 0x%ld\n", addr, *(uint64_t*)addr); break; // hexadecimal
-        case 'd': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // decimal
-        case 'u': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // unsigned decimal
-        case 't': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // binary
-        case 'f': fprintf(stderr, "%p %f\n", addr, *(double*)addr); break; // floating point
-        case 'a': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // address
-        case 'c': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // char
-        case 's': fprintf(stderr, "%p %s\n", addr, (char*)addr); break; // string
-        case 'i': fprintf(stderr, "%p 0x%lx\n", addr, *(uint64_t*)addr); break; // instruction
-        default:
-            fprintf(stderr, "unknown format:%c\n", format);
-    }
-}
-
-int format_printf(target_ulong addr, int index, char format, char size) {
-    switch (size)
-    {
-        case 'b': format_printf_b((void*)(addr + index * 1), format); break;
-        case 'h': format_printf_h((void*)(addr + index * 2), format); break;
-        case 'w': format_printf_w((void*)(addr + index * 4), format); break;
-        case 'g': format_printf_g((void*)(addr + index * 8), format); break;
-        default:
-            fprintf(stderr, "unknown size:%c\n", size);
-    }
-    return 0;
-}
-
-bool is_format(char c) {
-    switch (c)
-    {
-        case 'o': return true;
-        case 'x': return true;
-        case 'd': return true;
-        case 'u': return true;
-        case 't': return true;
-        case 'f': return true;
-        case 'a': return true;
-        case 'c': return true;
-        case 's': return true;
-        case 'i': return true;
-        default:
-            return false;
-    }
-    return false;
-}
-
-bool is_size(char c) {
-    switch (c)
-    {
-        case 'b': return true;
-        case 'h': return true;
-        case 'w': return true;
-        case 'g': return true;
-        default:
-            return false;
-    }
-    return false;
-}
-
-static int debug_handle_x(const char* str) {
-    char format = 'x';
-    char size = 'w';
-    int len = 1;
-    target_ulong addr;
-    const char* end = str + 1;
-    if (str[1] == '/') {
-        end = str + 2;
-        if (isdigit(str[2])) {
-            len = strtol(str + 2, (char**)&end, 0);
-            fprintf(stderr, "str %p %p %d\n", str + 2, end, len);
-        }
-        while (!isspace(*end)) {
-            if (is_size(*end)) {
-                size = *end;
-            } else if (is_format(*end)) {
-                format = *end;
-            } else {
-                fprintf(stderr, "unknown size or format:%c\n", *end);
-            }
-            ++ end;
-        }
-    }
-    int r = sscanf(end, "%lx", &addr);
-    if (r != 1) {
-        fprintf(stderr, "can not prase %s\n", str);
-        return 0;
-    }
-    // fprintf(stderr, "addr:%lx len:%d size:%c format:%c\n", addr, len, size, format);
-    for (int i = 0; i < len; i++) {
-        format_printf(addr, i, format, size);
-    }
-
-    return 0;
-}
-
-typedef struct debug_cmd {
-    char shortcut;
-    const char *name;
-    int (*func)(const char*);
-} debug_cmd;
-const debug_cmd debugcmds[] = {
-    {'c', "continue", debug_handle_continue},
-    {'q', "quit", debug_handle_quit},
-    {'b', "break", debug_handle_break},
-    {'d', "delete", debug_handle_delete},
-    {'i', "info", debug_handle_info},
-    {'s', "si", debug_handle_singlestep},
-    {'x', "x", debug_handle_x},
-    {0, NULL, NULL},
-};
-
-static inline bool is_sep(char c) {
-    return isspace(c) || c == '/';
-}
-
-static void handle_debug(void) {
-    do {
-        char* line_buff = NULL;
-        size_t line_len;
-        fprintf(stderr, "(debug)");fflush(stderr);
-        ssize_t r = getline(&line_buff, &line_len, stdin);
-        if (r <= 0) {
-            fprintf(stderr, "\nquit\n");
-            exit(EXIT_SUCCESS);
-        } else if(r > 1) {
-            const debug_cmd* item;
-            for (item = debugcmds; item->name != NULL; item++) {
-                size_t name_len = strlen(item->name);
-                if ((line_buff[0] == item->shortcut && is_sep(line_buff[1])) || (strncmp(line_buff, item->name, name_len) == 0 && is_sep(line_buff[name_len]))) {
-                    break;
-                }
-            }
-            if (item->func) {
-                int r = item->func(line_buff);
-                if (r < 0) {
-                    fprintf(stderr, "cannot prase %s\n", line_buff);
-                } else if (r > 0) {
-                    fprintf(stderr, "Continuing.\n");
-                    break;
-                }
-            } else {
-                fprintf(stderr, "cannot prase %s\n", line_buff);
-            }
-        }
-    } while (1);
-}
-#endif
 
 int val;
 
@@ -1045,20 +743,10 @@ int exec_env(CPULoongArchState *env) {
         if (sigsetjmp(env_cpu(env)->jmp_env, 0) == 0) {
             uint32_t insn;
             while(1) {
-                // if (unlikely(check_signal)) {
-                //     check_signal = 0;
-                //     fprintf(stderr, "Program received signal SIGINT, Interrupt.");
-                //     fprintf(stderr, "pc:%lx\n", env->pc);
-                //     handle_debug();
-                // }
-                // if (unlikely(env->pc == fetch_breakpoints[0])) {
-                //     fprintf(stderr, "hit Breakpoint %d pc:0x%lx\n", 1, env->pc);
-                //     handle_debug();
-                // }
-                // if (unlikely(singlestep == 0)) {
-                //     fprintf(stderr, "singlestep pc:0x%lx\n", env->pc);
-                //     handle_debug();
-                // }
+
+#if defined (CONFIG_CLI)
+                handle_debug_cli(env);
+#endif
 
 #if defined (CONFIG_GDB)
                 if (gdbserver_has_message) {
@@ -1081,7 +769,7 @@ int exec_env(CPULoongArchState *env) {
                         show_register_fpr(env);
                     }
                 }
-                // -- singlestep;
+                -- singlestep;
                 insn = fetch(env, &ic);
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
@@ -1279,7 +967,7 @@ int main(int argc, char** argv, char **envp) {
                 fprintf(stderr, "please make GDB=1\n");
                 exit(0);
 #endif
-                check_signal = 1;
+                gdbserver = 1;
                 break;
             case 'z':
                 determined = 1;
@@ -1322,6 +1010,7 @@ int main(int argc, char** argv, char **envp) {
 #else
     load_elf(kernel_filename, &entry_addr);
 
+#ifndef CONFIG_CLI
     // set no echo
     struct termios term;
     tcgetattr(STDIN_FILENO, &term);
@@ -1332,7 +1021,7 @@ int main(int argc, char** argv, char **envp) {
     tcsetattr(STDIN_FILENO, 0, &term);
 
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
-
+#endif
 
     timer_t timerid;
     struct sigevent sev;
@@ -1357,6 +1046,17 @@ int main(int argc, char** argv, char **envp) {
     env->timerid = timerid;
 #endif
     env->pc = entry_addr;
+
+#ifdef CONFIG_CLI
+    // stall program at begin in cli mode
+    set_fetch_breakpoint(0, entry_addr);
+
+    if (determined == 0) {
+        determined = 1;
+        fprintf(stderr, "warn:auto enable -z (Determined events) option in cli mode\n");
+    }
+#endif
+
 #if defined(CONFIG_USER_ONLY)
     target_ulong sp = user_setup_stack();
     int guest_argc = argc - optind;
@@ -1424,7 +1124,7 @@ int main(int argc, char** argv, char **envp) {
     qemu_log_mask(CPU_LOG_PAGE, "init sp %lx\n", sp);
 #endif
     current_env = env;
-    if (check_signal) {
+    if (gdbserver) {
         gdbserver_init(1234);
         gdbserver_has_message = 1;
         gdbserver_loop();

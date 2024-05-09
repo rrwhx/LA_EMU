@@ -8,6 +8,8 @@ debug support
 make DEBUG=1 -j
 gdb support
 make GDB=1 -j
+debug cli support
+make CLI=1 -j
 clean
 make clean
 ```
