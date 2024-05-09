@@ -8,7 +8,12 @@ CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -Wall
 ifeq (${GDB},1)
 	CFLAGS += -DCONFIG_GDB
 endif
-LDFLAGS = -lm ${OPT_FLAG}
+
+ifeq (${CLI},1)
+	CFLAGS += -DCONFIG_CLI
+endif
+
+LDFLAGS = -lm -lrt ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)
    LDFLAGS+=-Wl,-Tlink_script/loongarch64.lds
@@ -16,11 +21,11 @@ endif
 BUILD_DIR := ./build
 SRC_DIRS := ./
 
-USER_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c vec_helper.c syscall.c gdbserver.c
+USER_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c vec_helper.c syscall.c gdbserver.c debug_cli.c
 USER_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_user.o,$(USER_SOURCES)))
 USER_DEPS := $(USER_OBJS:.o=.d)
 
-KERNEL_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c  tlb_helper.c cpu_helper.c vec_helper.c serial.c gdbserver.c
+KERNEL_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c  tlb_helper.c cpu_helper.c vec_helper.c serial.c gdbserver.c debug_cli.c
 KERNEL_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_kernel.o,$(KERNEL_SOURCES)))
 KERNEL_DEPS := $(KERNEL_OBJS:.o=.d)
 
