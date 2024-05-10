@@ -160,6 +160,8 @@ static char* alloc_ram(uint64_t ram_size) {
     lsassert(part1 != MAP_FAILED);
     void* part2 = mmap(start + SZ_2G, ram_size - SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part2 != MAP_FAILED);
+    void* part3 = mmap(start + 0x1c000000, SZ_32M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    lsassert(part3 != MAP_FAILED);
     return part1;
 }
 
@@ -218,9 +220,10 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
                     goto fail;
                 }
                 // ram_writen(ph->p_paddr & 0xfffffff, data, file_size);
-                memcpy(ram + (ph->p_paddr & 0xfffffff), data, file_size);
+                memcpy(ram + (ph->p_paddr & 0xffffffff), data, file_size);
                 qemu_log_mask(CPU_LOG_PAGE, "%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
             }
+            free((void*)data);
         }
     }
 

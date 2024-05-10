@@ -677,8 +677,10 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
 #ifdef CONFIG_USER_ONLY
 #define is_io(...) false
 #else
+// exclude 32MB bios
 static bool is_io(hwaddr ha) {
-    return ha >= 0x10000000 && ha < 0x90000000;
+    return (ha >= 0x10000000 && ha < 0x1c000000)
+            || (ha > 0x1e000000 && ha < 0x90000000);
 }
 #endif
 
