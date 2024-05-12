@@ -2758,14 +2758,41 @@ static bool trans_xvmod_bu(CPULoongArchState *env, arg_vmod_bu *a) {CHECK_FPE(32
 static bool trans_xvmod_hu(CPULoongArchState *env, arg_vmod_hu *a) {CHECK_FPE(32); return vmod_hu(env, a, 32);}
 static bool trans_xvmod_wu(CPULoongArchState *env, arg_vmod_wu *a) {CHECK_FPE(32); return vmod_wu(env, a, 32);}
 static bool trans_xvmod_du(CPULoongArchState *env, arg_vmod_du *a) {CHECK_FPE(32); return vmod_du(env, a, 32);}
-static bool trans_vsat_b(CPULoongArchState *env, arg_vsat_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_h(CPULoongArchState *env, arg_vsat_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_w(CPULoongArchState *env, arg_vsat_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_d(CPULoongArchState *env, arg_vsat_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_bu(CPULoongArchState *env, arg_vsat_bu *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_hu(CPULoongArchState *env, arg_vsat_hu *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_wu(CPULoongArchState *env, arg_vsat_wu *a) {__NOT_IMPLEMENTED__}
-static bool trans_vsat_du(CPULoongArchState *env, arg_vsat_du *a) {__NOT_IMPLEMENTED__}
+#define gen_trans_vvid_sat(op, size, helper_name) \
+static bool glue(trans_, op)(CPULoongArchState *env, arg_vv_i *a) {      \
+    CHECK_FPE(size);                                                    \
+    int oprsz = size;                                                   \
+    uint32_t desc = simd_desc(oprsz, oprsz, 0);                         \
+    glue(helper_, helper_name)(&env->fpr[a->vd], &env->fpr[a->vj], (1ll << a->imm) - 1, desc);   \
+    env->pc += 4;                                                       \
+    return true;                                                        \
+}
+#define gen_trans_vvid_satu(op, size, helper_name) \
+static bool glue(trans_, op)(CPULoongArchState *env, arg_vv_i *a) {      \
+    CHECK_FPE(size);                                                    \
+    int oprsz = size;                                                   \
+    uint32_t desc = simd_desc(oprsz, oprsz, 0);                         \
+    uint64_t max = (a->imm == 0x3f) ? UINT64_MAX : (1ull << (a->imm + 1)) - 1; \
+    glue(helper_, helper_name)(&env->fpr[a->vd], &env->fpr[a->vj], max, desc);   \
+    env->pc += 4;                                                       \
+    return true;                                                        \
+}
+gen_trans_vvid_sat(vsat_b, 16, vsat_b)
+gen_trans_vvid_sat(vsat_h, 16, vsat_h)
+gen_trans_vvid_sat(vsat_w, 16, vsat_w)
+gen_trans_vvid_sat(vsat_d, 16, vsat_d)
+gen_trans_vvid_satu(vsat_bu, 16, vsat_bu)
+gen_trans_vvid_satu(vsat_hu, 16, vsat_hu)
+gen_trans_vvid_satu(vsat_wu, 16, vsat_wu)
+gen_trans_vvid_satu(vsat_du, 16, vsat_du)
+// static bool trans_vsat_b(CPULoongArchState *env, arg_vsat_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_h(CPULoongArchState *env, arg_vsat_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_w(CPULoongArchState *env, arg_vsat_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_d(CPULoongArchState *env, arg_vsat_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_bu(CPULoongArchState *env, arg_vsat_bu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_hu(CPULoongArchState *env, arg_vsat_hu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_wu(CPULoongArchState *env, arg_vsat_wu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vsat_du(CPULoongArchState *env, arg_vsat_du *a) {__NOT_IMPLEMENTED__}
 #define gen_trans_vvd(op, size, helper_name) \
 static bool glue(trans_, op)(CPULoongArchState *env, arg_vv *a) {      \
     CHECK_FPE(size);                                                      \
@@ -4862,14 +4889,22 @@ gen_trans_vvvd(xvsadd_bu, 32, gvec_usadd8)
 gen_trans_vvvd(xvsadd_hu, 32, gvec_usadd16)
 gen_trans_vvvd(xvsadd_wu, 32, gvec_usadd32)
 gen_trans_vvvd(xvsadd_du, 32, gvec_usadd64)
-static bool trans_xvsat_b(CPULoongArchState *env, arg_xvsat_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_bu(CPULoongArchState *env, arg_xvsat_bu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_d(CPULoongArchState *env, arg_xvsat_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_du(CPULoongArchState *env, arg_xvsat_du *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_h(CPULoongArchState *env, arg_xvsat_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_hu(CPULoongArchState *env, arg_xvsat_hu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_w(CPULoongArchState *env, arg_xvsat_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsat_wu(CPULoongArchState *env, arg_xvsat_wu *a) {__NOT_IMPLEMENTED__}
+gen_trans_vvid_sat(xvsat_b, 32, vsat_b)
+gen_trans_vvid_sat(xvsat_h, 32, vsat_h)
+gen_trans_vvid_sat(xvsat_w, 32, vsat_w)
+gen_trans_vvid_sat(xvsat_d, 32, vsat_d)
+gen_trans_vvid_satu(xvsat_bu, 32, vsat_bu)
+gen_trans_vvid_satu(xvsat_hu, 32, vsat_hu)
+gen_trans_vvid_satu(xvsat_wu, 32, vsat_wu)
+gen_trans_vvid_satu(xvsat_du, 32, vsat_du)
+// static bool trans_xvsat_b(CPULoongArchState *env, arg_xvsat_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_bu(CPULoongArchState *env, arg_xvsat_bu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_d(CPULoongArchState *env, arg_xvsat_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_du(CPULoongArchState *env, arg_xvsat_du *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_h(CPULoongArchState *env, arg_xvsat_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_hu(CPULoongArchState *env, arg_xvsat_hu *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_w(CPULoongArchState *env, arg_xvsat_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvsat_wu(CPULoongArchState *env, arg_xvsat_wu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvseq_b(CPULoongArchState *env, arg_xvseq_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvseq_d(CPULoongArchState *env, arg_xvseq_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvseq_h(CPULoongArchState *env, arg_xvseq_h *a) {__NOT_IMPLEMENTED__}
