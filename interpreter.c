@@ -4921,8 +4921,28 @@ gen_trans_vvid_satu(xvsat_du, 32, vsat_du)
 // static bool trans_xvsetanyeqz_d(CPULoongArchState *env, arg_xvsetanyeqz_d *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvsetanyeqz_h(CPULoongArchState *env, arg_xvsetanyeqz_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvsetanyeqz_w(CPULoongArchState *env, arg_xvsetanyeqz_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvseteqz_v(CPULoongArchState *env, arg_xvseteqz_v *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvsetnez_v(CPULoongArchState *env, arg_xvsetnez_v *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvseteqz_v(CPULoongArchState *env, arg_xvseteqz_v *a) {
+    CHECK_FPE(32);
+    uint32_t ele_cnt = 32 / 8;
+    bool r = 1;
+    for (uint32_t i = 0; i < ele_cnt; i++) {
+        r &= (env->fpr[a->vj].vreg.D[i] == 0);
+    }
+    env->cf[a->cd] = r;
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvsetnez_v(CPULoongArchState *env, arg_xvsetnez_v *a) {
+    CHECK_FPE(32);
+    uint32_t ele_cnt = 32 / 8;
+    bool r = 0;
+    for (uint32_t i = 0; i < ele_cnt; i++) {
+        r |= (env->fpr[a->vj].vreg.D[i] != 0);
+    }
+    env->cf[a->cd] = r;
+    env->pc += 4;
+    return true;
+}
 gen_trans_vvid(xvshuf4i_b, 32, vshuf4i_b)
 gen_trans_vvid(xvshuf4i_d, 32, vshuf4i_d)
 gen_trans_vvid(xvshuf4i_h, 32, vshuf4i_h)
