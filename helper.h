@@ -618,3 +618,24 @@ void helper_vextrins_b(void*, void*, uint64_t, uint32_t);
 void helper_vextrins_h(void*, void*, uint64_t, uint32_t);
 void helper_vextrins_w(void*, void*, uint64_t, uint32_t);
 void helper_vextrins_d(void*, void*, uint64_t, uint32_t);
+
+
+void helper_gvec_ssadd8(void*, void*, void*, uint32_t);
+void helper_gvec_ssadd16(void*, void*, void*, uint32_t);
+void helper_gvec_ssadd32(void*, void*, void*, uint32_t);
+void helper_gvec_ssadd64(void*, void*, void*, uint32_t);
+
+void helper_gvec_sssub8(void*, void*, void*, uint32_t);
+void helper_gvec_sssub16(void*, void*, void*, uint32_t);
+void helper_gvec_sssub32(void*, void*, void*, uint32_t);
+void helper_gvec_sssub64(void*, void*, void*, uint32_t);
+
+void helper_gvec_usadd8(void*, void*, void*, uint32_t);
+void helper_gvec_usadd16(void*, void*, void*, uint32_t);
+void helper_gvec_usadd32(void*, void*, void*, uint32_t);
+void helper_gvec_usadd64(void*, void*, void*, uint32_t);
+
+void helper_gvec_ussub8(void*, void*, void*, uint32_t);
+void helper_gvec_ussub16(void*, void*, void*, uint32_t);
+void helper_gvec_ussub32(void*, void*, void*, uint32_t);
+void helper_gvec_ussub64(void*, void*, void*, uint32_t);
