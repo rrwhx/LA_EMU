@@ -2637,12 +2637,66 @@ gen_trans_vvvd(vmulwod_d_wu_w, 16, vmulwod_d_wu_w)
 // static bool trans_vmulwod_h_bu_b(CPULoongArchState *env, arg_vmulwod_h_bu_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_vmulwod_w_hu_h(CPULoongArchState *env, arg_vmulwod_w_hu_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_vmulwod_d_wu_w(CPULoongArchState *env, arg_vmulwod_d_wu_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmulwev_q_d(CPULoongArchState *env, arg_vmulwev_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmulwod_q_d(CPULoongArchState *env, arg_vmulwod_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmulwev_q_du(CPULoongArchState *env, arg_vmulwev_q_du *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmulwod_q_du(CPULoongArchState *env, arg_vmulwod_q_du *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmulwev_q_du_d(CPULoongArchState *env, arg_vmulwev_q_du_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmulwod_q_du_d(CPULoongArchState *env, arg_vmulwod_q_du_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_vmulwev_q_d(CPULoongArchState *env, arg_vmulwev_q_d *a) {
+    int size = 16;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmulwod_q_d(CPULoongArchState *env, arg_vmulwod_q_d *a) {
+    int size = 16;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmulwev_q_du(CPULoongArchState *env, arg_vmulwev_q_du *a) {
+    int size = 16;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmulwod_q_du(CPULoongArchState *env, arg_vmulwod_q_du *a) {
+    int size = 16;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmulwev_q_du_d(CPULoongArchState *env, arg_vmulwev_q_du_d *a) {
+    int size = 16;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmulwod_q_du_d(CPULoongArchState *env, arg_vmulwod_q_du_d *a) {
+    int size = 16;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
 static inline bool vmadd_b(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.B[i] = env->fpr[a->vd].vreg.B[i] + (env->fpr[a->vj].vreg.B[i] * env->fpr[a->vk].vreg.B[i]);}env->pc += 4;return true;}
 static inline bool vmadd_h(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.H[i] = env->fpr[a->vd].vreg.H[i] + (env->fpr[a->vj].vreg.H[i] * env->fpr[a->vk].vreg.H[i]);}env->pc += 4;return true;}
 static inline bool vmadd_w(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.W[i] = env->fpr[a->vd].vreg.W[i] + (env->fpr[a->vj].vreg.W[i] * env->fpr[a->vk].vreg.W[i]);}env->pc += 4;return true;}
@@ -2704,12 +2758,72 @@ gen_trans_vvvd(vmaddwod_d_wu_w, 16, vmaddwod_d_wu_w)
 // static bool trans_vmaddwod_h_bu_b(CPULoongArchState *env, arg_vmaddwod_h_bu_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_vmaddwod_w_hu_h(CPULoongArchState *env, arg_vmaddwod_w_hu_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_vmaddwod_d_wu_w(CPULoongArchState *env, arg_vmaddwod_d_wu_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmaddwev_q_d(CPULoongArchState *env, arg_vmaddwev_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmaddwod_q_d(CPULoongArchState *env, arg_vmaddwod_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmaddwev_q_du(CPULoongArchState *env, arg_vmaddwev_q_du *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmaddwod_q_du(CPULoongArchState *env, arg_vmaddwod_q_du *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmaddwev_q_du_d(CPULoongArchState *env, arg_vmaddwev_q_du_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vmaddwod_q_du_d(CPULoongArchState *env, arg_vmaddwod_q_du_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_vmaddwev_q_d(CPULoongArchState *env, arg_vmaddwev_q_d *a) {
+    int size = 16;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmaddwod_q_d(CPULoongArchState *env, arg_vmaddwod_q_d *a) {
+    int size = 16;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmaddwev_q_du(CPULoongArchState *env, arg_vmaddwev_q_du *a) {
+    int size = 16;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmaddwod_q_du(CPULoongArchState *env, arg_vmaddwod_q_du *a) {
+    int size = 16;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmaddwev_q_du_d(CPULoongArchState *env, arg_vmaddwev_q_du_d *a) {
+    int size = 16;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_vmaddwod_q_du_d(CPULoongArchState *env, arg_vmaddwod_q_du_d *a) {
+    int size = 16;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+// static bool trans_vmaddwev_q_d(CPULoongArchState *env, arg_vmaddwev_q_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vmaddwod_q_d(CPULoongArchState *env, arg_vmaddwod_q_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vmaddwev_q_du(CPULoongArchState *env, arg_vmaddwev_q_du *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vmaddwod_q_du(CPULoongArchState *env, arg_vmaddwod_q_du *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vmaddwev_q_du_d(CPULoongArchState *env, arg_vmaddwev_q_du_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vmaddwod_q_du_d(CPULoongArchState *env, arg_vmaddwod_q_du_d *a) {__NOT_IMPLEMENTED__}
 static inline bool vdiv_b(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 1;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.B[i] = env->fpr[a->vj].vreg.B[i] / env->fpr[a->vk].vreg.B[i];}env->pc += 4;return true;}
 static inline bool vdiv_h(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 2;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[i] / env->fpr[a->vk].vreg.H[i];}env->pc += 4;return true;}
 static inline bool vdiv_w(CPULoongArchState *env, arg_vvv *a, uint32_t vlen) {uint32_t ele_cnt = vlen / 4;for (uint32_t i = 0; i < ele_cnt; i++) {env->fpr[a->vd].vreg.W[i] = env->fpr[a->vj].vreg.W[i] / env->fpr[a->vk].vreg.W[i];}env->pc += 4;return true;}
@@ -4669,15 +4783,75 @@ gen_trans_vvvd(xvmaddwev_d_wu_w, 32, vmaddwev_d_wu_w)
 gen_trans_vvvd(xvmaddwod_h_bu_b, 32, vmaddwod_h_bu_b)
 gen_trans_vvvd(xvmaddwod_w_hu_h, 32, vmaddwod_w_hu_h)
 gen_trans_vvvd(xvmaddwod_d_wu_w, 32, vmaddwod_d_wu_w)
+static bool trans_xvmaddwev_q_d(CPULoongArchState *env, arg_xvmaddwev_q_d *a) {
+    int size = 32;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmaddwod_q_d(CPULoongArchState *env, arg_xvmaddwod_q_d *a) {
+    int size = 32;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmaddwev_q_du(CPULoongArchState *env, arg_xvmaddwev_q_du *a) {
+    int size = 32;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmaddwod_q_du(CPULoongArchState *env, arg_xvmaddwod_q_du *a) {
+    int size = 32;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmaddwev_q_du_d(CPULoongArchState *env, arg_xvmaddwev_q_du_d *a) {
+    int size = 32;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmaddwod_q_du_d(CPULoongArchState *env, arg_xvmaddwod_q_du_d *a) {
+    int size = 32;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] += (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
 // static bool trans_xvmaddwev_d_w(CPULoongArchState *env, arg_xvmaddwev_d_w *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_d_wu(CPULoongArchState *env, arg_xvmaddwev_d_wu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_d_wu_w(CPULoongArchState *env, arg_xvmaddwev_d_wu_w *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_h_b(CPULoongArchState *env, arg_xvmaddwev_h_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_h_bu_b(CPULoongArchState *env, arg_xvmaddwev_h_bu_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_h_bu(CPULoongArchState *env, arg_xvmaddwev_h_bu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmaddwev_q_d(CPULoongArchState *env, arg_xvmaddwev_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmaddwev_q_du_d(CPULoongArchState *env, arg_xvmaddwev_q_du_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmaddwev_q_du(CPULoongArchState *env, arg_xvmaddwev_q_du *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmaddwev_q_d(CPULoongArchState *env, arg_xvmaddwev_q_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmaddwev_q_du_d(CPULoongArchState *env, arg_xvmaddwev_q_du_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmaddwev_q_du(CPULoongArchState *env, arg_xvmaddwev_q_du *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_w_h(CPULoongArchState *env, arg_xvmaddwev_w_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_w_hu(CPULoongArchState *env, arg_xvmaddwev_w_hu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwev_w_hu_h(CPULoongArchState *env, arg_xvmaddwev_w_hu_h *a) {__NOT_IMPLEMENTED__}
@@ -4687,9 +4861,9 @@ static bool trans_xvmaddwev_q_du(CPULoongArchState *env, arg_xvmaddwev_q_du *a) 
 // static bool trans_xvmaddwod_h_b(CPULoongArchState *env, arg_xvmaddwod_h_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwod_h_bu_b(CPULoongArchState *env, arg_xvmaddwod_h_bu_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwod_h_bu(CPULoongArchState *env, arg_xvmaddwod_h_bu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmaddwod_q_d(CPULoongArchState *env, arg_xvmaddwod_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmaddwod_q_du_d(CPULoongArchState *env, arg_xvmaddwod_q_du_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmaddwod_q_du(CPULoongArchState *env, arg_xvmaddwod_q_du *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmaddwod_q_d(CPULoongArchState *env, arg_xvmaddwod_q_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmaddwod_q_du_d(CPULoongArchState *env, arg_xvmaddwod_q_du_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmaddwod_q_du(CPULoongArchState *env, arg_xvmaddwod_q_du *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwod_w_h(CPULoongArchState *env, arg_xvmaddwod_w_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwod_w_hu(CPULoongArchState *env, arg_xvmaddwod_w_hu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmaddwod_w_hu_h(CPULoongArchState *env, arg_xvmaddwod_w_hu_h *a) {__NOT_IMPLEMENTED__}
@@ -4805,9 +4979,69 @@ gen_trans_vvvd(xvmulwod_w_hu_h, 32, vmulwod_w_hu_h)
 // static bool trans_xvmulwev_h_b(CPULoongArchState *env, arg_xvmulwev_h_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwev_h_bu_b(CPULoongArchState *env, arg_xvmulwev_h_bu_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwev_h_bu(CPULoongArchState *env, arg_xvmulwev_h_bu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmulwev_q_d(CPULoongArchState *env, arg_xvmulwev_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmulwev_q_du_d(CPULoongArchState *env, arg_xvmulwev_q_du_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmulwev_q_du(CPULoongArchState *env, arg_xvmulwev_q_du *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvmulwev_q_d(CPULoongArchState *env, arg_xvmulwev_q_d *a) {
+    int size = 32;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmulwod_q_d(CPULoongArchState *env, arg_xvmulwod_q_d *a) {
+    int size = 32;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__int128_t)env->fpr[a->vj].vreg.D[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmulwev_q_du(CPULoongArchState *env, arg_xvmulwev_q_du *a) {
+    int size = 32;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmulwod_q_du(CPULoongArchState *env, arg_xvmulwod_q_du *a) {
+    int size = 32;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__uint128_t)env->fpr[a->vk].vreg.UD[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmulwev_q_du_d(CPULoongArchState *env, arg_xvmulwev_q_du_d *a) {
+    int size = 32;
+    int index = 0;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvmulwod_q_du_d(CPULoongArchState *env, arg_xvmulwod_q_du_d *a) {
+    int size = 32;
+    int index = 1;
+    CHECK_FPE(size);
+    for (int i = 0; i < (size / 16); i++) {
+        env->fpr[a->vd].vreg.Q[i] = (__uint128_t)env->fpr[a->vj].vreg.UD[i * 2 + index] * (__int128_t)env->fpr[a->vk].vreg.D[i *2 + index];
+    }
+    env->pc += 4;
+    return true;
+}
+// static bool trans_xvmulwev_q_d(CPULoongArchState *env, arg_xvmulwev_q_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmulwev_q_du_d(CPULoongArchState *env, arg_xvmulwev_q_du_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmulwev_q_du(CPULoongArchState *env, arg_xvmulwev_q_du *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwev_w_h(CPULoongArchState *env, arg_xvmulwev_w_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwev_w_hu(CPULoongArchState *env, arg_xvmulwev_w_hu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwev_w_hu_h(CPULoongArchState *env, arg_xvmulwev_w_hu_h *a) {__NOT_IMPLEMENTED__}
@@ -4817,9 +5051,9 @@ static bool trans_xvmulwev_q_du(CPULoongArchState *env, arg_xvmulwev_q_du *a) {_
 // static bool trans_xvmulwod_h_b(CPULoongArchState *env, arg_xvmulwod_h_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwod_h_bu_b(CPULoongArchState *env, arg_xvmulwod_h_bu_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwod_h_bu(CPULoongArchState *env, arg_xvmulwod_h_bu *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmulwod_q_d(CPULoongArchState *env, arg_xvmulwod_q_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmulwod_q_du_d(CPULoongArchState *env, arg_xvmulwod_q_du_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvmulwod_q_du(CPULoongArchState *env, arg_xvmulwod_q_du *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmulwod_q_d(CPULoongArchState *env, arg_xvmulwod_q_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmulwod_q_du_d(CPULoongArchState *env, arg_xvmulwod_q_du_d *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvmulwod_q_du(CPULoongArchState *env, arg_xvmulwod_q_du *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwod_w_h(CPULoongArchState *env, arg_xvmulwod_w_h *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwod_w_hu(CPULoongArchState *env, arg_xvmulwod_w_hu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvmulwod_w_hu_h(CPULoongArchState *env, arg_xvmulwod_w_hu_h *a) {__NOT_IMPLEMENTED__}
