@@ -639,3 +639,18 @@ void helper_gvec_ussub8(void*, void*, void*, uint32_t);
 void helper_gvec_ussub16(void*, void*, void*, uint32_t);
 void helper_gvec_ussub32(void*, void*, void*, uint32_t);
 void helper_gvec_ussub64(void*, void*, void*, uint32_t);
+
+void helper_gvec_rotl8v(void*, void*, void*, uint32_t);
+void helper_gvec_rotl16v(void*, void*, void*, uint32_t);
+void helper_gvec_rotl32v(void*, void*, void*, uint32_t);
+void helper_gvec_rotl64v(void*, void*, void*, uint32_t);
+
+void helper_gvec_rotr8v(void*, void*, void*, uint32_t);
+void helper_gvec_rotr16v(void*, void*, void*, uint32_t);
+void helper_gvec_rotr32v(void*, void*, void*, uint32_t);
+void helper_gvec_rotr64v(void*, void*, void*, uint32_t);
+
+void helper_gvec_rotl8i(void*, void*, uint32_t);
+void helper_gvec_rotl16i(void*, void*, uint32_t);
+void helper_gvec_rotl32i(void*, void*, uint32_t);
+void helper_gvec_rotl64i(void*, void*, uint32_t);

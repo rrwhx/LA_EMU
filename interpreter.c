@@ -3102,14 +3102,50 @@ static bool trans_xvsrai_b(CPULoongArchState *env, arg_vsrai_b *a) {CHECK_FPE(32
 static bool trans_xvsrai_h(CPULoongArchState *env, arg_vsrai_h *a) {CHECK_FPE(32); return vsrai_h(env, a, 32);}
 static bool trans_xvsrai_w(CPULoongArchState *env, arg_vsrai_w *a) {CHECK_FPE(32); return vsrai_w(env, a, 32);}
 static bool trans_xvsrai_d(CPULoongArchState *env, arg_vsrai_d *a) {CHECK_FPE(32); return vsrai_d(env, a, 32);}
-static bool trans_vrotr_b(CPULoongArchState *env, arg_vrotr_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotr_h(CPULoongArchState *env, arg_vrotr_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotr_w(CPULoongArchState *env, arg_vrotr_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotr_d(CPULoongArchState *env, arg_vrotr_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotri_b(CPULoongArchState *env, arg_vrotri_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotri_h(CPULoongArchState *env, arg_vrotri_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotri_w(CPULoongArchState *env, arg_vrotri_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_vrotri_d(CPULoongArchState *env, arg_vrotri_d *a) {__NOT_IMPLEMENTED__}
+gen_trans_vvvd(vrotr_b, 16, gvec_rotr8v)
+gen_trans_vvvd(vrotr_h, 16, gvec_rotr16v)
+gen_trans_vvvd(vrotr_w, 16, gvec_rotr32v)
+gen_trans_vvvd(vrotr_d, 16, gvec_rotr64v)
+// static bool trans_vrotr_b(CPULoongArchState *env, arg_vrotr_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vrotr_h(CPULoongArchState *env, arg_vrotr_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vrotr_w(CPULoongArchState *env, arg_vrotr_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_vrotr_d(CPULoongArchState *env, arg_vrotr_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_vrotri_b(CPULoongArchState *env, arg_vrotri_b *a) {
+    int size = 16;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 8 - a->imm);
+    helper_gvec_rotl8i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
+static bool trans_vrotri_h(CPULoongArchState *env, arg_vrotri_h *a) {
+    int size = 16;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 16 - a->imm);
+    helper_gvec_rotl16i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
+static bool trans_vrotri_w(CPULoongArchState *env, arg_vrotri_w *a) {
+    int size = 16;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 32 - a->imm);
+    helper_gvec_rotl32i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
+static bool trans_vrotri_d(CPULoongArchState *env, arg_vrotri_d *a) {
+    int size = 16;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 64 - a->imm);
+    helper_gvec_rotl64i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
 gen_trans_vvid(vsllwil_h_b, 16, vsllwil_h_b)
 gen_trans_vvid(vsllwil_w_h, 16, vsllwil_w_h)
 gen_trans_vvid(vsllwil_d_w, 16, vsllwil_d_w)
@@ -4865,14 +4901,50 @@ static bool trans_xvreplve_b(CPULoongArchState *env, arg_xvreplve_b *a) {CHECK_F
 static bool trans_xvreplve_h(CPULoongArchState *env, arg_xvreplve_h *a) {CHECK_FPE(32); int32_t ele_cnt = 16 / 2; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.H[i] = env->fpr[a->vj].vreg.H[env->gpr[a->rk] & (ele_cnt - 1)]; env->fpr[a->vd].vreg.H[i + ele_cnt] = env->fpr[a->vj].vreg.H[(env->gpr[a->rk] & (ele_cnt - 1)) + ele_cnt]; } env->pc += 4; return true;}
 static bool trans_xvreplve_w(CPULoongArchState *env, arg_xvreplve_w *a) {CHECK_FPE(32); int32_t ele_cnt = 16 / 4; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.W[i] = env->fpr[a->vj].vreg.W[env->gpr[a->rk] & (ele_cnt - 1)]; env->fpr[a->vd].vreg.W[i + ele_cnt] = env->fpr[a->vj].vreg.W[(env->gpr[a->rk] & (ele_cnt - 1)) + ele_cnt]; } env->pc += 4; return true;}
 static bool trans_xvreplve_d(CPULoongArchState *env, arg_xvreplve_d *a) {CHECK_FPE(32); int32_t ele_cnt = 16 / 8; for (int i = 0; i < ele_cnt; i ++) { env->fpr[a->vd].vreg.D[i] = env->fpr[a->vj].vreg.D[env->gpr[a->rk] & (ele_cnt - 1)]; env->fpr[a->vd].vreg.D[i + ele_cnt] = env->fpr[a->vj].vreg.D[(env->gpr[a->rk] & (ele_cnt - 1)) + ele_cnt]; } env->pc += 4; return true;}
-static bool trans_xvrotr_b(CPULoongArchState *env, arg_xvrotr_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotr_d(CPULoongArchState *env, arg_xvrotr_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotr_h(CPULoongArchState *env, arg_xvrotr_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotri_b(CPULoongArchState *env, arg_xvrotri_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotri_d(CPULoongArchState *env, arg_xvrotri_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotri_h(CPULoongArchState *env, arg_xvrotri_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotri_w(CPULoongArchState *env, arg_xvrotri_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvrotr_w(CPULoongArchState *env, arg_xvrotr_w *a) {__NOT_IMPLEMENTED__}
+gen_trans_vvvd(xvrotr_b, 32, gvec_rotr8v)
+gen_trans_vvvd(xvrotr_h, 32, gvec_rotr16v)
+gen_trans_vvvd(xvrotr_w, 32, gvec_rotr32v)
+gen_trans_vvvd(xvrotr_d, 32, gvec_rotr64v)
+// static bool trans_xvrotr_b(CPULoongArchState *env, arg_xvrotr_b *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvrotr_h(CPULoongArchState *env, arg_xvrotr_h *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvrotr_w(CPULoongArchState *env, arg_xvrotr_w *a) {__NOT_IMPLEMENTED__}
+// static bool trans_xvrotr_d(CPULoongArchState *env, arg_xvrotr_d *a) {__NOT_IMPLEMENTED__}
+static bool trans_xvrotri_b(CPULoongArchState *env, arg_xvrotri_b *a) {
+    int size = 32;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 8 - a->imm);
+    helper_gvec_rotl8i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvrotri_h(CPULoongArchState *env, arg_xvrotri_h *a) {
+    int size = 32;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 16 - a->imm);
+    helper_gvec_rotl16i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvrotri_w(CPULoongArchState *env, arg_xvrotri_w *a) {
+    int size = 32;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 32 - a->imm);
+    helper_gvec_rotl32i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
+static bool trans_xvrotri_d(CPULoongArchState *env, arg_xvrotri_d *a) {
+    int size = 32;
+    CHECK_FPE(size);
+    int oprsz = size;
+    uint32_t desc = simd_desc(oprsz, oprsz, 64 - a->imm);
+    helper_gvec_rotl64i(&env->fpr[a->vd], &env->fpr[a->vj], desc);
+    env->pc += 4;
+    return true;
+}
 // static bool trans_xvsadd_b(CPULoongArchState *env, arg_xvsadd_b *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvsadd_bu(CPULoongArchState *env, arg_xvsadd_bu *a) {__NOT_IMPLEMENTED__}
 // static bool trans_xvsadd_d(CPULoongArchState *env, arg_xvsadd_d *a) {__NOT_IMPLEMENTED__}
