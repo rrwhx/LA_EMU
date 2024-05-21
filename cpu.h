@@ -384,7 +384,7 @@ typedef struct CPUArchState {
 
     fpr_t fpr[32];
     float_status fp_status;
-    uint8_t cf[8];
+    bool cf[8];
 
     uint32_t fcsr0;
     uint32_t fcsr0_mask;

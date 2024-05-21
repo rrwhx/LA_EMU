@@ -121,7 +121,7 @@ const char *loongarch_exception_name(int32_t exception)
 }
 
 #ifndef CONFIG_USER_ONLY
-char* ram = NULL;
+char* ram;
 #endif
 uint64_t ram_size = SZ_4G;
 char* kernel_filename;
@@ -779,8 +779,10 @@ int exec_env(CPULoongArchState *env) {
                     }
                 }
                 insn = fetch(env, &ic);
+#ifdef CONFIG_DIFF
                 env->insn = insn;
                 env->prev_pc = env->pc;
+#endif
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
 #endif
@@ -790,7 +792,9 @@ int exec_env(CPULoongArchState *env) {
                 }
 
                 // need update after fetch and exec so exception would not cause singlestep and icount change
+#if defined (CONFIG_DIFF) || defined (CONFIG_CLI)
                 -- singlestep;
+#endif
                 env->icount ++;
 
 
