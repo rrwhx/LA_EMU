@@ -41,9 +41,9 @@ static inline long long la_get_tval(CPULoongArchState *env){
 #else
 #define CHECK_FPE(bytes) do {} while(0)
 #endif
-#define __NOT_IMPLEMENTED__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
-#define __NOT_CORRECTED_IMPLEMENTED__ do {fprintf(stderr, "NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);} while(0);
-#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(0); return false;} while(0);
+#define __NOT_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return true;} while(0);
+#define __NOT_CORRECTED_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);} while(0);
+#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(0); return false;} while(0);
 
 #define DisasContext CPULoongArchState
 #define ctx env
