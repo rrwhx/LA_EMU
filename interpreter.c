@@ -674,7 +674,7 @@ static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
     }
     return ha;
 }
-#ifdef CONFIG_USER_ONLY
+#if defined(CONFIG_USER_ONLY) || defined(CONFIG_DIFF)
 #define is_io(...) false
 #else
 // exclude 32MB bios
@@ -1048,6 +1048,7 @@ static bool trans_dbar(CPULoongArchState *env, arg_dbar *a) {
 }
 static double begin_timestamp;
 static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
+#ifndef CONFIG_DIFF
     if (a->imm == 64) {
         begin_timestamp = second();
         fprintf(stderr, "[INST HACK] ibar 64 begin %f\n", begin_timestamp);
@@ -1056,6 +1057,7 @@ static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
         fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", env->icount, env->ic_hit_count, env->syscall_count, env->ecount);
         exit(0);
     }
+#endif
     env->pc += 4;
     return true;
 }
@@ -1336,8 +1338,10 @@ static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *a) {__NOT_IMPLE
 static bool trans_rdtimel_w(CPULoongArchState *env, arg_rdtimel_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_rdtimeh_w(CPULoongArchState *env, arg_rdtimeh_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_rdtime_d(CPULoongArchState *env, arg_rdtime_d *a) {
+#ifndef CONFIG_DIFF
     env->gpr[a->rd] = la_get_tval(env);
     env->gpr[a->rj] = 0;
+#endif
     env->pc += 4;
     return true;
 }
@@ -1717,9 +1721,11 @@ static bool trans_jirl(CPULoongArchState *env, arg_jirl *a) {
     return true;
 }
 static bool trans_b(CPULoongArchState *env, arg_b *a) {
+#ifndef CONFIG_DIFF
     if (!a->offs) {
         exit(EXIT_SUCCESS);
     }
+#endif
     env->pc += a->offs;
     return true;
 }
@@ -1933,6 +1939,7 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
         case LOONGARCH_CSR_SAVE(7)        :old_v = env->CSR_SAVE[7]; env->CSR_SAVE[7] = mask_write(env->CSR_SAVE[7], new_v, mask); break;
         case LOONGARCH_CSR_TID            :old_v = env->CSR_TID; env->CSR_TID = mask_write(env->CSR_TID, new_v, mask); break;
         case LOONGARCH_CSR_TCFG           :old_v = env->CSR_TCFG; env->CSR_TCFG = mask_write(env->CSR_TCFG, new_v, mask);
+#ifndef CONFIG_DIFF
             if (env->CSR_TCFG & 1) {
                 if (determined) {
                     env->timer_counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) / TIME_SCALE;
@@ -1957,14 +1964,17 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
                     lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
                 }
             }
+#endif
             break;
         case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL; env->CSR_TVAL = mask_write(env->CSR_TVAL, new_v, mask); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; env->CSR_CNTC = mask_write(env->CSR_CNTC, new_v, mask); break;
         case LOONGARCH_CSR_TICLR          :old_v = 0;
+#ifndef CONFIG_DIFF
             if (new_v & mask & 1) {
                 env->timer_int = 0;
                 loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 0);
             }
+#endif
         break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; env->CSR_LLBCTL = mask_write(env->CSR_LLBCTL, new_v, mask); break;
         case LOONGARCH_CSR_IMPCTL1        :old_v = env->CSR_IMPCTL1; env->CSR_IMPCTL1 = mask_write(env->CSR_IMPCTL1, new_v, mask); break;
@@ -2107,6 +2117,7 @@ static bool trans_ertn(CPULoongArchState *env, arg_ertn *a) {
     return true;
 }
 static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
+#ifndef CONFIG_DIFF
     if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) == 0) {
         fprintf(stderr, "idle while CRMD.IE is disabled\n");
         exit(0);
@@ -2118,6 +2129,7 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
         }
     }
     env->pc += 4;
+#endif
     return true;
 }
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}

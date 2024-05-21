@@ -406,7 +406,7 @@ fail:
 
 #endif
 
-static void cpu_reset(CPUState* cs) {
+void cpu_reset(CPUState* cs) {
     CPULoongArchState *env = cpu_env(cs);
     env->fcsr0_mask = FCSR0_M1 | FCSR0_M2 | FCSR0_M3;
     env->fcsr0 = 0x0;
@@ -465,7 +465,7 @@ static void cpu_reset(CPUState* cs) {
     cs->exception_index = -1;
 }
 
-static void loongarch_la464_initfn(CPULoongArchState* env) {
+void loongarch_la464_initfn(CPULoongArchState* env) {
     int i;
 
     for (i = 0; i < 21; i++) {
@@ -751,6 +751,12 @@ int exec_env(CPULoongArchState *env) {
                 handle_debug_cli(env);
 #endif
 
+#if defined (CONFIG_DIFF)
+                if (singlestep == 0) {
+                    return 0;
+                }
+#endif
+
 #if defined (CONFIG_GDB)
                 if (gdbserver_has_message) {
                     return 1;
@@ -772,17 +778,23 @@ int exec_env(CPULoongArchState *env) {
                         show_register_fpr(env);
                     }
                 }
-                -- singlestep;
                 insn = fetch(env, &ic);
+                env->insn = insn;
+                env->prev_pc = env->pc;
 #ifdef PERF_COUNT
                 env->ic_hit_count += (ic != NULL);
 #endif
-                env->icount ++;
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
                 }
-#ifndef CONFIG_USER_ONLY
+
+                // need update after fetch and exec so exception would not cause singlestep and icount change
+                -- singlestep;
+                env->icount ++;
+
+
+#if !defined (CONFIG_USER_ONLY) && !defined (CONFIG_DIFF)
                 if (determined) {
                     env->timer_counter -= (env->CSR_TCFG & CONSTANT_TIMER_ENABLE);
                     if (env->timer_counter == 0) {
@@ -941,6 +953,8 @@ void handle_logmask(const char* str) {
         }
     };
 }
+
+#ifndef CONFIG_DIFF
 
 int main(int argc, char** argv, char **envp) {
     logfile = stderr;
@@ -1137,3 +1151,5 @@ int main(int argc, char** argv, char **envp) {
     fprintf(stderr, "end from main %s %d\n", __FILE__, __LINE__);
     return 0;
 }
+
+#endif
