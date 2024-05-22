@@ -4,7 +4,7 @@ ifeq (${DEBUG},1)
 	OPT_FLAG = -Og
 endif
 # CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
-CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -Wall
+CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -Wall -Werror
 ifeq (${GDB},1)
 	CFLAGS += -DCONFIG_GDB
 endif

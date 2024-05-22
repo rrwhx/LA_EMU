@@ -47,7 +47,7 @@ static void sigaction_entry_int(int signal, siginfo_t *si, void *arg) {
 }
 #endif
 
-#ifndef CONFIG_USER_ONLY
+#if !defined (CONFIG_USER_ONLY) && !defined (CONFIG_DIFF)
 static void sigaction_entry_timer(int signal, siginfo_t *si, void *arg) {
     timer_t id = *((timer_t*)si->si_value.sival_ptr);
     // printf("Caught signal %d,id=%lx -- ", signal,(long)id);
@@ -82,6 +82,7 @@ static void cli_setup_signal(void) {
 }
 #endif
 
+#if !defined (CONFIG_DIFF)
 static void setup_signal(void) {
 #ifndef CONFIG_USER_ONLY
     kernel_setup_signal();
@@ -90,6 +91,7 @@ static void setup_signal(void) {
     cli_setup_signal();
 #endif
 }
+#endif
 
 static const char * const excp_names[] = {
     [EXCCODE_INT] = "Interrupt",
@@ -152,7 +154,7 @@ static target_ulong user_setup_stack() {
 #define elfhdr Elf64_Ehdr
 #define elf_shdr Elf64_Shdr
 #define elf_phdr Elf64_Phdr
-#ifndef CONFIG_USER_ONLY
+#if !defined (CONFIG_USER_ONLY) && !defined (CONFIG_DIFF)
 static char* alloc_ram(uint64_t ram_size) {
     void* start = mmap(NULL, ram_size + SZ_2G, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     lsassert(start != MAP_FAILED);

@@ -1046,9 +1046,9 @@ static bool trans_dbar(CPULoongArchState *env, arg_dbar *a) {
     env->pc += 4;
     return true;
 }
-static double begin_timestamp;
 static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
 #ifndef CONFIG_DIFF
+    static double begin_timestamp;
     if (a->imm == 64) {
         begin_timestamp = second();
         fprintf(stderr, "[INST HACK] ibar 64 begin %f\n", begin_timestamp);
