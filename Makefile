@@ -13,21 +13,33 @@ ifeq (${CLI},1)
 	CFLAGS += -DCONFIG_CLI
 endif
 
+ifeq (${DIFF},1)
+	CFLAGS += -DCONFIG_DIFF -fPIC
+endif
+
 LDFLAGS = -lm -lrt ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)
    LDFLAGS+=-Wl,-Tlink_script/loongarch64.lds
 endif
+ifeq (${DIFF},1)
+	LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined
+endif
+
 BUILD_DIR := ./build
 SRC_DIRS := ./
 
-USER_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c vec_helper.c tcg-runtime-gvec.c syscall.c gdbserver.c debug_cli.c
+USER_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c vec_helper.c tcg-runtime-gvec.c syscall.c gdbserver.c debug_cli.c cpu.c
 USER_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_user.o,$(USER_SOURCES)))
 USER_DEPS := $(USER_OBJS:.o=.d)
 
-KERNEL_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c  tlb_helper.c cpu_helper.c vec_helper.c tcg-runtime-gvec.c serial.c gdbserver.c debug_cli.c
+KERNEL_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c  tlb_helper.c cpu_helper.c vec_helper.c tcg-runtime-gvec.c serial.c gdbserver.c debug_cli.c cpu.c
 KERNEL_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_kernel.o,$(KERNEL_SOURCES)))
 KERNEL_DEPS := $(KERNEL_OBJS:.o=.d)
+
+DIFF_SOURCES := $(KERNEL_SOURCES) difftest.c
+DIFF_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_diff.o,$(DIFF_SOURCES)))
+DIFF_DEPS := $(DIFF_OBJS:.o=.d)
 
 $(info $$USER_SOURCES is [${USER_SOURCES}])
 $(info $$USER_OBJS is [${USER_OBJS}])
@@ -37,7 +49,17 @@ $(info $$KERNEL_SOURCES is [${KERNEL_SOURCES}])
 $(info $$KERNEL_OBJS is [${KERNEL_OBJS}])
 $(info $$KERNEL_DEPS is [${KERNEL_DEPS}])
 
-all: $(BUILD_DIR)/la_emu_user $(BUILD_DIR)/la_emu_kernel
+$(info $$DIFF_SOURCES is [${DIFF_SOURCES}])
+$(info $$DIFF_OBJS is [${DIFF_OBJS}])
+$(info $$DIFF_DEPS is [${DIFF_DEPS}])
+
+ifeq (${DIFF},1)
+	TARGETS = $(BUILD_DIR)/la_emu_ref.so
+else
+	TARGETS = $(BUILD_DIR)/la_emu_user $(BUILD_DIR)/la_emu_kernel
+endif
+
+all: $(TARGETS)
 
 $(BUILD_DIR)/la_emu_user : ${USER_OBJS}
 	$(CC) $(USER_OBJS) -o $@ $(LDFLAGS)
@@ -50,6 +72,13 @@ $(BUILD_DIR)/la_emu_kernel : ${KERNEL_OBJS}
 	$(CC) $(KERNEL_OBJS) -o $@ $(LDFLAGS)
 
 $(BUILD_DIR)/%_kernel.o : %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_DIR)/la_emu_ref.so : ${DIFF_OBJS}
+	$(CC) $(DIFF_OBJS) -o $@ $(LDFLAGS)
+
+$(BUILD_DIR)/%_diff.o : %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 

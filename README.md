@@ -10,6 +10,8 @@ gdb support
 make GDB=1 -j
 debug cli support
 make CLI=1 -j
+get dynamic link library for difftest
+make DIFF=1 -j
 clean
 make clean
 ```
