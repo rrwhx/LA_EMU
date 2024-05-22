@@ -14,6 +14,7 @@
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
 
+#define LOONGARCH_CSR_MAXADDR 0x1000
 
 #define TIME_SCALE 1
 
