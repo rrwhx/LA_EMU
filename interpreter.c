@@ -481,7 +481,7 @@ static bool trans_ext_w_b(CPULoongArchState *env, arg_ext_w_b *a) {
     return true;
 }
 static bool trans_clo_w(CPULoongArchState *env, arg_clo_w *a) {
-    env->gpr[a->rd] = env->gpr[a->rj] ? clo32(env->gpr[a->rj]) : 32;
+    env->gpr[a->rd] = env->gpr[a->rj] ? clo32(env->gpr[a->rj]) : 0;
     env->pc += 4;
     return true;
 }
@@ -491,7 +491,7 @@ static bool trans_clz_w(CPULoongArchState *env, arg_clz_w *a) {
     return true;
 }
 static bool trans_cto_w(CPULoongArchState *env, arg_cto_w *a) {
-    env->gpr[a->rd] = env->gpr[a->rj] ? cto32(env->gpr[a->rj]) : 32;
+    env->gpr[a->rd] = env->gpr[a->rj] ? cto32(env->gpr[a->rj]) : 0;
     env->pc += 4;
     return true;
 }
@@ -501,7 +501,7 @@ static bool trans_ctz_w(CPULoongArchState *env, arg_ctz_w *a) {
     return true;
 }
 static bool trans_clo_d(CPULoongArchState *env, arg_clo_d *a) {
-    env->gpr[a->rd] = env->gpr[a->rj] ? clo64(env->gpr[a->rj]) : 64;
+    env->gpr[a->rd] = env->gpr[a->rj] ? clo64(env->gpr[a->rj]) : 0;
     env->pc += 4;
     return true;
 }
@@ -511,7 +511,7 @@ static bool trans_clz_d(CPULoongArchState *env, arg_clz_d *a) {
     return true;
 }
 static bool trans_cto_d(CPULoongArchState *env, arg_cto_d *a) {
-    env->gpr[a->rd] = env->gpr[a->rj] ? cto64(env->gpr[a->rj]) : 64;
+    env->gpr[a->rd] = env->gpr[a->rj] ? cto64(env->gpr[a->rj]) : 0;
     env->pc += 4;
     return true;
 }
