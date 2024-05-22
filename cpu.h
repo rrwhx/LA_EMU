@@ -706,6 +706,7 @@ static inline INSCache* cpu_get_ic(CPULoongArchState *env, int insn) {
     INSCache* ic = &env->inscache[IC_INDEX(env->pc)];
     if (likely(ic->insn == insn)) {
     // fprintf(stderr, "get %p %lx %08x %d %d %d %d\n", ic->trans_func, env->pc, ic->insn, ic->arg[0], ic->arg[1], ic->arg[2], ic->arg[3]);
+        ++ env->ic_hit_count;
         return ic;
     } else {
         return NULL;

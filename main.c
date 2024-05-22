@@ -785,9 +785,6 @@ int exec_env(CPULoongArchState *env) {
                 env->insn = insn;
                 env->prev_pc = env->pc;
 #endif
-#ifdef PERF_COUNT
-                env->ic_hit_count += (ic != NULL);
-#endif
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
