@@ -1099,27 +1099,39 @@ static bool trans_stle_w(CPULoongArchState *env, arg_stle_w *a) {__NOT_IMPLEMENT
 static bool trans_stle_d(CPULoongArchState *env, arg_stle_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_ll_w(CPULoongArchState *env, arg_ll_w *a) {
     hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
-    env->gpr[a->rd] = is_io(ha) ? do_io_ld(ha, 4) : ram_ldw(ha);
+    env->gpr[a->rd] = ram_ldw(ha);
+    env->lladdr = ha;
+    env->llval = env->gpr[a->rd];
     env->pc += 4;
     return true;
 }
 static bool trans_sc_w(CPULoongArchState *env, arg_sc_w *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    ram_stw(ha, env->gpr[a->rd]);
-    env->gpr[a->rd] = 1;
+    if (env->lladdr == ha && env->llval == ram_ldw(ha)) {
+        ram_stw(ha, env->gpr[a->rd]);
+        env->gpr[a->rd] = 1;
+    } else {
+        env->gpr[a->rd] = 0;
+    }
     env->pc += 4;
     return true;
 }
 static bool trans_ll_d(CPULoongArchState *env, arg_ll_d *a) {
     hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
     env->gpr[a->rd] = ram_ldd(ha);
+    env->lladdr = ha;
+    env->llval = env->gpr[a->rd];
     env->pc += 4;
     return true;
 }
 static bool trans_sc_d(CPULoongArchState *env, arg_sc_d *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    ram_std(ha, env->gpr[a->rd]);
-    env->gpr[a->rd] = 1;
+    if (env->lladdr == ha && env->llval == ram_ldd(ha)) {
+        ram_std(ha, env->gpr[a->rd]);
+        env->gpr[a->rd] = 1;
+    } else {
+        env->gpr[a->rd] = 0;
+    }
     env->pc += 4;
     return true;
 }
