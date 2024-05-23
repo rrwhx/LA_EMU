@@ -430,6 +430,9 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
         case TARGET_NR_exit:
         case TARGET_NR_exit_group:
             fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", cpu_env->icount, cpu_env->ic_hit_count, cpu_env->syscall_count, cpu_env->ecount);
+#if defined(CONFIG_PERF)
+            perf_report(current_env, stderr);
+#endif
             exit(arg1);
             lsassert(0);
         case TARGET_NR_clock_gettime:

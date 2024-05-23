@@ -114,3 +114,23 @@ const char* const csrnames[LOONGARCH_CSR_MAXADDR + 1] = {
     CSRNAME_DECL(DSAVE),
 
 };
+
+#if defined(CONFIG_PERF)
+void perf_report_plv(CPULoongArchState *env, FILE* f, int plv, char* plv_name) {
+    fprintf(f, "%s, COUNTER_INST_FP: %ld\n", plv_name, env->perf_counter[plv][COUNTER_INST_FP]);
+    fprintf(f, "%s, COUNTER_INST_LSX: %ld\n", plv_name, env->perf_counter[plv][COUNTER_INST_LSX]);
+    fprintf(f, "%s, COUNTER_INST_LASX: %ld\n", plv_name, env->perf_counter[plv][COUNTER_INST_LASX]);
+    fprintf(f, "%s, COUNTER_INST_BRANCH: %ld\n", plv_name, env->perf_counter[plv][COUNTER_INST_BRANCH]);
+    fprintf(f, "%s, COUNTER_INST_LOAD: %ld\n", plv_name, env->perf_counter[plv][COUNTER_INST_LOAD]);
+    fprintf(f, "%s, COUNTER_INST_STORE: %ld\n", plv_name, env->perf_counter[plv][COUNTER_INST_STORE]);
+
+}
+void perf_report(CPULoongArchState *env, FILE* f) {
+#if defined(CONFIG_USER_ONLY)
+    perf_report_plv(env, f, 0, "user");
+#else
+    perf_report_plv(env, f, 0, "kernel");
+    perf_report_plv(env, f, 3, "user");
+#endif
+}
+#endif

@@ -474,6 +474,30 @@ typedef struct CPUArchState {
     uint64_t ecount;
     uint64_t syscall_count;
     uint64_t ic_hit_count;
+#if defined(CONFIG_PERF)
+#define COUNTER_INST_FP                    0
+#define COUNTER_INST_LSX                   1
+#define COUNTER_INST_LASX                  2
+#define COUNTER_INST_BRANCH                3
+#define COUNTER_INST_BRANCH_DIRECT_JUMP    4
+#define COUNTER_INST_BRANCH_INDIRECT       5
+#define COUNTER_INST_BRANCH_CONDITIONAL    6
+#define COUNTER_INST_BRANCH_DIRECT_CALL    7
+#define COUNTER_INST_BRANCH_INDIRECT_CALL  8
+#define COUNTER_INST_BRANCH_RETURN         9
+#define COUNTER_INST_LOAD                  10
+#define COUNTER_INST_STORE                 11
+#define COUNTER_INST_CROSS_PAGE            12
+
+#define COUNTER_MAX 0x100
+
+    uint64_t perf_counter[4][COUNTER_MAX];
+
+#define PERF_INC(event) do {++env->perf_counter[FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV)][event];} while (0);
+
+#else
+#define PERF_INC(event) ;
+#endif
     int64_t timer_counter;
     timer_t timerid;
     volatile sig_atomic_t timer_int;
@@ -729,4 +753,9 @@ void loongarch_cpu_set_irq(void *opaque, int irq, int level);
 static inline uint32_t cpu_ldl_code(CPULoongArchState *env, target_ulong pc) {
     return 0xcccccccc;
 }
+
+#if defined(CONFIG_PERF)
+void perf_report(CPULoongArchState *env, FILE*);
+#endif
+
 #endif /* LOONGARCH_CPU_H */

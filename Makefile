@@ -17,6 +17,10 @@ ifeq (${DIFF},1)
 	CFLAGS += -DCONFIG_DIFF -fPIC
 endif
 
+ifeq (${PERF},1)
+	CFLAGS += -DCONFIG_PERF
+endif
+
 LDFLAGS = -lm -lrt ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)

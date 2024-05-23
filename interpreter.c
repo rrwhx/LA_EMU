@@ -29,17 +29,29 @@ static inline long long la_get_tval(CPULoongArchState *env){
         if (bytes == 8) {                                                                                             \
             if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, FP)) {return false;};                                            \
             if (!FIELD_EX64(env->CSR_EUEN, CSR_EUEN, FPE)) {do_raise_exception(env, EXCCODE_FPD, 0); return true;}    \
+            PERF_INC(COUNTER_INST_FP);                                                                                \
         } else if (bytes == 16) {                                                                                     \
             if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LSX)) {return false;};                                           \
             if (!FIELD_EX64(env->CSR_EUEN, CSR_EUEN, SXE)) {do_raise_exception(env, EXCCODE_SXD, 0); return true;}    \
+            PERF_INC(COUNTER_INST_LSX);                                                                               \
         } else if (bytes == 32) {                                                                                     \
             if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LASX)) {return false;};                                          \
             if (!FIELD_EX64(env->CSR_EUEN, CSR_EUEN, ASXE)) {do_raise_exception(env, EXCCODE_ASXD, 0); return true;}  \
+            PERF_INC(COUNTER_INST_LASX);                                                                              \
         } else {lsassert(0);};                                                                                        \
     } while (0)
 
 #else
-#define CHECK_FPE(bytes) do {} while(0)
+#define CHECK_FPE(bytes)                                                                                              \
+    do {                                                                                                              \
+        if (bytes == 8) {                                                                                             \
+            PERF_INC(COUNTER_INST_FP);                                                                                \
+        } else if (bytes == 16) {                                                                                     \
+            PERF_INC(COUNTER_INST_LSX);                                                                               \
+        } else if (bytes == 32) {                                                                                     \
+            PERF_INC(COUNTER_INST_LASX);                                                                              \
+        } else {lsassert(0);};                                                                                        \
+    } while (0)
 #endif
 #define __NOT_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return true;} while(0);
 #define __NOT_CORRECTED_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);} while(0);
@@ -635,6 +647,7 @@ bool is_unaligned(uint64_t addr, int bytes) {
 }
 
 static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
+    PERF_INC(COUNTER_INST_LOAD);
 #ifdef CONFIG_USER_ONLY
         return addr;
 #endif
@@ -655,6 +668,7 @@ static hwaddr load_pa(CPULoongArchState *env, uint64_t addr) {
     return ha;
 }
 static hwaddr store_pa(CPULoongArchState *env, uint64_t addr) {
+    PERF_INC(COUNTER_INST_STORE);
 #ifdef CONFIG_USER_ONLY
         return addr;
 #endif
@@ -705,6 +719,9 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
         fprintf(stderr,"lxy: %s:%d %s poweroff@100d0014 data:%x\n",__FILE__, __LINE__, __FUNCTION__, (int)data);
         if ((data & 0x3c00) == 0x3c00) {
             fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", current_env->icount, current_env->ic_hit_count, current_env->syscall_count, current_env->ecount);
+#if defined(CONFIG_PERF)
+            perf_report(current_env, stderr);
+#endif
             exit(0);
         }
         break;
@@ -1854,6 +1871,7 @@ static bool trans_fstgt_d(CPULoongArchState *env, arg_fstgt_d *a) {__NOT_IMPLEME
 static bool trans_fstle_s(CPULoongArchState *env, arg_fstle_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fstle_d(CPULoongArchState *env, arg_fstle_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_beqz(CPULoongArchState *env, arg_beqz *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((int64_t)env->gpr[a->rj] == 0) {
         env->pc += a->offs;
     } else {
@@ -1862,6 +1880,7 @@ static bool trans_beqz(CPULoongArchState *env, arg_beqz *a) {
     return true;
 }
 static bool trans_bnez(CPULoongArchState *env, arg_bnez *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((int64_t)env->gpr[a->rj] != 0) {
         env->pc += a->offs;
     } else {
@@ -1870,6 +1889,7 @@ static bool trans_bnez(CPULoongArchState *env, arg_bnez *a) {
     return true;
 }
 static bool trans_bceqz(CPULoongArchState *env, arg_bceqz *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     CHECK_FPE(8);
     if (env->cf[a->cj] == 0) {
         env->pc += a->offs;
@@ -1879,6 +1899,7 @@ static bool trans_bceqz(CPULoongArchState *env, arg_bceqz *a) {
     return true;
 }
 static bool trans_bcnez(CPULoongArchState *env, arg_bcnez *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     CHECK_FPE(8);
     if (env->cf[a->cj] != 0) {
         env->pc += a->offs;
@@ -1888,12 +1909,14 @@ static bool trans_bcnez(CPULoongArchState *env, arg_bcnez *a) {
     return true;
 }
 static bool trans_jirl(CPULoongArchState *env, arg_jirl *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     uint64_t old_pc = env->pc;
     env->pc = env->gpr[a->rj] + a->imm;
     env->gpr[a->rd] = old_pc + 4;
     return true;
 }
 static bool trans_b(CPULoongArchState *env, arg_b *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
 #ifndef CONFIG_DIFF
     if (!a->offs) {
         exit(EXIT_SUCCESS);
@@ -1903,11 +1926,13 @@ static bool trans_b(CPULoongArchState *env, arg_b *a) {
     return true;
 }
 static bool trans_bl(CPULoongArchState *env, arg_bl *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     env->gpr[1] = env->pc + 4;
     env->pc += a->offs;
     return true;
 }
 static bool trans_beq(CPULoongArchState *env, arg_beq *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((int64_t)env->gpr[a->rj] == (int64_t)env->gpr[a->rd]) {
         env->pc += a->offs;
     } else {
@@ -1916,6 +1941,7 @@ static bool trans_beq(CPULoongArchState *env, arg_beq *a) {
     return true;
 }
 static bool trans_bne(CPULoongArchState *env, arg_bne *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((int64_t)env->gpr[a->rj] != (int64_t)env->gpr[a->rd]) {
         env->pc += a->offs;
     } else {
@@ -1924,6 +1950,7 @@ static bool trans_bne(CPULoongArchState *env, arg_bne *a) {
     return true;
 }
 static bool trans_blt(CPULoongArchState *env, arg_blt *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((int64_t)env->gpr[a->rj] < (int64_t)env->gpr[a->rd]) {
         env->pc += a->offs;
     } else {
@@ -1932,6 +1959,7 @@ static bool trans_blt(CPULoongArchState *env, arg_blt *a) {
     return true;
 }
 static bool trans_bge(CPULoongArchState *env, arg_bge *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((int64_t)env->gpr[a->rj] >= (int64_t)env->gpr[a->rd]) {
         env->pc += a->offs;
     } else {
@@ -1940,6 +1968,7 @@ static bool trans_bge(CPULoongArchState *env, arg_bge *a) {
     return true;
 }
 static bool trans_bltu(CPULoongArchState *env, arg_bltu *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((uint64_t)env->gpr[a->rj] < (uint64_t)env->gpr[a->rd]) {
         env->pc += a->offs;
     } else {
@@ -1948,6 +1977,7 @@ static bool trans_bltu(CPULoongArchState *env, arg_bltu *a) {
     return true;
 }
 static bool trans_bgeu(CPULoongArchState *env, arg_bgeu *a) {
+    PERF_INC(COUNTER_INST_BRANCH);
     if ((uint64_t)env->gpr[a->rj] >= (uint64_t)env->gpr[a->rd]) {
         env->pc += a->offs;
     } else {
