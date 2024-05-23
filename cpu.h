@@ -16,9 +16,14 @@
 
 #define LOONGARCH_CSR_MAXADDR 0x1000
 
+// used for determined emulation time scaling
 #define TIME_SCALE 1
+// increase this, vm time slower, real 1s, vm see 1 / MUL second
+#define TIME_MUL 1
+// increase this, vm time faster, real 1s, vm see 1 * DIV second
+#define TIME_DIV 1
 
-#define TIMER_PERIOD                (10 * TIME_SCALE) /* 10 ns period for 100 MHz frequency */
+#define TIMER_PERIOD                (10 * TIME_MUL / TIME_DIV) /* 10 ns period for 100 MHz frequency */
 #define CONSTANT_TIMER_TICK_MASK    0xfffffffffffcUL
 #define CONSTANT_TIMER_ENABLE       0x1UL
 
