@@ -770,6 +770,7 @@ static int16_t ld_h(CPULoongArchState *env, uint64_t va) {
         if (is_aligned(va, data_size)) {
             data = ram_ldh(ha);
         } else {
+            PERF_INC(COUNTER_INST_CROSS_PAGE_LOAD);
             data = 0;
             for (int i = (data_size - 1); i >= 0; i--){
                 data |= (((uint16_t)ld_b(env, va + i) & 0xff) << (i * 8)) ;
@@ -789,6 +790,7 @@ static int32_t ld_w(CPULoongArchState *env, uint64_t va) {
         if (is_aligned(va, data_size)) {
             data = ram_ldw(ha);
         } else {
+            PERF_INC(COUNTER_INST_CROSS_PAGE_LOAD);
             data = 0;
             for (int i = (data_size - 1); i >= 0; i--){
                 data |= (((uint32_t)ld_b(env, va + i) & 0xff) << (i * 8)) ;
@@ -808,6 +810,7 @@ static int64_t ld_d(CPULoongArchState *env, uint64_t va) {
         if (is_aligned(va, data_size)) {
             data = ram_ldd(ha);
         } else {
+            PERF_INC(COUNTER_INST_CROSS_PAGE_LOAD);
             data = 0;
             for (int i = (data_size - 1); i >= 0; i--){
                 data |= (((uint64_t)ld_b(env, va + i) & 0xff) << (i * 8)) ;
@@ -868,6 +871,7 @@ static void st_h(CPULoongArchState *env, uint64_t va, uint16_t data) {
         if (is_aligned(va, data_size)) {
             ram_sth(ha, data);
         } else {
+            PERF_INC(COUNTER_INST_CROSS_PAGE_LOAD);
             for (int i = (data_size - 1); i >= 0; i--){
                 st_b(env, va + i, (data >> (i * 8)) & 0xff);
             }
@@ -884,6 +888,7 @@ static void st_w(CPULoongArchState *env, uint64_t va, uint32_t data) {
         if (is_aligned(va, data_size)) {
             ram_stw(ha, data);
         } else {
+            PERF_INC(COUNTER_INST_CROSS_PAGE_LOAD);
             for (int i = (data_size - 1); i >= 0; i--){
                 st_b(env, va + i, (data >> (i * 8)) & 0xff);
             }
@@ -900,6 +905,7 @@ static void st_d(CPULoongArchState *env, uint64_t va, uint64_t data) {
         if (is_aligned(va, data_size)) {
             ram_std(ha, data);
         } else {
+            PERF_INC(COUNTER_INST_CROSS_PAGE_LOAD);
             for (int i = (data_size - 1); i >= 0; i--){
                 st_b(env, va + i, (data >> (i * 8)) & 0xff);
             }

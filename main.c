@@ -795,6 +795,7 @@ int exec_env(CPULoongArchState *env) {
                 -- singlestep;
 #endif
                 env->icount ++;
+                PERF_INC(COUNTER_INST);
 
 
 #if !defined (CONFIG_USER_ONLY) && !defined (CONFIG_DIFF)

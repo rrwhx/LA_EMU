@@ -487,7 +487,9 @@ typedef struct CPUArchState {
 #define COUNTER_INST_BRANCH_RETURN         9
 #define COUNTER_INST_LOAD                  10
 #define COUNTER_INST_STORE                 11
-#define COUNTER_INST_CROSS_PAGE            12
+#define COUNTER_INST_CROSS_PAGE_LOAD       12
+#define COUNTER_INST_CROSS_PAGE_STORE      13
+#define COUNTER_INST                       14
 
 #define COUNTER_MAX 0x100
 
