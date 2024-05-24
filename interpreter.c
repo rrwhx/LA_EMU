@@ -1507,10 +1507,13 @@ static bool trans_crcc_w_w_w(CPULoongArchState *env, arg_crcc_w_w_w *a) {env->gp
 static bool trans_crcc_w_d_w(CPULoongArchState *env, arg_crcc_w_d_w *a) {env->gpr[a->rd] = helper_crc32c(env->gpr[a->rk], env->gpr[a->rj], 8);env->pc += 4;return true;}
 static bool trans_break(CPULoongArchState *env, arg_break *a) {
 
+#if defined(CONFIG_USER_ONLY)
     fprintf(stderr, "trans_break\n");
     exit(0);
-
-    __NOT_IMPLEMENTED__
+#else
+    do_raise_exception(env, EXCCODE_BRK, 0);
+#endif
+    return true;
 }
 
 
