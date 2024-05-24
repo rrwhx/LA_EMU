@@ -23,3 +23,5 @@ jobs:
       run: make clean && make CLI=1
     - name: make diff
       run: make clean && make DIFF=1
+    - name: make perf
+      run: make clean && make PERF=1
