@@ -161,7 +161,7 @@ static char* alloc_ram(uint64_t ram_size) {
     lsassert(start != MAP_FAILED);
     void* part1 = mmap(start, SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part1 != MAP_FAILED);
-    void* part2 = mmap(start + SZ_2G, ram_size - SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    void* part2 = mmap(start + SZ_2G + SZ_256M, ram_size - SZ_256M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part2 != MAP_FAILED);
     void* part3 = mmap(start + 0x1c000000, SZ_32M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part3 != MAP_FAILED);
