@@ -750,6 +750,7 @@ extern __thread CPULoongArchState *current_env;
 int exec_env(CPULoongArchState *env);
 extern bool new_abi;
 extern bool determined;
+extern bool hw_ptw;
 
 void loongarch_cpu_set_irq(void *opaque, int irq, int level);
 static inline uint32_t cpu_ldl_code(CPULoongArchState *env, target_ulong pc) {
@@ -779,4 +780,6 @@ static inline void cpu_disable_timer(CPULoongArchState* env) {
     lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
 }
 
+void get_dir_base_width(CPULoongArchState *env, uint64_t *dir_base,
+                               uint64_t *dir_width, target_ulong level);
 #endif /* LOONGARCH_CPU_H */

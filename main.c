@@ -21,6 +21,7 @@
 
 bool new_abi;
 bool determined;
+bool hw_ptw;
 __thread CPULoongArchState *current_env;
 
 int gdbserver = 0;
@@ -950,7 +951,7 @@ int main(int argc, char** argv, char **envp) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:nk:d:D:gz")) != -1) {
+    while ((c = getopt(argc, argv, "+m:nk:d:D:gzw")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -976,6 +977,9 @@ int main(int argc, char** argv, char **envp) {
                 break;
             case 'z':
                 determined = 1;
+                break;
+            case 'w':
+                hw_ptw = 1;
                 break;
             case '?':
                 usage();

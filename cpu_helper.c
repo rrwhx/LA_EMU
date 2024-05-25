@@ -146,10 +146,38 @@ static int loongarch_map_address(CPULoongArchState *env, hwaddr *physical,
 {
     int index, match;
 
+again:
     match = loongarch_tlb_search(env, address, &index);
     if (match) {
         return loongarch_map_tlb_entry(env, physical, prot,
                                        address, access_type, index, mmu_idx);
+    }
+    else if (hw_ptw) {
+        env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 1);
+        env->CSR_TLBRBADV = address;
+        if (is_la64(env)) {
+            env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI_64,
+                                        VPPN, extract64(address, 13, 35));
+        } else {
+            env->CSR_TLBREHI = FIELD_DP64(env->CSR_TLBREHI, CSR_TLBREHI_32,
+                                        VPPN, extract64(address, 13, 19));
+        }
+        uint64_t pt_base = ((address >> 63) & 0x1) ? env->CSR_PGDH : env->CSR_PGDL;
+        for (int level = 4; level >= 1; level--) {
+            uint64_t dir_base, dir_width;
+            get_dir_base_width(env, &dir_base, &dir_width, level);
+            if (dir_width) {
+                pt_base = helper_lddir(env, pt_base, level, 0);
+            }
+        }
+        helper_ldpte(env, pt_base, 0, 0);
+        helper_ldpte(env, pt_base, 1, 0);
+        helper_tlbfill(env);
+        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+            qemu_log("%s: TLBRERA 0x%lx\n", __func__, env->CSR_TLBRERA);
+        }
+        env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR, 0);
+        goto again;
     }
 
     return TLBRET_NOMATCH;

@@ -19,7 +19,7 @@
 
 #define tlb_flush(...) ;
 
-static void get_dir_base_width(CPULoongArchState *env, uint64_t *dir_base,
+void get_dir_base_width(CPULoongArchState *env, uint64_t *dir_base,
                                uint64_t *dir_width, target_ulong level)
 {
     switch (level) {
