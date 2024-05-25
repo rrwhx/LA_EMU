@@ -643,6 +643,9 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
                                 int *prot, target_ulong address,
                                 MMUAccessType access_type, int mmu_idx);
 
+int probe_get_physical_address(CPULoongArchState *env, hwaddr *physical,
+                                int *prot, target_ulong address,
+                                MMUAccessType access_type);
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic);
 
 #ifdef CONFIG_USER_ONLY
@@ -680,6 +683,8 @@ static inline void ram_stw(hwaddr addr, uint64_t data) {*(uint32_t*)(ram + addr)
 static inline void ram_std(hwaddr addr, uint64_t data) {*(uint64_t*)(ram + addr) = data;}
 // static inline void ram_st128(hwaddr addr, Int128 data) {*(Int128*)(ram + addr) = data;}
 // static inline void ram_st256(hwaddr addr, VReg data) {*(VReg*)(ram + addr) = data;}
+bool addr_in_ram(hwaddr pa);
+static inline bool ram_ldub_check(hwaddr addr, uint8_t *data) {if (!addr_in_ram(addr)){*data = 0xff; return false;} *data = *(uint8_t*)(ram + addr); return true;}
 #endif
 
 G_NORETURN void cpu_loop_exit(CPUState *cpu);

@@ -314,7 +314,18 @@ void gdbserver_handle_message() {
                     send_message(sock_fd, "E14");
                 } else {
                     for (int i = 0; i < mlen; i++) {
+#if defined(CONFIG_USER_ONLY)
                         uint8_t t = ram_ldub(maddr + i);
+#else
+                        hwaddr pa;
+                        int prot;
+                        uint8_t t;
+                        if (probe_get_physical_address(current_env, &pa, &prot, maddr + i, MMU_DATA_LOAD) != 0 || ram_ldub_check(pa, &t) != true) {
+                            send_message_ack(sock_fd);
+                            send_message(sock_fd, "E14");
+                            break;
+                        }
+#endif
                         send_buf_tmp[i * 2] = hexchars[t >> 4];
                         send_buf_tmp[i * 2 + 1] = hexchars[t & 0xf];
                     }

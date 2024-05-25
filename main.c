@@ -14,7 +14,9 @@
 #include "cpu.h"
 #include "internals.h"
 
+#if defined(CONFIG_GDB)
 #include "gdbserver.h"
+#endif
 #if defined(CONFIG_USER_ONLY)
 #include "user.h"
 #endif
@@ -166,6 +168,13 @@ static char* alloc_ram(uint64_t ram_size) {
     void* part3 = mmap(start + 0x1c000000, SZ_32M, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     lsassert(part3 != MAP_FAILED);
     return part1;
+}
+
+bool addr_in_ram(hwaddr pa) {
+    return
+        (pa < SZ_256M) ||
+        (pa >= SZ_2G + SZ_256M && pa < ram_size + SZ_2G) ||
+        (pa >= 0x1c000000 && pa < 0x1c000000 + SZ_32M);
 }
 
 bool load_elf(const char* filename, uint64_t* entry_addr) {
@@ -1137,9 +1146,19 @@ int main(int argc, char** argv, char **envp) {
 #endif
     current_env = env;
     if (gdbserver) {
+#if defined(CONFIG_GDB)
+#ifndef CONFIG_USER_ONLY
+        if (!hw_ptw) {
+            fprintf(stderr, "Enable hw_ptw options -w for better debug\n");
+            fprintf(stderr, "Enable hw_ptw options -w for better debug\n");
+            fprintf(stderr, "Enable hw_ptw options -w for better debug\n");
+            sleep(3);
+        }
+#endif
         gdbserver_init(1234);
         gdbserver_has_message = 1;
         gdbserver_loop();
+#endif
     } else {
         exec_env(env);
     }

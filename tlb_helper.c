@@ -668,6 +668,16 @@ int check_get_physical_address(CPULoongArchState *env, hwaddr *physical,
     // }
 }
 
+int probe_get_physical_address(CPULoongArchState *env, hwaddr *physical,
+                                int *prot, target_ulong address,
+                                MMUAccessType access_type){
+    int mmu_idx = FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) == 0 ? MMU_KERNEL_IDX : MMU_USER_IDX;
+    int ret = get_physical_address(env, physical, prot, address, access_type, mmu_idx);
+    if (ret == TLBRET_MATCH) {
+        return 0;
+    }
+    return -1;
+}
 void helper_ertn(CPULoongArchState *env)
 {
     uint64_t csr_pplv, csr_pie;
