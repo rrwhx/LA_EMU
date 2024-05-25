@@ -137,3 +137,34 @@ void perf_report(CPULoongArchState *env, FILE* f) {
 #endif
 }
 #endif
+
+void dump_exec_info(CPULoongArchState *env, FILE* f) {
+    fprintf(f, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld tlbr:%ld irq:%ld\n", env->icount, env->ic_hit_count, env->syscall_count, env->ecount, env->tlbr_count, env->irq_count);
+#if !defined(CONFIG_USER_ONLY)
+    fprintf(f, "PIL:  %10lu ", env->ecounter[EXCCODE_PIL]);
+    fprintf(f, "PIS:  %10lu ", env->ecounter[EXCCODE_PIS]);
+    fprintf(f, "PIF:  %10lu\n", env->ecounter[EXCCODE_PIF]);
+    fprintf(f, "PME:  %10lu ", env->ecounter[EXCCODE_PME]);
+    fprintf(f, "PNR:  %10lu ", env->ecounter[EXCCODE_PNR]);
+    fprintf(f, "PNX:  %10lu ", env->ecounter[EXCCODE_PNX]);
+    fprintf(f, "PPI:  %10lu\n", env->ecounter[EXCCODE_PPI]);
+    fprintf(f, "ADEF: %10lu ", env->ecounter[EXCCODE_ADEF]);
+    fprintf(f, "ADEM: %10lu ", env->ecounter[EXCCODE_ADEM]);
+    fprintf(f, "ALE:  %10lu ", env->ecounter[EXCCODE_ALE]);
+    fprintf(f, "BCE:  %10lu\n", env->ecounter[EXCCODE_BCE]);
+    fprintf(f, "SYS:  %10lu ", env->ecounter[EXCCODE_SYS]);
+    fprintf(f, "BRK:  %10lu ", env->ecounter[EXCCODE_BRK]);
+    fprintf(f, "INE:  %10lu ", env->ecounter[EXCCODE_INE]);
+    fprintf(f, "IPE:  %10lu\n", env->ecounter[EXCCODE_IPE]);
+    fprintf(f, "FPD:  %10lu ", env->ecounter[EXCCODE_FPD]);
+    fprintf(f, "SXD:  %10lu ", env->ecounter[EXCCODE_SXD]);
+    fprintf(f, "ASXD: %10lu\n", env->ecounter[EXCCODE_ASXD]);
+    fprintf(f, "FPE:  %10lu ", env->ecounter[EXCCODE_FPE]);
+    fprintf(f, "VFPE: %10lu ", env->ecounter[EXCCODE_VFPE]);
+    fprintf(f, "WPEF: %10lu ", env->ecounter[EXCCODE_WPEF]);
+    fprintf(f, "WPEM: %10lu\n", env->ecounter[EXCCODE_WPEM]);
+    fprintf(f, "BTD:  %10lu ", env->ecounter[EXCCODE_BTD]);
+    fprintf(f, "BTE:  %10lu ", env->ecounter[EXCCODE_BTE]);
+    fprintf(f, "DBP:  %10lu\n", env->ecounter[EXCCODE_DBP]);
+#endif
+}

@@ -718,7 +718,7 @@ static void do_io_st(hwaddr ha, uint64_t data, int size) {
     case 0x100d0014:
         fprintf(stderr,"lxy: %s:%d %s poweroff@100d0014 data:%x\n",__FILE__, __LINE__, __FUNCTION__, (int)data);
         if ((data & 0x3c00) == 0x3c00) {
-            fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", current_env->icount, current_env->ic_hit_count, current_env->syscall_count, current_env->ecount);
+            dump_exec_info(current_env, stderr);
 #if defined(CONFIG_PERF)
             perf_report(current_env, stderr);
 #endif
@@ -1077,7 +1077,7 @@ static bool trans_ibar(CPULoongArchState *env, arg_ibar *a) {
         fprintf(stderr, "[INST HACK] ibar 64 begin %f\n", begin_timestamp);
     } else if (a->imm == 65) {
         fprintf(stderr, "[INST HACK] ibar 65 end %f\n", second() - begin_timestamp);
-        fprintf(stderr, "icount:%ld ic_hit_count:%ld syscall_count:%ld ecount:%ld\n", env->icount, env->ic_hit_count, env->syscall_count, env->ecount);
+        dump_exec_info(env, stderr);
         exit(0);
     }
 #endif

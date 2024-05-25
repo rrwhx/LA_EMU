@@ -474,6 +474,9 @@ typedef struct CPUArchState {
     uint64_t ecount;
     uint64_t syscall_count;
     uint64_t ic_hit_count;
+    uint64_t ecounter[0x100];
+    uint64_t tlbr_count;
+    uint64_t irq_count;
 #if defined(CONFIG_PERF)
 #define COUNTER_INST_FP                    0
 #define COUNTER_INST_LSX                   1
@@ -760,6 +763,7 @@ static inline uint32_t cpu_ldl_code(CPULoongArchState *env, target_ulong pc) {
 #if defined(CONFIG_PERF)
 void perf_report(CPULoongArchState *env, FILE*);
 #endif
+void dump_exec_info(CPULoongArchState *env, FILE*);
 
 static inline void cpu_settimer(CPULoongArchState* env, uint64_t ticks) {
     struct itimerspec its;

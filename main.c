@@ -650,6 +650,7 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
     }
 
     if  (cs->exception_index == EXCCODE_INT) {
+        env->irq_count ++;
         /* Interrupt */
         uint32_t vector = 0;
         uint32_t pending = FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS);
@@ -669,8 +670,10 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
                       env->CSR_ECFG, env->CSR_ESTAT);
     } else {
         if (tlbfill) {
+            env->tlbr_count ++;
             set_pc(env, env->CSR_TLBRENTRY);
         } else {
+            env->ecounter[cs->exception_index] ++;
             set_pc(env, env->CSR_EENTRY + EXCODE_MCODE(cause) * vec_size);
         }
         qemu_log_mask(CPU_LOG_INT,
