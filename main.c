@@ -691,22 +691,14 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
 
 void loongarch_cpu_set_irq(void *opaque, int irq, int level)
 {
-    LoongArchCPU *cpu = opaque;
-    CPULoongArchState *env = &cpu->env;
-    CPUState *cs = CPU(cpu);
+    CPULoongArchState *env = opaque;
 
     if (irq < 0 || irq >= N_IRQS) {
+        lsassert(0);
         return;
     }
 
     env->CSR_ESTAT = deposit64(env->CSR_ESTAT, irq, 1, level != 0);
-    if (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS)) {
-        // cpu_interrupt(cs, CPU_INTERRUPT_HARD);
-        cs->exception_index = EXCCODE_INT;
-        loongarch_cpu_do_interrupt(cs);
-    } else {
-        // cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
-    }
 }
 
 static uint32_t fetch(CPULoongArchState *env, INSCache** ic) {
@@ -803,33 +795,25 @@ int exec_env(CPULoongArchState *env) {
                     env->timer_counter -= (env->CSR_TCFG & CONSTANT_TIMER_ENABLE);
                     if (env->timer_counter == 0) {
                         env->timer_counter = INT64_MAX;
-                        env->CSR_ESTAT |= (1 << IRQ_TIMER);
-                        if (env->CSR_TCFG & 0x2) {
+                        loongarch_cpu_set_irq(env, IRQ_TIMER, 1);
+                        if (FIELD_EX64(env->CSR_TCFG, CSR_TCFG, PERIODIC)) {
                             env->timer_counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) / TIME_SCALE;
                         } else {
                             env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
                         }
-                        // loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 1);
                     }
                 } else {
                     if (env->timer_int) {
                         env->timer_int = false;
-                        env->CSR_ESTAT |= (1 << IRQ_TIMER);
-                        if (env->CSR_TCFG & 0x2) {
-                            struct itimerspec its;
-                            uint64_t counter = (env->CSR_TCFG & 0xfffffffffffcUL) * TIMER_PERIOD;
-                            its.it_value.tv_sec = counter / 1000000000;
-                            its.it_value.tv_nsec = counter % 1000000000;
-                            its.it_interval.tv_sec = 0;
-                            its.it_interval.tv_nsec = 0;
-                            lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+                        loongarch_cpu_set_irq(env, IRQ_TIMER, 1);
+                        if (FIELD_EX64(env->CSR_TCFG, CSR_TCFG, PERIODIC)) {
+                            cpu_settimer(env, env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK);
                         } else {
-                            env->CSR_TCFG &= 0xfffffffffffeUL;
+                            env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
                         }
-                        // loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 1);
                     }
                 }
-                if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) && FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS)) {
+                if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) && (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS) & FIELD_EX64(env->CSR_ECFG, CSR_ECFG, LIE))) {
                     cs->exception_index = EXCCODE_INT;
                     loongarch_cpu_do_interrupt(cs);
                 }

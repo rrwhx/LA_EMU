@@ -2156,24 +2156,13 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
                 if (determined) {
                     env->timer_counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) / TIME_SCALE;
                 } else {
-                    struct itimerspec its;
-                    uint64_t counter = (env->CSR_TCFG & 0xfffffffffffcUL) * TIMER_PERIOD;
-                    its.it_value.tv_sec = counter / 1000000000;
-                    its.it_value.tv_nsec = counter % 1000000000;
-                    its.it_interval.tv_sec = 0;
-                    its.it_interval.tv_nsec = 0;
-                    lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+                    cpu_settimer(env, env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK);
                 }
             } else {
                 if (determined) {
                     env->timer_counter = -1;
                 } else {
-                    struct itimerspec its;
-                    its.it_value.tv_sec = 0;
-                    its.it_value.tv_nsec = 0;
-                    its.it_interval.tv_sec = 0;
-                    its.it_interval.tv_nsec = 0;
-                    lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+                    cpu_disable_timer(env);
                 }
             }
 #endif
@@ -2184,7 +2173,7 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
 #ifndef CONFIG_DIFF
             if (new_v & mask & 1) {
                 env->timer_int = 0;
-                loongarch_cpu_set_irq(env_cpu(env), IRQ_TIMER, 0);
+                loongarch_cpu_set_irq(env, IRQ_TIMER, 0);
             }
 #endif
         break;

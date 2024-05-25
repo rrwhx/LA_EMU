@@ -760,4 +760,23 @@ static inline uint32_t cpu_ldl_code(CPULoongArchState *env, target_ulong pc) {
 void perf_report(CPULoongArchState *env, FILE*);
 #endif
 
+static inline void cpu_settimer(CPULoongArchState* env, uint64_t ticks) {
+    struct itimerspec its;
+    uint64_t counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) * TIMER_PERIOD;
+    its.it_value.tv_sec = counter / 1000000000;
+    its.it_value.tv_nsec = counter % 1000000000;
+    its.it_interval.tv_sec = 0;
+    its.it_interval.tv_nsec = 0;
+    lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+}
+
+static inline void cpu_disable_timer(CPULoongArchState* env) {
+    struct itimerspec its;
+    its.it_value.tv_sec = 0;
+    its.it_value.tv_nsec = 0;
+    its.it_interval.tv_sec = 0;
+    its.it_interval.tv_nsec = 0;
+    lsassert(timer_settime(env->timerid, 0, &its, NULL) == 0);
+}
+
 #endif /* LOONGARCH_CPU_H */
