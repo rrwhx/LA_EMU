@@ -232,7 +232,7 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
                     goto fail;
                 }
                 // ram_writen(ph->p_paddr & 0xfffffff, data, file_size);
-                memcpy(ram + (ph->p_paddr & 0xffffffff), data, file_size);
+                memcpy(ram + (ph->p_paddr & 0xffffffffffff), data, file_size);
                 qemu_log_mask(CPU_LOG_PAGE, "%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
             }
             free((void*)data);
