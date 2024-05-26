@@ -35,7 +35,7 @@ typedef struct TLBCache {
 #define TC_BITS 8
 #define TC_NUM (1 << 8)
 #define TC_MASK (((target_long)1 << TC_BITS) - 1)
-#define TC_INDEX(va) ((va >> 14) & TC_MASK)
+#define TC_INDEX(va) ((va >> TARGET_PAGE_BITS) & TC_MASK)
 
 typedef struct INSCache {
     bool (*trans_func)(void*, void*);
