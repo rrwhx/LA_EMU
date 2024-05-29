@@ -2170,12 +2170,10 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
         case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL; env->CSR_TVAL = mask_write(env->CSR_TVAL, new_v, mask); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; env->CSR_CNTC = mask_write(env->CSR_CNTC, new_v, mask); break;
         case LOONGARCH_CSR_TICLR          :old_v = 0;
-#ifndef CONFIG_DIFF
             if (new_v & mask & 1) {
                 env->timer_int = 0;
                 loongarch_cpu_set_irq(env, IRQ_TIMER, 0);
             }
-#endif
         break;
         case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; env->CSR_LLBCTL = mask_write(env->CSR_LLBCTL, new_v, mask); break;
         case LOONGARCH_CSR_IMPCTL1        :old_v = env->CSR_IMPCTL1; env->CSR_IMPCTL1 = mask_write(env->CSR_IMPCTL1, new_v, mask); break;
