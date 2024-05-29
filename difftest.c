@@ -25,6 +25,8 @@ extern int exec_env(CPULoongArchState *env);
 extern void cpu_reset(CPUState* cs);
 extern void loongarch_la464_initfn(CPULoongArchState* env);
 
+extern const char* const csrnames[];
+
 
 static inline uint8_t* guest_to_host(uint64_t guest_paddr)
 {
@@ -162,7 +164,7 @@ void difftest_fcsr0cpy(uint32_t* dut_buf, bool direction)
 #define CSR_CPY_HELPER(CSR)             \
     case LOONGARCH_CSR_ ## CSR : csr_base_addr = &(current_env->CSR_ ## CSR); break;
 
-void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, bool direction)
+void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, uint64_t mask, bool direction)
 {
     uint64_t* csr_base_addr = 0;
 
@@ -228,9 +230,9 @@ void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, bool direction)
     }
 
     if (direction == DUT_TO_REF) {
-        *csr_base_addr = *dut_buf;
+        *csr_base_addr = (*csr_base_addr & ~mask) | (*dut_buf & mask);
     } else {
-        *dut_buf = *csr_base_addr;
+        *dut_buf = (*dut_buf & ~mask) | (*csr_base_addr & mask);
     }
 
 }
