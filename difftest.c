@@ -196,7 +196,7 @@ void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, uint64_t mask, bool dir
     CSR_CPY_HELPER(PRCFG1)
     CSR_CPY_HELPER(PRCFG2)
     CSR_CPY_HELPER(PRCFG3)
-    case LOONGARCH_CSR_SAVE(0) ... LOONGARCH_CSR_SAVE(15): csr_base_addr = &(current_env->CSR_SAVE[csr_idx - LOONGARCH_CSR_SAVE(0)]);
+    case LOONGARCH_CSR_SAVE(0) ... LOONGARCH_CSR_SAVE(15): csr_base_addr = &(current_env->CSR_SAVE[csr_idx - LOONGARCH_CSR_SAVE(0)]); break;
     CSR_CPY_HELPER(TID)
     CSR_CPY_HELPER(TCFG)
     CSR_CPY_HELPER(TVAL)
@@ -220,7 +220,7 @@ void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, uint64_t mask, bool dir
     CSR_CPY_HELPER(MERRERA)
     CSR_CPY_HELPER(MERRSAVE)
     CSR_CPY_HELPER(CTAG)
-    case LOONGARCH_CSR_DMW(0) ... LOONGARCH_CSR_DMW(3): csr_base_addr = &(current_env->CSR_DMW[csr_idx - LOONGARCH_CSR_DMW(0)]);
+    case LOONGARCH_CSR_DMW(0) ... LOONGARCH_CSR_DMW(3): csr_base_addr = &(current_env->CSR_DMW[csr_idx - LOONGARCH_CSR_DMW(0)]); break;
     CSR_CPY_HELPER(DBG)
     CSR_CPY_HELPER(DERA)
     CSR_CPY_HELPER(DSAVE)
