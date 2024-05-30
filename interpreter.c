@@ -6,8 +6,6 @@
 
 #if defined(CONFIG_USER_ONLY)
 #include "user.h"
-#else
-#include "serial.h"
 #endif
 
 #include "util.h"
@@ -702,66 +700,17 @@ static bool is_io(hwaddr ha) {
 }
 #endif
 
-#define UART_BASE 0x1fe001e0
-#define UART_END 0x1fe001e7
-#if defined(CONFIG_USER_ONLY)
-static void do_io_st(hwaddr ha, uint64_t data, int size) {}
-static uint64_t do_io_ld(hwaddr ha, int size) { return 0;}
-#else
-static void do_io_st(hwaddr ha, uint64_t data, int size) {
-    switch (ha)
-    {
-    case UART_BASE ... UART_END:
-        serial_ioport_write(NULL, ha - UART_BASE, data, size);
-        break;
-    case 0x1fe002e0:
-            fprintf(stderr, "%c", (char)(data));
-            fflush(stdout);
-        break;
-    
-    case 0x100d0014:
-        fprintf(stderr,"lxy: %s:%d %s poweroff@100d0014 data:%x\n",__FILE__, __LINE__, __FUNCTION__, (int)data);
-        if ((data & 0x3c00) == 0x3c00) {
-            dump_exec_info(current_env, stderr);
-#if defined(CONFIG_PERF)
-            perf_report(current_env, stderr);
-#endif
-            exit(0);
-        }
-        break;
-    default:
-        fprintf(stderr, "do_io_st, pc:%lx, addr:%lx, data:%lx, size:%d\n", current_env->pc, ha, data, size);
-        // lsassert(0);
-    }
-}
-static uint64_t do_io_ld(hwaddr ha, int size) {
-    uint64_t data = 'x';
-    switch (ha)
-    {
-    case UART_BASE ... UART_END:
-        data = serial_ioport_read(NULL, ha - UART_BASE, size);
-        break;
-    case 0x1fe00120:
-            data = 'a';
-        break;
-    case 0x100d0014:
-        data = 0;
-        break;
-    default:
-        fprintf(stderr, "do_io_ld, addr:%lx, size:%d\n", ha, size);
-        break;
-    }
-    return data;
-}
-#endif
-
 static uint64_t add_addr(int64_t base, int64_t disp) {
     return (uint64_t)(base + disp);
 }
 
 static int8_t ld_b(CPULoongArchState *env, uint64_t va) {
     hwaddr ha = load_pa(env, va);
+#if defined(CONFIG_USER_ONLY)
+    return ram_ldb(ha);
+#else
     return is_io(ha) ? do_io_ld(ha, 1) : ram_ldb(ha);
+#endif
 }
 
 static int16_t ld_h(CPULoongArchState *env, uint64_t va) {
@@ -769,7 +718,9 @@ static int16_t ld_h(CPULoongArchState *env, uint64_t va) {
     const int data_size = 2;
     hwaddr ha = load_pa(env, va);
     if (is_io(ha)) {
+#if !defined(CONFIG_USER_ONLY)
         data = do_io_ld(ha, data_size);
+#endif
     } else {
         if (is_aligned(va, data_size)) {
             data = ram_ldh(ha);
@@ -789,7 +740,9 @@ static int32_t ld_w(CPULoongArchState *env, uint64_t va) {
     const int data_size = 4;
     hwaddr ha = load_pa(env, va);
     if (is_io(ha)) {
+#if !defined(CONFIG_USER_ONLY)
         data = do_io_ld(ha, data_size);
+#endif
     } else {
         if (is_aligned(va, data_size)) {
             data = ram_ldw(ha);
@@ -809,7 +762,9 @@ static int64_t ld_d(CPULoongArchState *env, uint64_t va) {
     const int data_size = 8;
     hwaddr ha = load_pa(env, va);
     if (is_io(ha)) {
+#if !defined(CONFIG_USER_ONLY)
         data = do_io_ld(ha, data_size);
+#endif
     } else {
         if (is_aligned(va, data_size)) {
             data = ram_ldd(ha);
@@ -863,14 +818,20 @@ static int64_t ld_d(CPULoongArchState *env, uint64_t va) {
 
 static void st_b(CPULoongArchState *env, uint64_t va, uint8_t data) {
     hwaddr ha = store_pa(env, va);
+#if defined(CONFIG_USER_ONLY)
+    ram_stb(ha, data);
+#else
     is_io(ha) ? do_io_st(ha, data, 1) : ram_stb(ha, data);
+#endif
 }
 
 static void st_h(CPULoongArchState *env, uint64_t va, uint16_t data) {
     const int data_size = 2;
     hwaddr ha = store_pa(env, va);
     if (is_io(ha)) {
+#if !defined(CONFIG_USER_ONLY)
         do_io_st(ha, data, data_size);
+#endif
     } else {
         if (is_aligned(va, data_size)) {
             ram_sth(ha, data);
@@ -887,7 +848,9 @@ static void st_w(CPULoongArchState *env, uint64_t va, uint32_t data) {
     const int data_size = 4;
     hwaddr ha = store_pa(env, va);
     if (is_io(ha)) {
+#if !defined(CONFIG_USER_ONLY)
         do_io_st(ha, data, data_size);
+#endif
     } else {
         if (is_aligned(va, data_size)) {
             ram_stw(ha, data);
@@ -904,7 +867,9 @@ static void st_d(CPULoongArchState *env, uint64_t va, uint64_t data) {
     const int data_size = 8;
     hwaddr ha = store_pa(env, va);
     if (is_io(ha)) {
+#if !defined(CONFIG_USER_ONLY)
         do_io_st(ha, data, data_size);
+#endif
     } else {
         if (is_aligned(va, data_size)) {
             ram_std(ha, data);

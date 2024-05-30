@@ -38,7 +38,7 @@ USER_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  sof
 USER_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_user.o,$(USER_SOURCES)))
 USER_DEPS := $(USER_OBJS:.o=.d)
 
-KERNEL_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c  tlb_helper.c cpu_helper.c vec_helper.c tcg-runtime-gvec.c serial.c ${GDB_SOURCES} debug_cli.c cpu.c
+KERNEL_SOURCES := fpu_helper.c  host-utils.c  int128.c  interpreter.c  main.c  softfloat.c  tlb_helper.c cpu_helper.c vec_helper.c tcg-runtime-gvec.c serial.c serial_plus.c ${GDB_SOURCES} debug_cli.c cpu.c fifo.c
 KERNEL_OBJS := $(addprefix $(BUILD_DIR)/, $(patsubst %.c,%_kernel.o,$(KERNEL_SOURCES)))
 KERNEL_DEPS := $(KERNEL_OBJS:.o=.d)
 

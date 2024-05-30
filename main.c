@@ -19,11 +19,21 @@
 #endif
 #if defined(CONFIG_USER_ONLY)
 #include "user.h"
+#else
+#include "irq.h"
+#include "serial.h"
+#include "serial_plus.h"
 #endif
 
 bool new_abi;
 bool determined;
 bool hw_ptw;
+bool serial_plus;
+#if !defined(CONFIG_USER_ONLY)
+SerialState *ss;
+timer_t serial_timerid;
+volatile sig_atomic_t serial_timer_int;
+#endif
 __thread CPULoongArchState *current_env;
 
 int gdbserver = 0;
@@ -62,6 +72,16 @@ static void sigaction_entry_timer(int signal, siginfo_t *si, void *arg) {
     }
 }
 
+static void sigaction_entry_serial_timer(int signal, siginfo_t *si, void *arg) {
+    timer_t id = *((timer_t*)si->si_value.sival_ptr);
+    // printf("Caught signal %d,id=%lx -- ", signal,(long)id);
+    if (id==serial_timerid) {
+        qemu_log_mask(CPU_LOG_TIMER, "SERIAL TIMER alarmed, icount:%ld\n", current_env->icount);
+        serial_timer_int = true;
+    } else {
+        fprintf(stderr, "TIMER, it's somebody else!\n");
+    }
+}
 static void kernel_setup_signal(void) {
     struct sigaction sa;
 
@@ -786,6 +806,11 @@ int exec_env(CPULoongArchState *env) {
                         }
                     }
                 }
+                // always false when disable serial_plus
+                if (unlikely(serial_timer_int)) {
+                    serial_timer_int = false;
+                    serial_check_io(ss);
+                }
 #endif
                 if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) && (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS) & FIELD_EX64(env->CSR_ECFG, CSR_ECFG, LIE))) {
                     cs->exception_index = EXCCODE_INT;
@@ -954,6 +979,61 @@ void handle_logmask(const char* str) {
         }
     };
 }
+#if !defined(CONFIG_USER_ONLY)
+void do_io_st(hwaddr ha, uint64_t data, int size) {
+    switch (ha)
+    {
+    case UART_BASE ... UART_END:
+        if (serial_plus) {
+            serial_plus_ioport_write(ss, ha - UART_BASE, data, size);
+        } else {
+            serial_ioport_write(NULL, ha - UART_BASE, data, size);
+        }
+        break;
+    case 0x1fe002e0:
+            fprintf(stderr, "%c", (char)(data));
+            fflush(stdout);
+        break;
+
+    case 0x100d0014:
+        fprintf(stderr,"lxy: %s:%d %s poweroff@100d0014 data:%x\n",__FILE__, __LINE__, __FUNCTION__, (int)data);
+        if ((data & 0x3c00) == 0x3c00) {
+            dump_exec_info(current_env, stderr);
+#if defined(CONFIG_PERF)
+            perf_report(current_env, stderr);
+#endif
+            exit(0);
+        }
+        break;
+    default:
+        fprintf(stderr, "do_io_st, pc:%lx, addr:%lx, data:%lx, size:%d\n", current_env->pc, ha, data, size);
+        // lsassert(0);
+    }
+}
+uint64_t do_io_ld(hwaddr ha, int size) {
+    uint64_t data = 'x';
+    switch (ha)
+    {
+    case UART_BASE ... UART_END:
+        if (serial_plus) {
+            data = serial_plus_ioport_read(ss, ha - UART_BASE, size);
+        } else {
+            data = serial_ioport_read(NULL, ha - UART_BASE, size);
+        }
+        break;
+    case 0x1fe00120:
+            data = 'a';
+        break;
+    case 0x100d0014:
+        data = 0;
+        break;
+    default:
+        fprintf(stderr, "do_io_ld, addr:%lx, size:%d\n", ha, size);
+        break;
+    }
+    return data;
+}
+#endif
 
 #ifndef CONFIG_DIFF
 
@@ -963,7 +1043,7 @@ int main(int argc, char** argv, char **envp) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:nk:d:D:gzw")) != -1) {
+    while ((c = getopt(argc, argv, "+m:nk:d:D:gzws")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -992,6 +1072,9 @@ int main(int argc, char** argv, char **envp) {
                 break;
             case 'w':
                 hw_ptw = 1;
+                break;
+            case 's':
+                serial_plus = 1;
                 break;
             case '?':
                 usage();
@@ -1065,6 +1148,30 @@ int main(int argc, char** argv, char **envp) {
     env->timer_counter = INT64_MAX;
 #ifndef CONFIG_USER_ONLY
     env->timerid = timerid;
+    if (serial_plus) {
+        qemu_irq irq = qemu_allocate_irq(loongarch_cpu_set_irq, (void*)env, 7);
+        ss = simple_serial_init(0x1fe001e0, irq, 115200);
+
+        struct sigevent sev;
+        sev.sigev_notify = SIGEV_SIGNAL;
+        sev.sigev_signo = SIGRTMIN + 1;
+        sev.sigev_value.sival_ptr = &serial_timerid;
+        lsassert (timer_create(CLOCK_MONOTONIC, &sev, &serial_timerid) == 0);
+
+        struct sigaction sa;
+        memset(&sa, 0, sizeof(struct sigaction));
+        sigemptyset(&sa.sa_mask);
+        sa.sa_sigaction = sigaction_entry_serial_timer;
+        sa.sa_flags     = SA_SIGINFO;
+        lsassert (sigaction(SIGRTMIN + 1, &sa, NULL) == 0);
+
+        struct itimerspec its;
+        its.it_value.tv_sec = 0;
+        its.it_value.tv_nsec = 5000000;
+        its.it_interval.tv_sec = 0;
+        its.it_interval.tv_nsec = 5000000;
+        lsassert(timer_settime(serial_timerid, 0, &its, NULL) == 0);
+    }
 #endif
     env->pc = entry_addr;
 

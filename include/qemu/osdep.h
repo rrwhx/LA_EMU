@@ -41,6 +41,9 @@ typedef struct Error Error;
 #define G_GNUC_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #define g_assert_not_reached abort
 #define g_assert assert
+#define g_new(type, num) (type*)malloc(sizeof(type) * num);
+#define g_free(ptr) free(ptr);
+#define guint unsigned int
 #include <float.h>
 
 /*
