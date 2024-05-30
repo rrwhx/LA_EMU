@@ -2331,8 +2331,8 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
             sleep(1);
         }
     }
-    env->pc += 4;
 #endif
+    env->pc += 4;
     return true;
 }
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}
