@@ -702,7 +702,11 @@ void helper_ertn(CPULoongArchState *env)
     env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, PLV, csr_pplv);
     env->CSR_CRMD = FIELD_DP64(env->CSR_CRMD, CSR_CRMD, IE, csr_pie);
 
-    env->lladdr = 1;
+    if (FIELD_EX64(env->CSR_LLBCTL, CSR_LLBCTL, KLO) != 1) {
+        env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB, 0);
+        env->lladdr = 1;
+    }
+    env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, KLO, 0);
 }
 
 void helper_idle(CPULoongArchState *env)

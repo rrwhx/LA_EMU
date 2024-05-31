@@ -53,9 +53,13 @@ static inline long long la_get_tval(CPULoongArchState *env){
         } else {lsassert(0);};                                                                                        \
     } while (0)
 #endif
-#define __NOT_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return true;} while(0);
+#ifdef CONFIG_DIFF
+#define __NOT_IMPLEMENTED__ __NOT_IMPLEMENTED_EXIT__
+#else
+#define __NOT_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
+#endif
 #define __NOT_CORRECTED_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);} while(0);
-#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(0); return false;} while(0);
+#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(1); return false;} while(0);
 
 #define DisasContext CPULoongArchState
 #define ctx env
@@ -1125,12 +1129,14 @@ static bool trans_ll_w(CPULoongArchState *env, arg_ll_w *a) {
     env->gpr[a->rd] = ram_ldw(ha);
     env->lladdr = ha;
     env->llval = env->gpr[a->rd];
+    env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB, 1);
     env->pc += 4;
     return true;
 }
 static bool trans_sc_w(CPULoongArchState *env, arg_sc_w *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    if (env->lladdr == ha && env->llval == ram_ldw(ha)) {
+    if (FIELD_EX64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB) &&
+        env->lladdr == ha && env->llval == ram_ldw(ha)) {
         ram_stw(ha, env->gpr[a->rd]);
         env->gpr[a->rd] = 1;
     } else {
@@ -1144,12 +1150,14 @@ static bool trans_ll_d(CPULoongArchState *env, arg_ll_d *a) {
     env->gpr[a->rd] = ram_ldd(ha);
     env->lladdr = ha;
     env->llval = env->gpr[a->rd];
+    env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB, 1);
     env->pc += 4;
     return true;
 }
 static bool trans_sc_d(CPULoongArchState *env, arg_sc_d *a) {
     hwaddr ha = store_pa(env, env->gpr[a->rj] + a->imm);
-    if (env->lladdr == ha && env->llval == ram_ldd(ha)) {
+    if (FIELD_EX64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB) &&
+        env->lladdr == ha && env->llval == ram_ldd(ha)) {
         ram_std(ha, env->gpr[a->rd]);
         env->gpr[a->rd] = 1;
     } else {
@@ -2170,14 +2178,19 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
         case LOONGARCH_CSR_TVAL           :old_v = env->CSR_TVAL; env->CSR_TVAL = mask_write(env->CSR_TVAL, new_v, mask); break;
         case LOONGARCH_CSR_CNTC           :old_v = env->CSR_CNTC; env->CSR_CNTC = mask_write(env->CSR_CNTC, new_v, mask); break;
         case LOONGARCH_CSR_TICLR          :old_v = 0;
-#ifndef CONFIG_DIFF
             if (new_v & mask & 1) {
                 env->timer_int = 0;
                 loongarch_cpu_set_irq(env, IRQ_TIMER, 0);
             }
-#endif
         break;
-        case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL; env->CSR_LLBCTL = mask_write(env->CSR_LLBCTL, new_v, mask); break;
+        case LOONGARCH_CSR_LLBCTL         :old_v = env->CSR_LLBCTL;
+            if (new_v & mask & R_CSR_LLBCTL_WCLLB_MASK) {
+                env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB, 0);
+            }
+            if (mask & R_CSR_LLBCTL_KLO_MASK) {
+                env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, KLO, (new_v & R_CSR_LLBCTL_KLO_MASK) >> R_CSR_LLBCTL_KLO_SHIFT);
+            }
+        break;
         case LOONGARCH_CSR_IMPCTL1        :old_v = env->CSR_IMPCTL1; env->CSR_IMPCTL1 = mask_write(env->CSR_IMPCTL1, new_v, mask); break;
         case LOONGARCH_CSR_IMPCTL2        :old_v = env->CSR_IMPCTL2; env->CSR_IMPCTL2 = mask_write(env->CSR_IMPCTL2, new_v, mask); break;
         case LOONGARCH_CSR_TLBRENTRY      :old_v = env->CSR_TLBRENTRY; env->CSR_TLBRENTRY = mask_write(env->CSR_TLBRENTRY, new_v, mask); break;
@@ -2329,8 +2342,8 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
             sleep(1);
         }
     }
-    env->pc += 4;
 #endif
+    env->pc += 4;
     return true;
 }
 static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *a) {__NOT_IMPLEMENTED__}
