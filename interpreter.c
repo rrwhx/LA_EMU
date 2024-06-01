@@ -2303,9 +2303,8 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *a) {
     }
     // fprintf(stderr, "NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);
     if (!determined) {
-        while (!env->timer_int && !loongarch_cpu_has_irq(env)) {
+        while (loongarch_cpu_check_irq(env), !loongarch_cpu_has_irq(env)) {
             sleep(1);
-            loongarch_cpu_check_irq(env);
         }
     }
 #endif

@@ -784,35 +784,9 @@ int exec_env(CPULoongArchState *env) {
 
 #if !defined (CONFIG_USER_ONLY)
 #if !defined (CONFIG_DIFF)
-                if (determined) {
-                    env->timer_counter -= (env->CSR_TCFG & CONSTANT_TIMER_ENABLE);
-                    if (env->timer_counter == 0) {
-                        env->timer_counter = INT64_MAX;
-                        loongarch_cpu_set_irq(env, IRQ_TIMER, 1);
-                        if (FIELD_EX64(env->CSR_TCFG, CSR_TCFG, PERIODIC)) {
-                            env->timer_counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) / TIME_SCALE;
-                        } else {
-                            env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
-                        }
-                    }
-                } else {
-                    if (env->timer_int) {
-                        env->timer_int = false;
-                        loongarch_cpu_set_irq(env, IRQ_TIMER, 1);
-                        if (FIELD_EX64(env->CSR_TCFG, CSR_TCFG, PERIODIC)) {
-                            cpu_settimer(env, env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK);
-                        } else {
-                            env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
-                        }
-                    }
-                }
-                // always false when disable serial_plus
-                if (unlikely(serial_timer_int)) {
-                    serial_timer_int = false;
-                    serial_check_io(ss);
-                }
+                loongarch_cpu_check_irq(env);
 #endif
-                if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) && (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS) & FIELD_EX64(env->CSR_ECFG, CSR_ECFG, LIE))) {
+                if (unlikely(loongarch_cpu_has_irq(env))) {
                     cs->exception_index = EXCCODE_INT;
                     loongarch_cpu_do_interrupt(cs);
                 }
@@ -1035,6 +1009,29 @@ uint64_t do_io_ld(hwaddr ha, int size) {
 }
 
 void loongarch_cpu_check_irq(CPULoongArchState *env) {
+    if (determined) {
+        env->timer_counter -= (env->CSR_TCFG & CONSTANT_TIMER_ENABLE);
+        if (env->timer_counter == 0) {
+            env->timer_counter = INT64_MAX;
+            loongarch_cpu_set_irq(env, IRQ_TIMER, 1);
+            if (FIELD_EX64(env->CSR_TCFG, CSR_TCFG, PERIODIC)) {
+                env->timer_counter = (env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK) / TIME_SCALE;
+            } else {
+                env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
+            }
+        }
+    } else {
+        if (unlikely(env->timer_int)) {
+            env->timer_int = false;
+            loongarch_cpu_set_irq(env, IRQ_TIMER, 1);
+            if (FIELD_EX64(env->CSR_TCFG, CSR_TCFG, PERIODIC)) {
+                cpu_settimer(env, env->CSR_TCFG & CONSTANT_TIMER_TICK_MASK);
+            } else {
+                env->CSR_TCFG = FIELD_DP64(env->CSR_TCFG, CSR_TCFG, EN, 0);
+            }
+        }
+    }
+    // always false when disable serial_plus
     if (unlikely(serial_timer_int)) {
         serial_timer_int = false;
         serial_check_io(ss);
