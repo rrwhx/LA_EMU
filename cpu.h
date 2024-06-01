@@ -797,5 +797,8 @@ void get_dir_base_width(CPULoongArchState *env, uint64_t *dir_base,
 #if !defined(CONFIG_USER_ONLY)
 void do_io_st(hwaddr ha, uint64_t data, int size);
 uint64_t do_io_ld(hwaddr ha, int size);
+
+void loongarch_cpu_check_irq(CPULoongArchState *env);
+bool loongarch_cpu_has_irq(CPULoongArchState *env);
 #endif
 #endif /* LOONGARCH_CPU_H */

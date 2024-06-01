@@ -1033,6 +1033,17 @@ uint64_t do_io_ld(hwaddr ha, int size) {
     }
     return data;
 }
+
+void loongarch_cpu_check_irq(CPULoongArchState *env) {
+    if (unlikely(serial_timer_int)) {
+        serial_timer_int = false;
+        serial_check_io(ss);
+    }
+}
+
+bool loongarch_cpu_has_irq(CPULoongArchState *env) {
+    return FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) && (FIELD_EX64(env->CSR_ESTAT, CSR_ESTAT, IS) & FIELD_EX64(env->CSR_ECFG, CSR_ECFG, LIE));
+}
 #endif
 
 #ifndef CONFIG_DIFF
