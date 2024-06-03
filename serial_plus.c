@@ -266,9 +266,17 @@ static void serial_xmit(SerialState *s)
             /* in loopback mode, say that we just received a char */
             serial_receive1(s, &s->tsr, 1);
         } else {
-            int r = write(STDOUT_FILENO, &s->tsr, 1);
-            if (r != 1) {
-                fprintf(stderr, "serial: %s:%d %s write failed\n", __FILE__,__LINE__,__func__);
+            while (true) {
+                int r = write(STDOUT_FILENO, &s->tsr, 1);
+                if (r != 1) {
+                    if (errno == EINTR) {
+                        continue;
+                    } else {
+                        fprintf(stderr, "serial: %s:%d %s write failed %d %s\n", __FILE__,__LINE__,__func__, errno, strerror(errno));
+                        break;
+                    }
+                }
+                break;
             }
             // int rc = qemu_chr_fe_write(&s->chr, &s->tsr, 1);
             // if ((rc == 0 ||
