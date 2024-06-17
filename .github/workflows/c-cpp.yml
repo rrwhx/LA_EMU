@@ -13,15 +13,32 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq clang
+
     - name: make
-      run: make clean && make
+      run: make clean && make -j`nproc`
     - name: make debug
-      run: make clean && make DEBUG=1
+      run: make clean && make -j`nproc` DEBUG=1
     - name: make gdb
-      run: make clean && make GDB=1
+      run: make clean && make -j`nproc` GDB=1
     - name: make cli
-      run: make clean && make CLI=1
+      run: make clean && make -j`nproc` CLI=1
     - name: make diff
-      run: make clean && make DIFF=1
+      run: make clean && make -j`nproc` DIFF=1
     - name: make perf
-      run: make clean && make PERF=1
+      run: make clean && make -j`nproc` PERF=1
+
+    - name: make
+      run: make clean && make -j`nproc` CC=clang
+    - name: make debug
+      run: make clean && make -j`nproc` CC=clang DEBUG=1
+    - name: make gdb
+      run: make clean && make -j`nproc` CC=clang GDB=1
+    - name: make cli
+      run: make clean && make -j`nproc` CC=clang CLI=1
+    - name: make diff
+      run: make clean && make -j`nproc` CC=clang DIFF=1
+    - name: make perf
+      run: make clean && make -j`nproc` CC=clang PERF=1
