@@ -195,7 +195,7 @@ static void serial_update_irq(SerialState *s)
 static void serial_update_msl(SerialState *s)
 {
     uint8_t omsr;
-    int flags = 0;
+    __attribute__((unused)) int flags = 0;
 
     // timer_del(s->modem_status_poll);
 
@@ -334,7 +334,7 @@ static void serial_write_fcr(SerialState *s, uint8_t val)
 
 static void serial_update_tiocm(SerialState *s)
 {
-    int flags = 0;
+    __attribute__((unused)) int flags = 0;
 
     // qemu_chr_fe_ioctl(&s->chr, CHR_IOCTL_SERIAL_GET_TIOCM, &flags);
 

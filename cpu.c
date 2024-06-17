@@ -39,7 +39,6 @@ const char *const loongarch_f_alias[32] =
 
 
 const char* const csrnames[LOONGARCH_CSR_MAXADDR + 1] = {
-    [0 ... LOONGARCH_CSR_MAXADDR] = NULL,
     CSRNAME_DECL(CRMD),
     CSRNAME_DECL(PRMD),
     CSRNAME_DECL(EUEN),

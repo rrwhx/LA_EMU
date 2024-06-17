@@ -12,6 +12,7 @@
 
 #include <stdalign.h>
 
+#ifndef CONFIG_DIFF
 static inline long long la_get_tval(CPULoongArchState *env){
     if (determined) {
         return current_env->icount / TIME_SCALE;
@@ -19,6 +20,7 @@ static inline long long la_get_tval(CPULoongArchState *env){
         return nano_second() / TIMER_PERIOD;
     }
 }
+#endif
 
 #ifndef CONFIG_USER_ONLY
 
