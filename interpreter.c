@@ -1367,10 +1367,7 @@ static const unsigned long crc_table[256] =
     0x2d02ef8dUL
 };
 
-static unsigned long crc32(crc, buf, len)
-    uint32_t crc;
-    const unsigned char *buf;
-    size_t len;
+static unsigned long crc32(uint32_t crc, const unsigned char *buf, size_t len)
 {
     if (buf == NULL) return 0UL;
 

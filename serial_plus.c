@@ -1060,9 +1060,6 @@ SerialState *simple_serial_restore(int base, qemu_irq irq, int baudbase, const c
 }
 
 void serial_check_io(SerialState *s) {
-    static int n;
-    n ++;
-    // DPRINTF("serial_check_io, %d\n", n);
     while (serial_can_receive(s)) {
         uint8_t c;
 		int cnt = read(s->infd, &c, 1);
