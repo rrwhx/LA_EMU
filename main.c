@@ -260,7 +260,9 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
     }
 
 fail:
-    free(phdr);
+    if (phdr) {
+        free(phdr);
+    }
     close(fd);
     return ret;
 }
@@ -433,7 +435,9 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
     }
 
 fail:
-    free(phdr);
+    if (phdr) {
+        free(phdr);
+    }
     close(fd);
     return ret;
 }
