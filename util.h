@@ -87,8 +87,6 @@ get_instret(void) {
     return r;
 }
 
-#else
-    #warning "no intrin.h support"
 #endif
 
 
