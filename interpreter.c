@@ -594,8 +594,16 @@ static bool trans_bitrev_8b(CPULoongArchState *env, arg_bitrev_8b *restrict a) {
     env->pc += 4;
     return true;
 }
-static bool trans_bitrev_w(CPULoongArchState *env, arg_bitrev_w *restrict a) {__NOT_IMPLEMENTED__}
-static bool trans_bitrev_d(CPULoongArchState *env, arg_bitrev_d *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_bitrev_w(CPULoongArchState *env, arg_bitrev_w *restrict a) {
+    gen_set_gpr(env, a->rd, revbit32(env->gpr[a->rj]), EXT_SIGN);
+    env->pc += 4;
+    return true;
+}
+static bool trans_bitrev_d(CPULoongArchState *env, arg_bitrev_d *restrict a) {
+    gen_set_gpr(env, a->rd, revbit64(env->gpr[a->rj]), EXT_NONE);
+    env->pc += 4;
+    return true;
+}
 static bool trans_bytepick_w(CPULoongArchState *env, arg_bytepick_w *restrict a) {
     uint64_t t = (env->gpr[a->rk] << 32) | (uint32_t)env->gpr[a->rj];
     env->gpr[a->rd] = (int64_t)(int32_t)(t >> (32 - a->sa * 8));
