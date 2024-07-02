@@ -574,8 +574,26 @@ static bool trans_revh_d(CPULoongArchState *env, arg_revh_d *restrict a) {
     env->pc += 4;
     return true;
 }
-static bool trans_bitrev_4b(CPULoongArchState *env, arg_bitrev_4b *restrict a) {__NOT_IMPLEMENTED__}
-static bool trans_bitrev_8b(CPULoongArchState *env, arg_bitrev_8b *restrict a) {__NOT_IMPLEMENTED__}
+target_ulong helper_bitswap(target_ulong v)
+{
+    v = ((v >> 1) & (target_ulong)0x5555555555555555ULL) |
+        ((v & (target_ulong)0x5555555555555555ULL) << 1);
+    v = ((v >> 2) & (target_ulong)0x3333333333333333ULL) |
+        ((v & (target_ulong)0x3333333333333333ULL) << 2);
+    v = ((v >> 4) & (target_ulong)0x0F0F0F0F0F0F0F0FULL) |
+        ((v & (target_ulong)0x0F0F0F0F0F0F0F0FULL) << 4);
+    return v;
+}
+static bool trans_bitrev_4b(CPULoongArchState *env, arg_bitrev_4b *restrict a) {
+    gen_set_gpr(env, a->rd, helper_bitswap(env->gpr[a->rj]), EXT_SIGN);
+    env->pc += 4;
+    return true;
+}
+static bool trans_bitrev_8b(CPULoongArchState *env, arg_bitrev_8b *restrict a) {
+    gen_set_gpr(env, a->rd, helper_bitswap(env->gpr[a->rj]), EXT_NONE);
+    env->pc += 4;
+    return true;
+}
 static bool trans_bitrev_w(CPULoongArchState *env, arg_bitrev_w *restrict a) {__NOT_IMPLEMENTED__}
 static bool trans_bitrev_d(CPULoongArchState *env, arg_bitrev_d *restrict a) {__NOT_IMPLEMENTED__}
 static bool trans_bytepick_w(CPULoongArchState *env, arg_bytepick_w *restrict a) {
