@@ -1504,8 +1504,22 @@ static bool trans_syscall(CPULoongArchState *env, arg_syscall *restrict a) {
 #endif
     return true;
 }
-static bool trans_asrtle_d(CPULoongArchState *env, arg_asrtle_d *restrict a) {__NOT_IMPLEMENTED__}
-static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_asrtle_d(CPULoongArchState *env, arg_asrtle_d *restrict a) {
+    if (env->gpr[a->rj] > env->gpr[a->rk]) {
+        env->CSR_BADV = env->gpr[a->rj];
+        do_raise_exception(env, EXCCODE_BCE, 0);
+    }
+    env->pc += 4;
+    return true;
+}
+static bool trans_asrtgt_d(CPULoongArchState *env, arg_asrtgt_d *restrict a) {
+    if (env->gpr[a->rj] <= env->gpr[a->rk]) {
+        env->CSR_BADV = env->gpr[a->rj];
+        do_raise_exception(env, EXCCODE_BCE, 0);
+    }
+    env->pc += 4;
+    return true;
+}
 static bool trans_rdtimel_w(CPULoongArchState *env, arg_rdtimel_w *restrict a) {
 #ifndef CONFIG_DIFF
     long long tval = la_get_tval(env);
