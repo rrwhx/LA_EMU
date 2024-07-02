@@ -550,7 +550,20 @@ static bool trans_revb_4h(CPULoongArchState *env, arg_revb_4h *restrict a) {
     env->pc += 4;
     return true;
 }
-static bool trans_revb_2w(CPULoongArchState *env, arg_revb_2w *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_revb_2w(CPULoongArchState *env, arg_revb_2w *restrict a) {
+    uint64_t rj = env->gpr[a->rj];
+    env->gpr[a->rd] =
+        ((rj & 0xFF00000000000000u) >> 24u) |
+        ((rj & 0x00FF000000000000u) >>  8u) |
+        ((rj & 0x0000FF0000000000u) <<  8u) |
+        ((rj & 0x000000FF00000000u) << 24u) |
+        ((rj & 0x00000000FF000000u) >> 24u) |
+        ((rj & 0x0000000000FF0000u) >>  8u) |
+        ((rj & 0x000000000000FF00u) <<  8u) |
+        ((rj & 0x00000000000000FFu) << 24u);
+    env->pc += 4;
+    return true;
+}
 static bool trans_revb_d(CPULoongArchState *env, arg_revb_d *restrict a) {
     uint64_t rj = env->gpr[a->rj];
     env->gpr[a->rd] =
@@ -565,7 +578,16 @@ static bool trans_revb_d(CPULoongArchState *env, arg_revb_d *restrict a) {
     env->pc += 4;
     return true;
 }
-static bool trans_revh_2w(CPULoongArchState *env, arg_revh_2w *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_revh_2w(CPULoongArchState *env, arg_revh_2w *restrict a) {
+    uint64_t rj = env->gpr[a->rj];
+    env->gpr[a->rd] =
+        ((rj & 0xFFFF000000000000u) >> 16u) |
+        ((rj & 0x0000FFFF00000000u) << 16u) |
+        ((rj & 0x00000000FFFF0000u) >> 16u) |
+        ((rj & 0x000000000000FFFFu) << 16u);
+    env->pc += 4;
+    return true;
+}
 static bool trans_revh_d(CPULoongArchState *env, arg_revh_d *restrict a) {
     uint64_t mask = 0x0000FFFF0000FFFFULL;
     uint64_t rj = env->gpr[a->rj];
