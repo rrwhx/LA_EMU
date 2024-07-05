@@ -49,7 +49,7 @@ const debug_cmd debugcmds[] = {
     {'q', "quit", debug_handle_quit, "exit LA_EMU"},
     {'b', "break", debug_handle_break, "use 'b 0x1c' to set breakpoint at pc=0x1c"},
     {'d', "delete", debug_handle_delete, "use 'd 1' to delete breakpoint 1, use 'd' to delete all breakpoints"},
-    {'i', "info", debug_handle_info, "use 'i r' to show all gpr, use 'i fpr' to show all fpr, use 'i csr' to show all csr, use 'i b' to show all breakpoints"},
+    {'i', "info", debug_handle_info, "'i r' show gpr, 'i fpr' show fpr, 'i csr' show csr, 'i b' show breakpoints, 'i tlb' show valid tlb entries"},
     {'s', "si", debug_handle_singlestep, "use 's n' to execute n insts, use 's' to execute 1 insts"},
     {'x', "x", debug_handle_x, "use 'x 0x1c' to display the value of guest addr=0x1c, please RTFSC for other formats"},
     {'h', "help", debug_handle_help, "show this info"},
@@ -186,6 +186,48 @@ static void show_csr(CPULoongArchState *env) {
     fprintf(stderr, "\n");
 }
 
+#ifndef CONFIG_USER_ONLY
+static void show_tlb_entrylo(uint64_t entry, bool is_la64) {
+    bool v = FIELD_EX64(entry, TLBENTRY, V);
+    bool d = FIELD_EX64(entry, TLBENTRY, D);
+    uint32_t plv = FIELD_EX64(entry, TLBENTRY, PLV);
+    uint32_t mat = FIELD_EX64(entry, TLBENTRY, MAT);
+    bool nx = FIELD_EX64(entry, TLBENTRY_64, NX);
+    bool nr = FIELD_EX64(entry, TLBENTRY_64, NR);
+    uint32_t rplv = FIELD_EX64(entry, TLBENTRY_64, RPLV);
+    uint64_t ppn = is_la64 ? FIELD_EX64(entry, TLBENTRY_64, PPN) : FIELD_EX64(entry, TLBENTRY_32, PPN);
+    
+    if (is_la64) {
+        fprintf(stderr, "V=%d\tD=%d\tPLV=%d\tMAT=%d\tNX=%d\tNR=%d\tRPLV=%d\tPPN=0x%lx ", v,d,plv,mat,nx,nr,rplv,ppn);
+    } else {
+        fprintf(stderr, "V=%d\tD=%d\tPLV=%d\tMAT=%d\tPPN=0x%lx ", v,d,plv,mat,ppn);
+    }
+}
+
+static void show_tlb(CPULoongArchState *env) {
+    for (int i = 0; i < LOONGARCH_TLB_MAX; i++) {
+        if (!FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, E)) {
+            continue;
+        }
+        uint64_t asid = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, ASID);
+        bool g = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, G);
+        uint64_t vppn = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, VPPN);
+        uint64_t ps = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, PS);
+        bool la64 = is_la64(env);
+        fprintf(stderr, "TLB(%d-bit arch) idx=%d:\tHI.ASID=0x%lx\tHI.G=%d\tHI.VPPN=0X%lx\tHI.PS=0x%lx \t\n\tLO0:\t",
+            is_la64(env) ? 64 : 32, i, asid, g, vppn, ps);
+        show_tlb_entrylo(env->tlb[i].tlb_entry0, la64);
+        fprintf(stderr, "\n\tLO1:\t");
+        show_tlb_entrylo(env->tlb[i].tlb_entry1, la64);
+        fprintf(stderr, "\n");
+    }
+}
+#else
+static void show_tlb(CPULoongArchState *env) {
+    fprintf(stderr, "There is no tlb in USER_ONLY mode\n");
+}
+#endif
+
 static int debug_handle_continue(const char* str) {
     return 1;
 }
@@ -268,6 +310,8 @@ static int debug_handle_info(const char* str) {
         show_csr(current_env);
     } else if (strcmp(buf, "b") == 0) {
         show_breakpoints();
+    } else if (strcmp(buf, "tlb") == 0) {
+        show_tlb(current_env);
     } else {
         return -1;
     }
