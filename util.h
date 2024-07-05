@@ -139,6 +139,7 @@ static inline void qemu_log(const char *fmt, ...)
 #define LOG_PER_THREAD     (1 << 20)
 #define CPU_LOG_TB_VPU     (1 << 21)
 #define CPU_LOG_TIMER      (1 << 22)
+#define CPU_LOG_PTW        (1 << 23)
 
 extern int qemu_loglevel;
 static inline bool qemu_loglevel_mask(int mask)
@@ -152,6 +153,14 @@ static inline bool qemu_loglevel_mask(int mask)
             qemu_log(FMT, ## __VA_ARGS__);              \
         }                                               \
     } while (0)
+
+#define CPU_CHECK_TLB_MHIT  (1 << 0)
+
+extern int check_level;
+static inline bool check_level_mask(int mask)
+{
+    return (check_level & mask) != 0;
+}
 
 
 #if 1

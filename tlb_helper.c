@@ -112,6 +112,14 @@ static void raise_mmu_exception(CPULoongArchState *env, target_ulong address,
         }
         env->CSR_TLBEHI = address & (TARGET_PAGE_MASK << 1);
    }
+
+    // When using ptw, software should only use the invtlb instruction
+    // to invalidate the tlb entry, so hardware is required to maintain
+    // data consistency between the tlb and the page table in memory.
+    if (hw_ptw && cs->exception_index >= EXCCODE_PIL && cs->exception_index <= EXCCODE_PPI) {
+        helper_invtlb_page_asid_or_g(env, env->CSR_ASID, address);
+    }
+
 }
 
 #define invalidate_tlb(...) ;
@@ -170,6 +178,7 @@ static void fill_tlb_entry(CPULoongArchState *env, int index)
     uint64_t lo0, lo1, csr_vppn;
     uint16_t csr_asid;
     uint8_t csr_ps;
+    bool g;
 
     if (FIELD_EX64(env->CSR_TLBRERA, CSR_TLBRERA, ISTLBR)) {
         csr_ps = FIELD_EX64(env->CSR_TLBREHI, CSR_TLBREHI, PS);
@@ -204,6 +213,11 @@ static void fill_tlb_entry(CPULoongArchState *env, int index)
     tlb->tlb_misc = FIELD_DP64(tlb->tlb_misc, TLB_MISC, E, 1);
     csr_asid = FIELD_EX64(env->CSR_ASID, CSR_ASID, ASID);
     tlb->tlb_misc = FIELD_DP64(tlb->tlb_misc, TLB_MISC, ASID, csr_asid);
+
+    g = FIELD_EX64(lo0, TLBENTRY, G);
+    g &= FIELD_EX64(lo1, TLBENTRY, G);
+
+    tlb->tlb_misc = FIELD_DP64(tlb->tlb_misc, TLB_MISC, G, g);
 
     tlb->tlb_entry0 = lo0;
     tlb->tlb_entry1 = lo1;
@@ -515,7 +529,8 @@ bool loongarch_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
 #endif
 
 target_ulong helper_lddir(CPULoongArchState *env, target_ulong base,
-                          target_ulong level, uint32_t mem_idx)
+                          target_ulong level, uint32_t mem_idx,
+                          target_ulong* dir_phys_addr)
 {
     CPUState *cs = env_cpu(env);
     target_ulong badvaddr, index, phys, ret;
@@ -551,12 +566,13 @@ target_ulong helper_lddir(CPULoongArchState *env, target_ulong base,
     get_dir_base_width(env, &dir_base, &dir_width, level);
     index = (badvaddr >> dir_base) & ((1 << dir_width) - 1);
     phys = base | index << shift;
-    ret = ldq_phys(cs->as, phys) & TARGET_PHYS_MASK;
+    *dir_phys_addr = phys;
+    ret = ldq_phys(cs->as, phys & TARGET_PHYS_MASK);
     return ret;
 }
 
 void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
-                  uint32_t mem_idx)
+                  uint32_t mem_idx, target_ulong* pte_phys_addr)
 {
     CPUState *cs = env_cpu(env);
     target_ulong phys, tmp0, ptindex, ptoffset0, ptoffset1, ps, badv;
@@ -572,7 +588,6 @@ void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
      * and the other is the huge page entry,
      * whose bit 6 should be 1.
      */
-    base = base & TARGET_PHYS_MASK;
     if (FIELD_EX64(base, TLBENTRY, HUGE)) {
         /*
          * Gets the huge page level and Gets huge page size.
@@ -612,7 +627,8 @@ void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd,
         ptoffset1 = (ptindex + 1) << shift;
 
         phys = base | (odd ? ptoffset1 : ptoffset0);
-        tmp0 = ldq_phys(cs->as, phys) & TARGET_PHYS_MASK;
+        *pte_phys_addr = phys;
+        tmp0 = ldq_phys(cs->as, phys & TARGET_PHYS_MASK);
         ps = ptbase;
     }
 

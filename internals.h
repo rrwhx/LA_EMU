@@ -44,6 +44,7 @@ enum {
     TLBRET_RI = 5,
     TLBRET_XI = 6,
     TLBRET_PE = 7,
+    TLBRET_PTW_SET_D = 8,
 };
 
 bool loongarch_tlb_search(CPULoongArchState *env, target_ulong vaddr,
