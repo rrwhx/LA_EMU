@@ -10,6 +10,7 @@
 
 #include "util.h"
 #include "qemu/int128.h"
+#include "qemu/compiler.h"
 #include "hw/registerfields.h"
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
@@ -801,4 +802,10 @@ uint64_t do_io_ld(hwaddr ha, int size);
 void loongarch_cpu_check_irq(CPULoongArchState *env);
 bool loongarch_cpu_has_irq(CPULoongArchState *env);
 #endif
+
+#define loongarch_core_initfn(env) glue(loongarch_, glue(__CORE__, _initfn(env)))
+
+void loongarch_la464_initfn(CPULoongArchState* env);
+void loongarch_centaur320_initfn(CPULoongArchState* env);
+
 #endif /* LOONGARCH_CPU_H */

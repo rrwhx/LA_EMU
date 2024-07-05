@@ -23,7 +23,6 @@ extern int64_t singlestep;
 
 extern int exec_env(CPULoongArchState *env);
 extern void cpu_reset(CPUState* cs);
-extern void loongarch_la464_initfn(CPULoongArchState* env);
 
 extern const char* const csrnames[];
 
@@ -52,7 +51,7 @@ void difftest_init(size_t ram_size_bytes)
     CPULoongArchState* env = &cpu->env;
     cs->env = env;
     cpu_reset(cs);
-    loongarch_la464_initfn(env);
+    loongarch_core_initfn(env);
     cpu_clear_tc(env);
     env->timer_counter = INT64_MAX;
 

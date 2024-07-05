@@ -14,9 +14,13 @@ get dynamic link library for difftest
 make DIFF=1 -j
 clean
 make clean
+
+Use CORE to specify the specific core configuration, the default is la464
+make CLI=1 CORE=centaur320 -j
+
 ```
 
-## Usagse
+## Usage
 
 ### User Mode
 - `./build/la_emu_user [options] program [arguments...]`
