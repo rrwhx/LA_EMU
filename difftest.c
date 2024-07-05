@@ -23,6 +23,7 @@ extern int64_t singlestep;
 
 extern int exec_env(CPULoongArchState *env);
 extern void cpu_reset(CPUState* cs);
+extern uint64_t helper_read_csr(CPULoongArchState *env, int csr_index);
 
 extern const char* const csrnames[];
 
@@ -165,7 +166,15 @@ void difftest_fcsr0cpy(uint32_t* dut_buf, bool direction)
 
 void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, uint64_t mask, bool direction)
 {
-    uint64_t* csr_base_addr = 0;
+    uint64_t csr_value;
+
+    if (direction == REF_TO_DUT) {
+        csr_value = helper_read_csr(current_env, csr_idx);
+        *dut_buf = (*dut_buf & ~mask) | (csr_value & mask);
+        return;
+    }
+
+    uint64_t* csr_base_addr = &csr_value;
 
     switch (csr_idx)
     {
@@ -224,15 +233,11 @@ void difftest_csrcpy_idx(int csr_idx, uint64_t* dut_buf, uint64_t mask, bool dir
     CSR_CPY_HELPER(DERA)
     CSR_CPY_HELPER(DSAVE)
     default:
-        lsassertm(false, "LA_EMU does not implement the csr addr=%d", csr_idx);
+        fprintf(stderr, "NOT IMPLEMENTED %s %x\n", __func__, csr_idx);
         break;
     }
 
-    if (direction == DUT_TO_REF) {
-        *csr_base_addr = (*csr_base_addr & ~mask) | (*dut_buf & mask);
-    } else {
-        *dut_buf = (*dut_buf & ~mask) | (*csr_base_addr & mask);
-    }
+    *csr_base_addr = (*csr_base_addr & ~mask) | (*dut_buf & mask);
 
 }
 
