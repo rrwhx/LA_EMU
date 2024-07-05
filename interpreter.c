@@ -2280,12 +2280,14 @@ static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *restrict a) {
 }
 static bool trans_cacop(CPULoongArchState *env, arg_cacop *restrict a) {__NOT_IMPLEMENTED__}
 static bool trans_lddir(CPULoongArchState *env, arg_lddir *restrict a) {
-    env->gpr[a->rd] = helper_lddir(env, env->gpr[a->rj], a->imm, 0);
+    uint64_t dir_phys_addr;
+    env->gpr[a->rd] = helper_lddir(env, env->gpr[a->rj], a->imm, 0, &dir_phys_addr);
     env->pc += 4;
     return true;
 }
 static bool trans_ldpte(CPULoongArchState *env, arg_ldpte *restrict a) {
-    helper_ldpte(env, env->gpr[a->rj], a->imm, 0);
+    uint64_t pte_phys_addr;
+    helper_ldpte(env, env->gpr[a->rj], a->imm, 0, &pte_phys_addr);
     env->pc += 4;
     return true;
 }

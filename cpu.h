@@ -261,6 +261,7 @@ FIELD(CPUCFG2, LBT_ARM, 19, 1)
 FIELD(CPUCFG2, LBT_MIPS, 20, 1)
 FIELD(CPUCFG2, LSPW, 21, 1)
 FIELD(CPUCFG2, LAM, 22, 1)
+FIELD(CPUCFG2, HPTW, 24, 1)
 
 /* cpucfg[3] bits */
 FIELD(CPUCFG3, CCDMA, 0, 1)
@@ -351,9 +352,11 @@ extern const char * const fregnames[32];
 
 /*
  * define the ASID PS E VPPN field of TLB
+ * define the G field of TLB
  */
 FIELD(TLB_MISC, E, 0, 1)
 FIELD(TLB_MISC, ASID, 1, 10)
+FIELD(TLB_MISC, G, 11, 1)
 FIELD(TLB_MISC, VPPN, 13, 35)
 FIELD(TLB_MISC, PS, 48, 6)
 
@@ -694,8 +697,8 @@ static inline target_ulong ldq_phys(void* as, hwaddr addr) {
     return ram_ldd(addr);
 }
 
-target_ulong helper_lddir(CPULoongArchState *env, target_ulong base, target_ulong level, uint32_t mem_idx);
-void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd, uint32_t mem_idx);
+target_ulong helper_lddir(CPULoongArchState *env, target_ulong base, target_ulong level, uint32_t mem_idx, target_ulong* dir_phys_addr);
+void helper_ldpte(CPULoongArchState *env, target_ulong base, target_ulong odd, uint32_t mem_idx, target_ulong* pte_phys_addr);
 
 void helper_tlbsrch(CPULoongArchState *env);
 void helper_tlbrd(CPULoongArchState *env);

@@ -845,6 +845,8 @@ const QEMULogItem qemu_log_items[] = {
       "include VPU registers in the 'cpu' logging" },
     { CPU_LOG_TIMER, "timer",
       "log timer amd timer csr read/write" },
+    { CPU_LOG_PTW, "ptw",
+      "log Page Table Walker" },
     { 0, NULL, NULL },
 };
 
@@ -873,6 +875,46 @@ void handle_logmask(const char* str) {
         }
     };
 }
+
+int check_level;
+typedef struct CheckItem {
+    int mask;
+    const char *name;
+    const char *help;
+} CheckItem;
+
+const CheckItem check_items[] = {
+    { CPU_CHECK_TLB_MHIT, "tlb_mhit",
+      "check tlb multi-hit when refill tlb" },
+    { 0, NULL, NULL },
+};
+
+void handle_checkmask(const char* str) {
+    const CheckItem *item;
+    const char *start = str, *p;
+    while (1) {
+        p = strchr(start, ',');
+        if (!p) {
+            p = start + strlen(start);
+        }
+        for (item = check_items; item->mask != 0; item++) {
+            if (strncmp(start, item->name, p - start) == 0) {
+                check_level |= item->mask;
+                break;
+            }
+        }
+        if (item->mask == 0) {
+            fprintf(stderr, "unable to prase %s\n", start);
+            exit(EXIT_FAILURE);
+        }
+        if (*p) {
+            start = p + 1;
+        } else {
+            break;
+        }
+    };
+}
+
 #if !defined(CONFIG_USER_ONLY)
 void do_io_st(hwaddr ha, uint64_t data, int size) {
     switch (ha)
@@ -971,7 +1013,7 @@ int main(int argc, char** argv, char **envp) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:nk:d:D:gzws")) != -1) {
+    while ((c = getopt(argc, argv, "+m:nk:d:c:D:gzws")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -984,6 +1026,9 @@ int main(int argc, char** argv, char **envp) {
                 break;
             case 'd':
                 handle_logmask(optarg);
+                break;
+            case 'c':
+                handle_checkmask(optarg);
                 break;
             case 'D':
                 handle_logfile(optarg);
