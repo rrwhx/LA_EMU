@@ -22,6 +22,12 @@ ifeq (${PERF},1)
 	CFLAGS += -DCONFIG_PERF
 endif
 
+ifeq (${CORE},)
+	CFLAGS += -D__CORE__=la464
+else
+	CFLAGS += -D__CORE__=$(CORE)
+endif
+
 LDFLAGS = -lm -lrt ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)

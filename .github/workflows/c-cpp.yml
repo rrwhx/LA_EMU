@@ -11,34 +11,19 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+        flags: [ "", "DEBUG=1", "GDB=1", "CLI=1", "DIFF=1", "PERF=1" ]
+        cores: [ "la464", "centaur320" ]
+
     steps:
     - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq clang
 
-    - name: make
-      run: make clean && make -j`nproc`
-    - name: make debug
-      run: make clean && make -j`nproc` DEBUG=1
-    - name: make gdb
-      run: make clean && make -j`nproc` GDB=1
-    - name: make cli
-      run: make clean && make -j`nproc` CLI=1
-    - name: make diff
-      run: make clean && make -j`nproc` DIFF=1
-    - name: make perf
-      run: make clean && make -j`nproc` PERF=1
-
-    - name: make
-      run: make clean && make -j`nproc` CC=clang
-    - name: make debug
-      run: make clean && make -j`nproc` CC=clang DEBUG=1
-    - name: make gdb
-      run: make clean && make -j`nproc` CC=clang GDB=1
-    - name: make cli
-      run: make clean && make -j`nproc` CC=clang CLI=1
-    - name: make diff
-      run: make clean && make -j`nproc` CC=clang DIFF=1
-    - name: make perf
-      run: make clean && make -j`nproc` CC=clang PERF=1
+    - name: Build with ${{ matrix.compiler }}, flags is ${{ matrix.flags }}, core is ${{ matrix.cores }}
+      run: |
+        make clean
+        make -j$(nproc) CC=${{ matrix.compiler }} ${{ matrix.flags }} CORE=${{ matrix.cores }}
