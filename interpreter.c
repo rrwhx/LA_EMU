@@ -288,7 +288,7 @@ static bool trans_mod_w(CPULoongArchState *env, arg_mod_w *restrict a) {
     return true;
 }
 static bool trans_div_wu(CPULoongArchState *env, arg_div_wu *restrict a) {
-    env->gpr[a->rd] = (uint32_t)env->gpr[a->rj] / (uint32_t)env->gpr[a->rk];
+    env->gpr[a->rd] = (int32_t)((uint32_t)env->gpr[a->rj] / (uint32_t)env->gpr[a->rk]);
     env->pc += 4;
     return true;
 }
