@@ -205,17 +205,20 @@ static void show_tlb_entrylo(uint64_t entry, bool is_la64) {
 }
 
 static void show_tlb(CPULoongArchState *env) {
+    uint64_t stlb_ps = FIELD_EX64(env->CSR_STLBPS, CSR_STLBPS, PS);
+    fprintf(stderr, "STLBPS.PS=0x%lx(%dkb basic page size)\n", stlb_ps, 1 << (stlb_ps - 10));
     for (int i = 0; i < LOONGARCH_TLB_MAX; i++) {
         if (!FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, E)) {
             continue;
         }
+        int compare_shift = stlb_ps + 1 - R_TLB_MISC_VPPN_SHIFT;
         uint64_t asid = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, ASID);
         bool g = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, G);
         uint64_t vppn = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, VPPN);
         uint64_t ps = FIELD_EX64(env->tlb[i].tlb_misc, TLB_MISC, PS);
         bool la64 = is_la64(env);
         fprintf(stderr, "TLB(%d-bit arch) idx=%d:\tHI.ASID=0x%lx\tHI.G=%d\tHI.VPPN=0X%lx\tHI.PS=0x%lx \t\n\tLO0:\t",
-            is_la64(env) ? 64 : 32, i, asid, g, vppn, ps);
+            is_la64(env) ? 64 : 32, i, asid, g, (vppn >> compare_shift), ps);
         show_tlb_entrylo(env->tlb[i].tlb_entry0, la64);
         fprintf(stderr, "\n\tLO1:\t");
         show_tlb_entrylo(env->tlb[i].tlb_entry1, la64);
@@ -319,7 +322,7 @@ static int debug_handle_info(const char* str) {
 }
 
 static int debug_handle_singlestep(const char* str) {
-    int r = sscanf(str, "%*s%lx", &singlestep);
+    int r = sscanf(str, "%*s%ld", &singlestep);
     if (r != 1) {
         singlestep = 1;
     }
