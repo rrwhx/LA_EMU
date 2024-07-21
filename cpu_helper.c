@@ -224,7 +224,7 @@ again:
                                         VPPN, extract64(address, 13, 19));
         }
         uint64_t pt_base = ((address >> 63) & 0x1) ? env->CSR_PGDH : env->CSR_PGDL;
-        uint64_t dir_phys_addr, pte0_phys_addr, pte1_phys_addr, huge_phys_addr;
+        uint64_t dir_phys_addr = 0, pte0_phys_addr = 0, pte1_phys_addr = 0, huge_phys_addr = 0;
         bool is_huge = false;
         bool is_odd_page = false;
         for (int level = 4; level >= 1; level--) {
@@ -254,6 +254,10 @@ again:
                 hw_ptw_setVD(&env->CSR_TLBRELO0, pte0_phys_addr, access_type);
             }
         }
+        // Set the V bit in the tlb entry to the value
+        // of the P bit in the page table entry
+        env->CSR_TLBRELO0 = FIELD_DP64(env->CSR_TLBRELO0, TLBENTRY, V, FIELD_EX64(env->CSR_TLBRELO0, TLBENTRY, P));
+        env->CSR_TLBRELO1 = FIELD_DP64(env->CSR_TLBRELO1, TLBENTRY, V, FIELD_EX64(env->CSR_TLBRELO1, TLBENTRY, P));
 
         // Since during the address translation process,
         // when tlb hits but D bit needs to be written,
@@ -268,8 +272,10 @@ again:
         }
 
         if (qemu_loglevel_mask(CPU_LOG_PTW)) {
-            qemu_log("PTW: address=0x%lx, is_odd_page=%d,CSR_TLBREHI=0x%lx,CSR_TLBRELO0=0x%lx,CSR_TLBRELO1=0x%lx\n",
-                address, is_odd_page, env->CSR_TLBREHI, env->CSR_TLBRELO0, env->CSR_TLBRELO1);
+            qemu_log("PTW: address=0x%lx, is_odd_page=%d,is_huge=%d,CSR_TLBREHI=0x%lx,CSR_TLBRELO0=0x%lx,CSR_TLBRELO1=0x%lx,",
+                address, is_odd_page, is_huge, env->CSR_TLBREHI, env->CSR_TLBRELO0, env->CSR_TLBRELO1);
+            qemu_log("pte0_phys_addr=0x%lx,pte1_phys_addr=0x%lx,huge_phys_addr=0x%lx\n",
+                pte0_phys_addr, pte1_phys_addr, huge_phys_addr);
         }
 
         // restore tlbr csr state
