@@ -292,6 +292,7 @@ void loongarch_centaur320_initfn(CPULoongArchState* env) {
     data = FIELD_DP32(data, CPUCFG2, LLFTP_VER, 1);
     data = FIELD_DP32(data, CPUCFG2, LSPW, 1);
     data = FIELD_DP32(data, CPUCFG2, LAM, 1);
+    data = FIELD_DP32(data, CPUCFG2, HPTW, 1);
     env->cpucfg[2] = data;
 
     data = 0;
@@ -347,8 +348,4 @@ void loongarch_centaur320_initfn(CPULoongArchState* env) {
     env->CSR_PRCFG3 = FIELD_DP64(env->CSR_PRCFG3, CSR_PRCFG3, MTLB_ENTRY, 0x3f); // 64 entries
 
     env->CSR_STLBPS = 0xe; // 16KB page size
-
-    hw_ptw = 1;
-
-    fprintf(stderr, "warn:auto enable hardware page table walker in centaur320 core config\n");
 }

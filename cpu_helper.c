@@ -48,7 +48,7 @@ static int loongarch_map_tlb_entry(CPULoongArchState *env, hwaddr *physical,
     tlb_ppn = tlb_ppn & ~(((0x1UL << (tlb_ps - 12)) -1));
 
     /* Check hw_ptw related issue */
-    if (hw_ptw && access_type == MMU_DATA_STORE && tlb_w && !tlb_d) {
+    if (enable_hw_ptw(env) && access_type == MMU_DATA_STORE && tlb_w && !tlb_d) {
         return TLBRET_PTW_SET_D;
     }
 
@@ -204,7 +204,7 @@ again:
         }
     }
 
-    if (hw_ptw && (!match || (match && tlbret == TLBRET_PTW_SET_D)))
+    if (enable_hw_ptw(env) && (!match || (match && tlbret == TLBRET_PTW_SET_D)))
     {
         // save tlbr csr state
         uint64_t CSR_TLBRERA, CSR_TLBRBADV, CSR_TLBREHI, CSR_TLBRELO0, CSR_TLBRELO1;

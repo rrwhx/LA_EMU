@@ -163,6 +163,7 @@ void usage(void) {
     fprintf(stderr, "-D Log file\n");
     fprintf(stderr, "-z Determined events\n");
     fprintf(stderr, "-g Enable gdbserver\n");
+    fprintf(stderr, "-w Force enable hardware page table walker\n");
     exit(EXIT_SUCCESS);
 }
 

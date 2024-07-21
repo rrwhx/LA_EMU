@@ -116,7 +116,7 @@ static void raise_mmu_exception(CPULoongArchState *env, target_ulong address,
     // When using ptw, software should only use the invtlb instruction
     // to invalidate the tlb entry, so hardware is required to maintain
     // data consistency between the tlb and the page table in memory.
-    if (hw_ptw && cs->exception_index >= EXCCODE_PIL && cs->exception_index <= EXCCODE_PPI) {
+    if (enable_hw_ptw(env) && cs->exception_index >= EXCCODE_PIL && cs->exception_index <= EXCCODE_PPI) {
         helper_invtlb_page_asid_or_g(env, env->CSR_ASID, address);
     }
 
