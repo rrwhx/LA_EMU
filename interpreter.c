@@ -2360,7 +2360,10 @@ static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *restrict a) {
     env->pc += 4;
     return true;
 }
-static bool trans_cacop(CPULoongArchState *env, arg_cacop *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_cacop(CPULoongArchState *env, arg_cacop *restrict a) {
+    env->pc += 4;
+    return true;
+}
 static bool trans_lddir(CPULoongArchState *env, arg_lddir *restrict a) {
     uint64_t dir_phys_addr;
     env->gpr[a->rd] = helper_lddir(env, env->gpr[a->rj], a->imm, 0, &dir_phys_addr);
