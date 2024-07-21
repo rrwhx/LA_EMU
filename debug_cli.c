@@ -22,6 +22,8 @@ extern const char *const loongarch_r_alias[32];
 
 extern const char *const loongarch_f_alias[32];
 
+extern void save_checkpoint(CPULoongArchState *env, char* name);
+
 #ifndef CONFIG_USER_ONLY
 extern char* ram;
 #else
@@ -36,6 +38,7 @@ static int debug_handle_delete(const char* str);
 static int debug_handle_info(const char* str);
 static int debug_handle_singlestep(const char* str);
 static int debug_handle_x(const char* str);
+static int debug_handle_ckpt(const char* str);
 static int debug_handle_help(const char* str);
 
 typedef struct debug_cmd {
@@ -52,6 +55,7 @@ const debug_cmd debugcmds[] = {
     {'i', "info", debug_handle_info, "'i r' show gpr, 'i fpr' show fpr, 'i csr' show csr, 'i b' show breakpoints, 'i tlb' show valid tlb entries"},
     {'s', "si", debug_handle_singlestep, "use 's n' to execute n insts, use 's' to execute 1 insts"},
     {'x', "x", debug_handle_x, "use 'x 0x1c' to display the value of guest addr=0x1c, please RTFSC for other formats"},
+    {'p', "ckpt", debug_handle_ckpt, "use 'ckpt xxx' to dump checkpoint named xxx"},
     {'h', "help", debug_handle_help, "show this info"},
     {0, NULL, NULL},
 };
@@ -327,6 +331,16 @@ static int debug_handle_singlestep(const char* str) {
         singlestep = 1;
     }
     return 1;
+}
+
+static int debug_handle_ckpt(const char* str) {
+    char buf[1024];
+    int r = sscanf(str, "%*s%s", buf);
+    if (r != 1) {
+        return -1;
+    }
+    save_checkpoint(current_env, buf);
+    return 0;
 }
 
 static int debug_handle_help(const char* str) {
