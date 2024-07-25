@@ -15,6 +15,9 @@
 #include "fpu/softfloat-types.h"
 #include "cpu-csr.h"
 
+#if defined(CONFIG_PLUGIN)
+#include "plugin.h"
+#endif
 #define LOONGARCH_CSR_MAXADDR 0x1000
 
 // used for determined emulation time scaling
@@ -817,4 +820,7 @@ static inline bool enable_hw_ptw(CPULoongArchState* env) {
          FIELD_EX64(env->CSR_PWCH, CSR_PWCH, HPTW_EN));
 }
 
+#if defined(CONFIG_PLUGIN)
+extern la_emu_plugin_ops* plugin_ops;
+#endif
 #endif /* LOONGARCH_CPU_H */

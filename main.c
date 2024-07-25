@@ -24,7 +24,15 @@
 #include "serial.h"
 #include "serial_plus.h"
 #endif
+#if defined(CONFIG_PLUGIN)
+#include <dlfcn.h>
+#endif
 
+#if defined(CONFIG_PLUGIN)
+la_emu_plugin_ops* plugin_ops;
+char plugin_name[PATH_MAX];
+char plugin_arg[PATH_MAX];
+#endif
 bool new_abi;
 bool determined;
 bool hw_ptw;
@@ -742,6 +750,11 @@ int exec_env(CPULoongArchState *env) {
                 env->insn = insn;
                 env->prev_pc = env->pc;
 #endif
+#if defined(CONFIG_PLUGIN)
+            if (plugin_ops && plugin_ops->emu_insn_before) {
+                plugin_ops->emu_insn_before(env, env->pc, insn);
+            }
+#endif
                 int r = interpreter(env, insn, ic);
                 if(unlikely(!r)) {
                     qemu_log("ill instruction, pc:%lx insn:%08x\n", env->pc, insn);
@@ -1017,7 +1030,7 @@ int main(int argc, char** argv, char **envp) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:nk:d:c:D:gzws")) != -1) {
+    while ((c = getopt(argc, argv, "+m:nk:d:c:D:gzwsp:")) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -1052,6 +1065,23 @@ int main(int argc, char** argv, char **envp) {
                 break;
             case 's':
                 serial_plus = 1;
+                break;
+            case 'p':{
+#if defined(CONFIG_PLUGIN)
+                char * p = strchr(optarg, ',');
+                if (!p) {
+                    strncpy(plugin_name, optarg, PATH_MAX);
+                } else {
+                    strncpy(plugin_name, optarg, p - optarg);
+                    strncpy(plugin_arg, p + 1, PATH_MAX);
+                }
+                printf("plugin_name:%s\n", plugin_name);
+                printf("plugin_arg:%s\n", plugin_arg);
+#else
+                fprintf(stderr, "please make PLUGIN=1\n");
+                exit(0);
+#endif
+            }
                 break;
             case '?':
                 usage();
@@ -1236,6 +1266,25 @@ int main(int argc, char** argv, char **envp) {
     qemu_log_mask(CPU_LOG_PAGE, "init sp %lx\n", sp);
 #endif
     current_env = env;
+#if defined(CONFIG_PLUGIN)
+    void* plugin_handle = dlopen(plugin_name, RTLD_LAZY);
+    if (!plugin_handle) {
+        fprintf(stderr, "%s\n", dlerror());
+        exit(EXIT_FAILURE);
+    }
+    dlerror();
+
+    la_emu_plugin_install_func_t install_func = dlsym(plugin_handle, "la_emu_plugin_install");
+    char *error;
+    if ((error = dlerror()) != NULL)  {
+        fprintf(stderr, "%s\n", error);
+        exit(EXIT_FAILURE);
+    }
+    plugin_ops = install_func(plugin_arg);
+    if (plugin_ops && plugin_ops->emu_start) {
+        plugin_ops->emu_start();
+    }
+#endif
     if (gdbserver) {
 #if defined(CONFIG_GDB)
 #ifndef CONFIG_USER_ONLY

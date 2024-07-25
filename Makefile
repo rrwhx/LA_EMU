@@ -28,6 +28,10 @@ else
 	CFLAGS += -D__CORE__=$(CORE)
 endif
 
+ifeq (${PLUGIN},1)
+	LDFLAGS += -ldl
+	CFLAGS += -DCONFIG_PLUGIN
+endif
 LDFLAGS = -lm -lrt ${OPT_FLAG}
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)
