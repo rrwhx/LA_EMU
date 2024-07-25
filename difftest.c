@@ -20,6 +20,7 @@
 extern char* ram;
 
 extern int64_t singlestep;
+extern int check_level;
 
 extern int exec_env(CPULoongArchState *env);
 extern void cpu_reset(CPUState* cs);
@@ -59,6 +60,8 @@ void difftest_init(size_t ram_size_bytes)
     current_env = env;
 
     difftest_init_ram(ram_size_bytes);
+
+    check_level |= CPU_CHECK_TLB_MHIT;
 
 }
 

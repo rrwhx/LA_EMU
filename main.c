@@ -44,6 +44,7 @@ extern void handle_debug_cli(CPULoongArchState *env);
 extern void show_register(CPULoongArchState *env);
 extern void show_register_fpr(CPULoongArchState *env);
 extern void set_fetch_breakpoint(int idx, target_long pc);
+extern void restore_checkpoint(CPULoongArchState *env, char* image_dir);
 
 // # define ELF_CLASS  ELFCLASS64
 
@@ -155,7 +156,7 @@ void usage(void) {
 #ifndef CONFIG_USER_ONLY
     fprintf(stderr, "la_emu_kernel -m n[G] -k kernel\n");
     fprintf(stderr, "-m Memory size(kernel mode)\n");
-    fprintf(stderr, "-k Kernel vmlinux(kernel mode)\n");
+    fprintf(stderr, "-k Kernel vmlinux or checkpoint directory(kernel mode)\n");
 #else
     fprintf(stderr, "usage: la_emu_user [-d exec,cpu,page,strace,unimp] [-D logfile] program [arguments...]\n");
 #endif
@@ -163,6 +164,7 @@ void usage(void) {
     fprintf(stderr, "-D Log file\n");
     fprintf(stderr, "-z Determined events\n");
     fprintf(stderr, "-g Enable gdbserver\n");
+    fprintf(stderr, "-w Force enable hardware page table walker\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -578,10 +580,12 @@ static void loongarch_cpu_do_interrupt(CPUState *cs)
         env->CSR_TLBRERA = FIELD_DP64(env->CSR_TLBRERA, CSR_TLBRERA,
                                       PC, (env->pc >> 2));
     } else {
-        env->CSR_ESTAT = FIELD_DP64(env->CSR_ESTAT, CSR_ESTAT, ECODE,
+        if (cause != EXCCODE_INT || (cause == EXCCODE_INT && FIELD_EX64(env->CSR_ECFG, CSR_ECFG, VS) == 0)) {
+            env->CSR_ESTAT = FIELD_DP64(env->CSR_ESTAT, CSR_ESTAT, ECODE,
                                     EXCODE_MCODE(cause));
-        env->CSR_ESTAT = FIELD_DP64(env->CSR_ESTAT, CSR_ESTAT, ESUBCODE,
+            env->CSR_ESTAT = FIELD_DP64(env->CSR_ESTAT, CSR_ESTAT, ESUBCODE,
                                     EXCODE_SUBCODE(cause));
+        }
         env->CSR_PRMD = FIELD_DP64(env->CSR_PRMD, CSR_PRMD, PPLV,
                                    FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV));
         env->CSR_PRMD = FIELD_DP64(env->CSR_PRMD, CSR_PRMD, PIE,
@@ -1085,7 +1089,9 @@ int main(int argc, char** argv, char **envp) {
         exec_path = real_exec_path;
     }
 #else
-    load_elf(kernel_filename, &entry_addr);
+    if (!is_directory(kernel_filename)) {
+        load_elf(kernel_filename, &entry_addr);
+    }
 
 #ifndef CONFIG_CLI
     // set no echo
@@ -1147,6 +1153,11 @@ int main(int argc, char** argv, char **envp) {
     }
 #endif
     env->pc = entry_addr;
+
+    if (is_directory(kernel_filename)) {
+        restore_checkpoint(env, kernel_filename);
+        entry_addr = env->pc;
+    }
 
 #ifdef CONFIG_CLI
     // stall program at begin in cli mode

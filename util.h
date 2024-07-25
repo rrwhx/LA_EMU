@@ -8,6 +8,7 @@
 #include <inttypes.h>
 
 #include <unistd.h>
+#include <sys/stat.h>
 
 #if defined(__x86_64__)
 #include <x86intrin.h>
@@ -100,6 +101,14 @@ static inline double second(void){
     struct timespec _t;
     clock_gettime(CLOCK_REALTIME, &_t);
     return _t.tv_sec + _t.tv_nsec/1.0e9;
+}
+
+static inline bool is_directory(const char *path) {
+    struct stat statbuf;
+    if (stat(path, &statbuf) != 0) {
+        return false;
+    }
+    return S_ISDIR(statbuf.st_mode);
 }
 
 

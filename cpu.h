@@ -811,4 +811,10 @@ bool loongarch_cpu_has_irq(CPULoongArchState *env);
 void loongarch_la464_initfn(CPULoongArchState* env);
 void loongarch_centaur320_initfn(CPULoongArchState* env);
 
+static inline bool enable_hw_ptw(CPULoongArchState* env) {
+    return hw_ptw ||
+        (FIELD_EX32(env->cpucfg[2], CPUCFG2, HPTW) &&
+         FIELD_EX64(env->CSR_PWCH, CSR_PWCH, HPTW_EN));
+}
+
 #endif /* LOONGARCH_CPU_H */
