@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include <vector>
 #include <unordered_map>
 
 extern "C" {
@@ -67,11 +69,41 @@ void my_emu_insn_before(void* env, uint64_t pc, uint32_t insn) {
     }
 }
 
+// for string delimiter
+std::vector<std::string> split(std::string s, std::string delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    std::string token;
+    std::vector<std::string> res;
+
+    while ((pos_end = s.find(delimiter, pos_start)) != std::string::npos) {
+        token = s.substr (pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return move(res);
+}
+
 la_emu_plugin_ops my_op = {
     .emu_insn_before = my_emu_insn_before,
 };
 
 extern "C" la_emu_plugin_ops* la_emu_plugin_install(const char* arg) {
-    bbv_file = fopen_nofail("bbv", "w");
+    string bbv_file_name("result.bbv");
+    if (arg[0]) {
+        auto options = split(arg, ",");
+        for (auto &option : options) {
+            auto sp = split(option, "=");
+            if (sp[0] == "size") {
+                interval_size = stol(sp[1]);
+            } else if (sp[0] == "name") {
+                bbv_file_name = sp[1];
+            } else {
+                printf("unknoen option:%s\n", option.c_str());
+            }
+        }
+    }
+    bbv_file = fopen_nofail(bbv_file_name.c_str(), "w");
     return &my_op;
 }
