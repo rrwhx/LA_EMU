@@ -823,4 +823,15 @@ static inline bool enable_hw_ptw(CPULoongArchState* env) {
 #if defined(CONFIG_PLUGIN)
 extern la_emu_plugin_ops* plugin_ops;
 #endif
+
+
+static inline void laemu_exit(int64_t status) {
+#if defined (CONFIG_PLUGIN)
+    if (plugin_ops && plugin_ops->emu_stop) {
+        plugin_ops->emu_stop();
+    }
+#endif
+    exit(status);
+}
+
 #endif /* LOONGARCH_CPU_H */

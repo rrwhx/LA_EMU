@@ -59,7 +59,7 @@ static inline long long la_get_tval(CPULoongArchState *env){
 #define __NOT_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); env->pc += 4; return false;} while(0);
 #endif
 #define __NOT_CORRECTED_IMPLEMENTED__ do {fprintf(stderr, "LA_EMU NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);} while(0);
-#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); exit(1); return false;} while(0);
+#define __NOT_IMPLEMENTED_EXIT__ do {fprintf(stderr, "LA_EMU NOT IMPLEMENTED %s, pc:%lx\n", __func__, env->pc); laemu_exit(1); return false;} while(0);
 
 #define DisasContext CPULoongArchState
 #define ctx env
@@ -1097,7 +1097,7 @@ static bool trans_ibar(CPULoongArchState *env, arg_ibar *restrict a) {
     } else if (a->imm == 65) {
         fprintf(stderr, "[INST HACK] ibar 65 end %f\n", second() - begin_timestamp);
         dump_exec_info(env, stderr);
-        exit(0);
+        laemu_exit(0);
     }
 #endif
     env->pc += 4;
@@ -1529,7 +1529,7 @@ static bool trans_break(CPULoongArchState *env, arg_break *restrict a) {
 
 #if defined(CONFIG_USER_ONLY)
     fprintf(stderr, "trans_break\n");
-    exit(0);
+    laemu_exit(0);
 #else
     do_raise_exception(env, EXCCODE_BRK, 0);
 #endif
@@ -1978,7 +1978,7 @@ static bool trans_b(CPULoongArchState *env, arg_b *restrict a) {
     PERF_INC(COUNTER_INST_BRANCH);
 #ifndef CONFIG_DIFF
     if (!a->offs) {
-        exit(EXIT_SUCCESS);
+        laemu_exit(EXIT_SUCCESS);
     }
 #endif
     env->pc += a->offs;
@@ -2385,7 +2385,7 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *restrict a) {
 #ifndef CONFIG_DIFF
     if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) == 0) {
         fprintf(stderr, "idle while CRMD.IE is disabled\n");
-        exit(0);
+        laemu_exit(0);
     }
     // fprintf(stderr, "NOT CORRECTED IMPLEMENTED %s, pc:%lx\n", __func__, env->pc);
     if (!determined) {

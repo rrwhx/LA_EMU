@@ -118,7 +118,7 @@ void save_checkpoint(CPULoongArchState *env, char* name)
 
     if (mkdir(filename, 0755) < 0 && errno != EEXIST) {
         fprintf(stderr, "ERROR: cannot create dir:%s\n", filename);
-        exit(1);
+        laemu_exit(1);
     }
 
     sprintf(filename, "%s_icount_%ld/lowmem.c.bin", name, env->icount);

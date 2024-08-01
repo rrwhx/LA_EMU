@@ -64,7 +64,7 @@ static void sigaction_entry_int(int signal, siginfo_t *si, void *arg) {
     // printf("signal:%d, at address %p\n", signal, si->si_addr);
     if (check_signal > 3) {
         fprintf(stderr, "exit");
-        exit(EXIT_SUCCESS);
+        laemu_exit(EXIT_SUCCESS);
     }
     check_signal++;
     return;
@@ -170,12 +170,13 @@ void usage(void) {
 #else
     fprintf(stderr, "usage: la_emu_user [-d exec,cpu,page,strace,unimp] [-D logfile] program [arguments...]\n");
 #endif
-    fprintf(stderr, "-d Log info, suupport: exec,cpu,fpu,int\n");
+    fprintf(stderr, "-d Log info, support: exec,cpu,fpu,int\n");
     fprintf(stderr, "-D Log file\n");
+    fprintf(stderr, "-c Check item, support: tlb_mhit\n");
     fprintf(stderr, "-z Determined events\n");
     fprintf(stderr, "-g Enable gdbserver\n");
     fprintf(stderr, "-w Force enable hardware page table walker\n");
-    exit(EXIT_SUCCESS);
+    laemu_exit(EXIT_SUCCESS);
 }
 
 #if defined(CONFIG_USER_ONLY)
@@ -299,7 +300,7 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
     int fd = open(filename, O_RDONLY);
     if (fd < 0) {
         perror(filename);
-        exit(EXIT_FAILURE);
+        laemu_exit(EXIT_FAILURE);
     }
 
     if (read(fd, e_ident, sizeof(e_ident)) != sizeof(e_ident))
@@ -345,7 +346,7 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
             }
         } else if (ph->p_type == PT_INTERP) {
             qemu_log("unsupported dynamic elf\n");
-            exit(0);
+            laemu_exit(0);
         }
     }
 
@@ -809,7 +810,7 @@ void handle_logfile(const char* filename) {
     logfile = fopen(optarg, "w");
     if (!logfile) {
         fprintf(stderr, "can not open logfile %s\n", filename);
-        exit(EXIT_FAILURE);
+        laemu_exit(EXIT_FAILURE);
     }
 }
 
@@ -885,7 +886,7 @@ void handle_logmask(const char* str) {
         }
         if (item->mask == 0) {
             fprintf(stderr, "unable to prase %s\n", start);
-            exit(EXIT_FAILURE);
+            laemu_exit(EXIT_FAILURE);
         }
         if (*p) {
             start = p + 1;
@@ -924,7 +925,7 @@ void handle_checkmask(const char* str) {
         }
         if (item->mask == 0) {
             fprintf(stderr, "unable to prase %s\n", start);
-            exit(EXIT_FAILURE);
+            laemu_exit(EXIT_FAILURE);
         }
         if (*p) {
             start = p + 1;
@@ -957,7 +958,7 @@ void do_io_st(hwaddr ha, uint64_t data, int size) {
 #if defined(CONFIG_PERF)
             perf_report(current_env, stderr);
 #endif
-            exit(0);
+            laemu_exit(0);
         }
         break;
     default:
@@ -1055,7 +1056,7 @@ int main(int argc, char** argv, char **envp) {
             case 'g':
 #if !defined (CONFIG_GDB)
                 fprintf(stderr, "please make GDB=1\n");
-                exit(0);
+                laemu_exit(0);
 #endif
                 gdbserver = 1;
                 break;
@@ -1081,7 +1082,7 @@ int main(int argc, char** argv, char **envp) {
                 printf("plugin_arg:%s\n", plugin_arg);
 #else
                 fprintf(stderr, "please make PLUGIN=1\n");
-                exit(0);
+                laemu_exit(0);
 #endif
             }
                 break;
@@ -1112,7 +1113,7 @@ int main(int argc, char** argv, char **envp) {
     kernel_filename = argv[optind];
     if(!kernel_filename) {
         usage();
-        exit(EXIT_FAILURE);
+        laemu_exit(EXIT_FAILURE);
     }
     load_elf_user(kernel_filename, &entry_addr);
     target_set_brk(info.brk);
@@ -1272,7 +1273,7 @@ int main(int argc, char** argv, char **envp) {
     void* plugin_handle = dlopen(plugin_name, RTLD_LAZY);
     if (!plugin_handle) {
         fprintf(stderr, "%s\n", dlerror());
-        exit(EXIT_FAILURE);
+        laemu_exit(EXIT_FAILURE);
     }
     dlerror();
 
@@ -1280,7 +1281,7 @@ int main(int argc, char** argv, char **envp) {
     char *error;
     if ((error = dlerror()) != NULL)  {
         fprintf(stderr, "%s\n", error);
-        exit(EXIT_FAILURE);
+        laemu_exit(EXIT_FAILURE);
     }
     plugin_ops = install_func(plugin_arg);
     if (plugin_ops && plugin_ops->emu_start) {

@@ -24,6 +24,7 @@
  */
 
 #include "serial_plus.h"
+#include "cpu.h"
 
 // #include "qemu/osdep.h"
 // #include "hw/char/serial.h"
@@ -1033,7 +1034,7 @@ SerialState *simple_serial_restore(int base, qemu_irq irq, int baudbase, const c
     FILE *f = fopen(filename, "rb");
     if (!f) {
         perror(filename);
-        exit(1);
+        laemu_exit(1);
     }
 
     uint64_t count;

@@ -433,7 +433,7 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
 #if defined(CONFIG_PERF)
             perf_report(current_env, stderr);
 #endif
-            exit(arg1);
+            laemu_exit(arg1);
             lsassert(0);
         case TARGET_NR_clock_gettime:
             if (determined) {
