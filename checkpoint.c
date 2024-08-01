@@ -364,3 +364,8 @@ void restore_checkpoint(CPULoongArchState *env, char* name) {
     lsassertm(false, "can not restore checkpoint in user mode\n");
 }
 #endif
+
+// export save_checkpoint to dynamic library
+void la_emu_save_checkpoint(void *env, char* name) {
+    save_checkpoint((CPULoongArchState*)env, name);
+}

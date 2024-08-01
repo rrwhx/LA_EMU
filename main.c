@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <stdio.h>
 #define _GNU_SOURCE
 
 #include "qemu/osdep.h"
@@ -1123,7 +1125,7 @@ int main(int argc, char** argv, char **envp) {
         load_elf(kernel_filename, &entry_addr);
     }
 
-#ifndef CONFIG_CLI
+#if !defined (CONFIG_CLI) && !defined (CONFIG_PLUGIN)
     // set no echo
     struct termios term;
     tcgetattr(STDIN_FILENO, &term);
