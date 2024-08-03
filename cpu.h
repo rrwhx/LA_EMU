@@ -766,6 +766,7 @@ int exec_env(CPULoongArchState *env);
 extern bool new_abi;
 extern bool determined;
 extern bool hw_ptw;
+extern bool ptw_hw_setVD;
 extern bool serial_plus;
 
 void loongarch_cpu_set_irq(void *opaque, int irq, int level);

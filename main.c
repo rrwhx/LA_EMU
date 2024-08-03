@@ -38,6 +38,7 @@ char plugin_arg[PATH_MAX];
 bool new_abi;
 bool determined;
 bool hw_ptw;
+bool ptw_hw_setVD = true;
 bool serial_plus;
 #if !defined(CONFIG_USER_ONLY)
 SerialState *ss;
