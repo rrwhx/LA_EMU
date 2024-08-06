@@ -5,6 +5,7 @@ ifeq (${DEBUG},1)
 endif
 # CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
 CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -Wall -Werror
+LDFLAGS ?= -lm -lrt -rdynamic ${OPT_FLAG}
 ifeq (${GDB},1)
 	CFLAGS += -DCONFIG_GDB
 	GDB_SOURCES := gdbserver.c
@@ -32,13 +33,13 @@ ifeq (${PLUGIN},1)
 	LDFLAGS += -ldl
 	CFLAGS += -DCONFIG_PLUGIN
 endif
-LDFLAGS = -lm -lrt ${OPT_FLAG}
+
 arch := $(shell gcc -dumpmachine)
 ifeq ($(arch),loongarch64-linux-gnu)
    LDFLAGS+=-Wl,-Tlink_script/loongarch64.lds
 endif
 ifeq (${DIFF},1)
-	LDFLAGS += -rdynamic -shared -fPIC -Wl,--no-undefined
+	LDFLAGS += -shared -fPIC -Wl,--no-undefined
 endif
 
 BUILD_DIR := ./build
@@ -75,6 +76,7 @@ else
 endif
 
 all: $(TARGETS)
+	make -C plugins -j
 
 $(BUILD_DIR)/la_emu_user : ${USER_OBJS}
 	$(CC) $(USER_OBJS) -o $@ $(LDFLAGS)

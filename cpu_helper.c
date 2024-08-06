@@ -48,7 +48,7 @@ static int loongarch_map_tlb_entry(CPULoongArchState *env, hwaddr *physical,
     tlb_ppn = tlb_ppn & ~(((0x1UL << (tlb_ps - 12)) -1));
 
     /* Check hw_ptw related issue */
-    if (enable_hw_ptw(env) && access_type == MMU_DATA_STORE && tlb_w && !tlb_d) {
+    if (enable_hw_ptw(env) && ptw_hw_setVD && access_type == MMU_DATA_STORE && tlb_w && !tlb_d) {
         return TLBRET_PTW_SET_D;
     }
 
@@ -242,29 +242,31 @@ again:
         helper_ldpte(env, pt_base, 0, 0, &pte0_phys_addr);
         helper_ldpte(env, pt_base, 1, 0, &pte1_phys_addr);
 
-        if (is_huge) {
-            hw_ptw_setVD(&env->CSR_TLBRELO0, huge_phys_addr, access_type);
-            hw_ptw_setVD(&env->CSR_TLBRELO1, huge_phys_addr, access_type);
-        } else {
-            uint8_t tlb_ps = FIELD_EX64(env->CSR_STLBPS, CSR_STLBPS, PS);
-            is_odd_page = (address >> tlb_ps) & 0x1;/* Odd or even */
-            if (is_odd_page) {
-                hw_ptw_setVD(&env->CSR_TLBRELO1, pte1_phys_addr, access_type);
+        if (ptw_hw_setVD) {
+            if (is_huge) {
+                hw_ptw_setVD(&env->CSR_TLBRELO0, huge_phys_addr, access_type);
+                hw_ptw_setVD(&env->CSR_TLBRELO1, huge_phys_addr, access_type);
             } else {
-                hw_ptw_setVD(&env->CSR_TLBRELO0, pte0_phys_addr, access_type);
+                uint8_t tlb_ps = FIELD_EX64(env->CSR_STLBPS, CSR_STLBPS, PS);
+                is_odd_page = (address >> tlb_ps) & 0x1;/* Odd or even */
+                if (is_odd_page) {
+                    hw_ptw_setVD(&env->CSR_TLBRELO1, pte1_phys_addr, access_type);
+                } else {
+                    hw_ptw_setVD(&env->CSR_TLBRELO0, pte0_phys_addr, access_type);
+                }
             }
-        }
-        // Set the V bit in the tlb entry to the value
-        // of the P bit in the page table entry
-        env->CSR_TLBRELO0 = FIELD_DP64(env->CSR_TLBRELO0, TLBENTRY, V, FIELD_EX64(env->CSR_TLBRELO0, TLBENTRY, P));
-        env->CSR_TLBRELO1 = FIELD_DP64(env->CSR_TLBRELO1, TLBENTRY, V, FIELD_EX64(env->CSR_TLBRELO1, TLBENTRY, P));
+            // Set the V bit in the tlb entry to the value
+            // of the P bit in the page table entry
+            env->CSR_TLBRELO0 = FIELD_DP64(env->CSR_TLBRELO0, TLBENTRY, V, FIELD_EX64(env->CSR_TLBRELO0, TLBENTRY, P));
+            env->CSR_TLBRELO1 = FIELD_DP64(env->CSR_TLBRELO1, TLBENTRY, V, FIELD_EX64(env->CSR_TLBRELO1, TLBENTRY, P));
 
-        // Since during the address translation process,
-        // when tlb hits but D bit needs to be written,
-        // ptw will be used to write D bit, so the hit tlb
-        // entry needs to be invalidated here.
-        // Otherwise, multiple hits in tlb may occur.
-        helper_invtlb_page_asid_or_g(env, env->CSR_ASID, address);
+            // Since during the address translation process,
+            // when tlb hits but D bit needs to be written,
+            // ptw will be used to write D bit, so the hit tlb
+            // entry needs to be invalidated here.
+            // Otherwise, multiple hits in tlb may occur.
+            helper_invtlb_page_asid_or_g(env, env->CSR_ASID, address);
+        }
 
         helper_tlbfill(env);
         if (qemu_loglevel_mask(CPU_LOG_INT)) {

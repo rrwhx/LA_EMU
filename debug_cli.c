@@ -239,7 +239,7 @@ static int debug_handle_continue(const char* str) {
     return 1;
 }
 static int debug_handle_quit(const char* str) {
-    exit(EXIT_SUCCESS);
+    laemu_exit(EXIT_SUCCESS);
     return 0;
 }
 
@@ -523,7 +523,7 @@ static void handle_debug(void) {
         ssize_t r = getline(&line_buff, &line_len, stdin);
         if (r < 0) {
             fprintf(stderr, "\nquit\n");
-            exit(EXIT_SUCCESS);
+            laemu_exit(EXIT_SUCCESS);
         } else if(r > 1) {
             const debug_cmd* item;
             for (item = debugcmds; item->name != NULL; item++) {

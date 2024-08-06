@@ -766,6 +766,7 @@ int exec_env(CPULoongArchState *env);
 extern bool new_abi;
 extern bool determined;
 extern bool hw_ptw;
+extern bool ptw_hw_setVD;
 extern bool serial_plus;
 
 void loongarch_cpu_set_irq(void *opaque, int irq, int level);
@@ -823,4 +824,15 @@ static inline bool enable_hw_ptw(CPULoongArchState* env) {
 #if defined(CONFIG_PLUGIN)
 extern la_emu_plugin_ops* plugin_ops;
 #endif
+
+
+static inline void laemu_exit(int64_t status) {
+#if defined (CONFIG_PLUGIN)
+    if (plugin_ops && plugin_ops->emu_stop) {
+        plugin_ops->emu_stop();
+    }
+#endif
+    exit(status);
+}
+
 #endif /* LOONGARCH_CPU_H */

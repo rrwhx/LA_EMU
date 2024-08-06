@@ -55,14 +55,14 @@ void remote_prepare(int port) {
     if (listen_fd < 0)
     {
         perror("socket() failed");
-        exit(-1);
+        laemu_exit(-1);
     }
 
     ret = setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     if (ret < 0)
     {
         perror("setsockopt() failed");
-        exit(-1);
+        laemu_exit(-1);
     }
 
     addr.sin_family = AF_INET;
@@ -73,14 +73,14 @@ void remote_prepare(int port) {
     if (ret < 0)
     {
         perror("bind() failed");
-        exit(-1);
+        laemu_exit(-1);
     }
 
     ret = listen(listen_fd, 1);
     if (ret < 0)
     {
         perror("listen() failed");
-        exit(-1);
+        laemu_exit(-1);
     }
 
     fprintf(stderr, "Listening on port %d\n", port);
@@ -89,7 +89,7 @@ void remote_prepare(int port) {
     if (sock_fd < 0)
     {
         perror("accept() failed");
-        exit(-1);
+        laemu_exit(-1);
     } else {
         fprintf(stderr, "sock_fd:%d\n", sock_fd);
     }
@@ -250,7 +250,7 @@ void gdbserver_handle_message() {
             fprintf(stderr, "%c", receive_buf[i]);
         }
         fprintf(stderr, "\n");
-        exit(0);
+        laemu_exit(0);
     }
     char *packetend_ptr = memchr(receive_buf, '#', receive_buf_bytes);
     if(!packetend_ptr) {
@@ -269,7 +269,7 @@ void gdbserver_handle_message() {
                 fprintf(stderr, "%c", receive_buf[i]);
             }
             fprintf(stderr, "\n");
-            exit(0);
+            laemu_exit(0);
         }
     }
     receive_buf[packetsize] = '\0';
@@ -422,7 +422,7 @@ void gdbserver_handle_message() {
             break;
         case 'k' : {
                 fprintf(stderr, "quit\n");
-                exit(0);
+                laemu_exit(0);
             }
             break;
         default:
@@ -455,11 +455,11 @@ void gdbserver_init(int port) {
     /* Set the process receiving SIGIO/SIGURG signals to us. */
     if (fcntl(sock_fd, F_SETOWN, getpid()) < 0) {
         perror("fcntl F_SETOWN");
-        exit(1);
+        laemu_exit(1);
     }
     if (fcntl(sock_fd, F_SETFL, FASYNC | O_NONBLOCK) < 0) {
         perror("fcntl FASYNC");
-        exit(1);
+        laemu_exit(1);
     }
 }
 

@@ -14,6 +14,6 @@ typedef struct la_emu_plugin_ops {
 
 typedef la_emu_plugin_ops* (*la_emu_plugin_install_func_t)(const char *);
 
-
+void la_emu_save_checkpoint(void *env, char* name);
 
 #endif /* PLUGIN_H */

@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "internals.h"
 #include "cpu-csr.h"
+#include <stdio.h>
 
 const char * const regnames[32] = {
     "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
@@ -348,4 +349,7 @@ void loongarch_centaur320_initfn(CPULoongArchState* env) {
     env->CSR_PRCFG3 = FIELD_DP64(env->CSR_PRCFG3, CSR_PRCFG3, MTLB_ENTRY, 0x3f); // 64 entries
 
     env->CSR_STLBPS = 0xe; // 16KB page size
+
+    ptw_hw_setVD = 0;
+    fprintf(stderr, "warn:auto set ptw_hw_setVD=0\n");
 }

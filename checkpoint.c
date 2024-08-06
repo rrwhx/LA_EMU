@@ -118,7 +118,7 @@ void save_checkpoint(CPULoongArchState *env, char* name)
 
     if (mkdir(filename, 0755) < 0 && errno != EEXIST) {
         fprintf(stderr, "ERROR: cannot create dir:%s\n", filename);
-        exit(1);
+        laemu_exit(1);
     }
 
     sprintf(filename, "%s_icount_%ld/lowmem.c.bin", name, env->icount);
@@ -364,3 +364,8 @@ void restore_checkpoint(CPULoongArchState *env, char* name) {
     lsassertm(false, "can not restore checkpoint in user mode\n");
 }
 #endif
+
+// export save_checkpoint to dynamic library
+void la_emu_save_checkpoint(void *env, char* name) {
+    save_checkpoint((CPULoongArchState*)env, name);
+}
