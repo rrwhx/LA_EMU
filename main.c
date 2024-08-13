@@ -1271,22 +1271,24 @@ int main(int argc, char** argv, char **envp) {
 #endif
     current_env = env;
 #if defined(CONFIG_PLUGIN)
-    void* plugin_handle = dlopen(plugin_name, RTLD_LAZY);
-    if (!plugin_handle) {
-        fprintf(stderr, "%s\n", dlerror());
-        laemu_exit(EXIT_FAILURE);
-    }
-    dlerror();
+    if (plugin_name[0]) {
+        void* plugin_handle = dlopen(plugin_name, RTLD_LAZY);
+        if (!plugin_handle) {
+            fprintf(stderr, "%s\n", dlerror());
+            laemu_exit(EXIT_FAILURE);
+        }
+        dlerror();
 
-    la_emu_plugin_install_func_t install_func = dlsym(plugin_handle, "la_emu_plugin_install");
-    char *error;
-    if ((error = dlerror()) != NULL)  {
-        fprintf(stderr, "%s\n", error);
-        laemu_exit(EXIT_FAILURE);
-    }
-    plugin_ops = install_func(plugin_arg);
-    if (plugin_ops && plugin_ops->emu_start) {
-        plugin_ops->emu_start();
+        la_emu_plugin_install_func_t install_func = dlsym(plugin_handle, "la_emu_plugin_install");
+        char *error;
+        if ((error = dlerror()) != NULL)  {
+            fprintf(stderr, "%s\n", error);
+            laemu_exit(EXIT_FAILURE);
+        }
+        plugin_ops = install_func(plugin_arg);
+        if (plugin_ops && plugin_ops->emu_start) {
+            plugin_ops->emu_start();
+        }
     }
 #endif
     if (gdbserver) {
