@@ -6,6 +6,7 @@
 
 #include <unistd.h>
 
+#include <fcntl.h>
 // #include "util.h"
 
 
@@ -125,6 +126,7 @@ bool input_vaild;
 
 void try_read() {
     if (!input_vaild) {
+        fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
         if (read(0, &input, 1) == 1) {
             input_vaild = true;
         }
