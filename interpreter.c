@@ -41,6 +41,11 @@ static inline long long la_get_tval(CPULoongArchState *env){
         } else {lsassert(0);};                                                                                        \
     } while (0)
 
+#define CHECK_PLV(plv)                                                                                               \
+    do {                                                                                                             \
+        if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, PLV) != plv) {do_raise_exception(env, EXCCODE_IPE, 0); return true;} \
+    } while (0)
+
 #else
 #define CHECK_FPE(bytes)                                                                                              \
     do {                                                                                                              \
@@ -2147,6 +2152,7 @@ uint64_t helper_read_csr(CPULoongArchState *env, int csr_index) {
 }
 
 static bool trans_csrrd(CPULoongArchState *env, arg_csrrd *restrict a) {
+    CHECK_PLV(0);
     env->gpr[a->rd] = helper_read_csr(env, a->csr);
     switch (a->csr)
     {
@@ -2278,110 +2284,136 @@ uint64_t helper_write_csr(CPULoongArchState *env, int csr_index, uint64_t new_v,
 }
 
 static bool trans_csrwr(CPULoongArchState *env, arg_csrwr *restrict a) {
+    CHECK_PLV(0);
     env->gpr[a->rd] = helper_write_csr(env, a->csr, env->gpr[a->rd], -1);
     env->pc += 4;
     return true;
 }
 static bool trans_csrxchg(CPULoongArchState *env, arg_csrxchg *restrict a) {
+    CHECK_PLV(0);
     env->gpr[a->rd] = helper_write_csr(env, a->csr, env->gpr[a->rd], env->gpr[a->rj]);
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrrd_b(CPULoongArchState *env, arg_iocsrrd_b *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrrd_h(CPULoongArchState *env, arg_iocsrrd_h *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrrd_w(CPULoongArchState *env, arg_iocsrrd_w *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrrd_d(CPULoongArchState *env, arg_iocsrrd_d *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrwr_b(CPULoongArchState *env, arg_iocsrwr_b *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     a->rd = 0;
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrwr_h(CPULoongArchState *env, arg_iocsrwr_h *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrwr_w(CPULoongArchState *env, arg_iocsrwr_w *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     env->pc += 4;
     return true;
 }
 static bool trans_iocsrwr_d(CPULoongArchState *env, arg_iocsrwr_d *restrict a) {
+    CHECK_PLV(0);
     fprintf(stderr, "NOT IMPLEMENTED %s pc:%lx addr:%lx\n", __func__, env->pc, env->gpr[a->rj]);
     env->pc += 4;
     return true;
 }
 static bool trans_tlbsrch(CPULoongArchState *env, arg_tlbsrch *restrict a) {
+    CHECK_PLV(0);
     helper_tlbsrch(env);
     env->pc += 4;
     return true;
 }
 static bool trans_tlbrd(CPULoongArchState *env, arg_tlbrd *restrict a) {
+    CHECK_PLV(0);
     helper_tlbrd(env);
     env->pc += 4;
     return true;
 }
 static bool trans_tlbwr(CPULoongArchState *env, arg_tlbwr *restrict a) {
+    CHECK_PLV(0);
     helper_tlbwr(env);
     cpu_clear_tc(env);
     env->pc += 4;
     return true;
 }
 static bool trans_tlbfill(CPULoongArchState *env, arg_tlbfill *restrict a) {
+    CHECK_PLV(0);
     helper_tlbfill(env);
     env->pc += 4;
     return true;
 }
-static bool trans_tlbclr(CPULoongArchState *env, arg_tlbclr *restrict a) {__NOT_IMPLEMENTED__}
-static bool trans_tlbflush(CPULoongArchState *env, arg_tlbflush *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_tlbclr(CPULoongArchState *env, arg_tlbclr *restrict a) {
+    CHECK_PLV(0);
+    __NOT_IMPLEMENTED__
+}
+static bool trans_tlbflush(CPULoongArchState *env, arg_tlbflush *restrict a) {
+    CHECK_PLV(0);
+    __NOT_IMPLEMENTED__
+}
 static bool trans_invtlb(CPULoongArchState *env, arg_invtlb *restrict a) {
+    CHECK_PLV(0);
     helper_invtlb_all(env);
     cpu_clear_tc(env);
     env->pc += 4;
     return true;
 }
 static bool trans_cacop(CPULoongArchState *env, arg_cacop *restrict a) {
+    CHECK_PLV(0);
     env->pc += 4;
     return true;
 }
 static bool trans_lddir(CPULoongArchState *env, arg_lddir *restrict a) {
+    CHECK_PLV(0);
     uint64_t dir_phys_addr;
     env->gpr[a->rd] = helper_lddir(env, env->gpr[a->rj], a->imm, 0, &dir_phys_addr);
     env->pc += 4;
     return true;
 }
 static bool trans_ldpte(CPULoongArchState *env, arg_ldpte *restrict a) {
+    CHECK_PLV(0);
     uint64_t pte_phys_addr;
     helper_ldpte(env, env->gpr[a->rj], a->imm, 0, &pte_phys_addr);
     env->pc += 4;
     return true;
 }
 static bool trans_ertn(CPULoongArchState *env, arg_ertn *restrict a) {
+    CHECK_PLV(0);
     helper_ertn(env);
     cpu_clear_tc(env);
     return true;
 }
 static bool trans_idle(CPULoongArchState *env, arg_idle *restrict a) {
+    CHECK_PLV(0);
 #ifndef CONFIG_DIFF
     if (FIELD_EX64(env->CSR_CRMD, CSR_CRMD, IE) == 0) {
         fprintf(stderr, "idle while CRMD.IE is disabled\n");
@@ -2397,7 +2429,10 @@ static bool trans_idle(CPULoongArchState *env, arg_idle *restrict a) {
     env->pc += 4;
     return true;
 }
-static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *restrict a) {__NOT_IMPLEMENTED__}
+static bool trans_dbcl(CPULoongArchState *env, arg_dbcl *restrict a) {
+    CHECK_PLV(0);
+    __NOT_IMPLEMENTED__
+}
 #endif
 
 #define gen_trans_vvid(op, size, helper_name) \
