@@ -17,6 +17,7 @@ static uint64_t interval_size = 1000000;
 map<uint64_t, double> icount2weight;
 uint64_t icount;
 bool begin_collect;
+string ckpt_save_path;
 
 void my_emu_insn_before(void* env, uint64_t pc, uint32_t insn) {
     // begin collect after exec ibar 0x40
@@ -30,7 +31,7 @@ void my_emu_insn_before(void* env, uint64_t pc, uint32_t insn) {
 
     if (icount2weight.count(icount)) {
         fprintf(stderr, "simpoint dump checkpoint at icount=%ld,weight=%lf\n", icount, icount2weight[icount]);
-        la_emu_save_checkpoint(env, (char*)("w" + to_string(icount2weight[icount])).c_str());
+        la_emu_save_checkpoint(env, (char*)(ckpt_save_path  + "/" + "w" + to_string(icount2weight[icount])).c_str());
         icount2weight.erase(icount);
         if (icount2weight.empty()) {
             fprintf(stderr, "all checkpoints have been dumped\n");
@@ -61,6 +62,8 @@ extern "C" la_emu_plugin_ops* la_emu_plugin_install(const char* arg) {
                 weights_file_name = sp[1];
             } else if (sp[0] == "ibar0x40") {
                 begin_after_ibar0x40 = stol(sp[1]);
+            } else if (sp[0] == "path") {
+                ckpt_save_path = sp[1];
             } else {
                 printf("unknown option:%s\n", option.c_str());
             }
