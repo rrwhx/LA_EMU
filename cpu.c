@@ -112,7 +112,6 @@ const char* const csrnames[LOONGARCH_CSR_MAXADDR + 1] = {
     CSRNAME_DECL(DBG),
     CSRNAME_DECL(DERA),
     CSRNAME_DECL(DSAVE),
-
 };
 
 #if defined(CONFIG_PERF)

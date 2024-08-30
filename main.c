@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <sys/mman.h>
+#include <getopt.h>
 
 #include <elf.h>
 
@@ -56,6 +57,7 @@ extern void show_register(CPULoongArchState *env);
 extern void show_register_fpr(CPULoongArchState *env);
 extern void set_fetch_breakpoint(int idx, target_long pc);
 extern void restore_checkpoint(CPULoongArchState *env, char* image_dir);
+extern void restore_checkpoint_qemu_format(CPULoongArchState *env, char* mem_path, char* cpu_path);
 
 // # define ELF_CLASS  ELFCLASS64
 
@@ -162,6 +164,9 @@ char* ram;
 #endif
 uint64_t ram_size = SZ_4G;
 char* kernel_filename;
+// for checkpoint restore
+char* ckpt_mem_filename;
+char* ckpt_cpu_filename;
 
 void usage(void) {
 #ifndef CONFIG_USER_ONLY
@@ -1028,13 +1033,20 @@ bool loongarch_cpu_has_irq(CPULoongArchState *env) {
 
 #ifndef CONFIG_DIFF
 
+struct option long_options[] = {
+    {"ckpt-mem", required_argument, 0, 0},
+    {"ckpt-cpu", required_argument, 0, 0},
+    {0, 0 ,0 ,0}
+};
+
 int main(int argc, char** argv, char **envp) {
     logfile = stderr;
     if (argc < 2) {
         usage();
     }
     int c;
-    while ((c = getopt(argc, argv, "+m:nk:d:c:D:gzwsp:")) != -1) {
+    int long_option_idx = 0;
+    while ((c = getopt_long(argc, argv, "+m:nk:d:c:D:gzwsp:", long_options, &long_option_idx)) != -1) {
         switch (c) {
             case 'm':
                 ram_size = atol(optarg) << 30;
@@ -1087,6 +1099,18 @@ int main(int argc, char** argv, char **envp) {
 #endif
             }
                 break;
+            case 0: // deal long options
+#if !defined (CONFIG_USER_ONLY)
+                if (strcmp(long_options[long_option_idx].name, "ckpt-mem") == 0) {
+                    ckpt_mem_filename = optarg;
+                } else if (strcmp(long_options[long_option_idx].name, "ckpt-cpu") == 0) {
+                    ckpt_cpu_filename = optarg;
+                } else {
+                    usage();
+                    return 1;
+                }
+#endif
+                break;
             case '?':
                 usage();
                 return 1;
@@ -1099,6 +1123,23 @@ int main(int argc, char** argv, char **envp) {
     // for (int i = optind; i < argc; i++) {
     //     fprintf(stderr, "%s\n", argv[i]);
     // }
+
+    // check the combination of input workloads
+    if (kernel_filename != NULL && (ckpt_mem_filename != NULL || ckpt_cpu_filename != NULL)) {
+        fprintf(stderr, "cannot specify -k and --ckpt-mem/--ckpt-cpu at same time\n");
+        return 1;
+    }
+    if (!kernel_filename) {
+        if (!ckpt_mem_filename && !ckpt_cpu_filename) {
+            fprintf(stderr, "need specify -k or --ckpt-mem/--ckpt-cpu\n");
+            return 1;
+        }
+        if (!ckpt_mem_filename || !ckpt_cpu_filename) {
+            fprintf(stderr, "need specify --ckpt-mem and --ckpt-cpu at same time\n");
+            return 1;
+        }
+    }
+
 #ifndef CONFIG_USER_ONLY
     ram = alloc_ram(ram_size);
     qemu_log("pid:%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size, kernel_filename);
@@ -1123,7 +1164,7 @@ int main(int argc, char** argv, char **envp) {
         exec_path = real_exec_path;
     }
 #else
-    if (!is_directory(kernel_filename)) {
+    if (kernel_filename && !is_directory(kernel_filename)) {
         load_elf(kernel_filename, &entry_addr);
     }
 
@@ -1188,10 +1229,14 @@ int main(int argc, char** argv, char **envp) {
 #endif
     env->pc = entry_addr;
 
-    if (is_directory(kernel_filename)) {
+    if (!kernel_filename) {
+        restore_checkpoint_qemu_format(env, ckpt_mem_filename, ckpt_cpu_filename);
+        entry_addr = env->pc;
+    } else if (is_directory(kernel_filename)) {
         restore_checkpoint(env, kernel_filename);
         entry_addr = env->pc;
     }
+
 
 #ifdef CONFIG_CLI
     // stall program at begin in cli mode
