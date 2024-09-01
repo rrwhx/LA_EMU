@@ -15,9 +15,9 @@
 #ifndef CONFIG_DIFF
 static inline long long la_get_tval(CPULoongArchState *env){
     if (determined) {
-        return current_env->icount / TIME_SCALE;
+        return current_env->icount / TIME_SCALE + current_env->CSR_CNTC;
     } else {
-        return nano_second() / TIMER_PERIOD;
+        return nano_second() / TIMER_PERIOD + current_env->CSR_CNTC;
     }
 }
 #endif
