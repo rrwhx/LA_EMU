@@ -4,7 +4,7 @@ ifeq (${DEBUG},1)
 	OPT_FLAG = -Og
 endif
 # CFLAGS ?= -g -O3 -flto=auto -march=native -mtune=native -MMD -MP -I. -Iinclude -DCONFIG_INT128
-CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -Wall -Werror
+CFLAGS ?= -g ${OPT_FLAG} -MMD -MP -I. -Iinclude -Ibuild -Wall -Werror
 LDFLAGS ?= -lm -lrt -rdynamic ${OPT_FLAG}
 ifeq (${GDB},1)
 	CFLAGS += -DCONFIG_GDB
@@ -78,6 +78,13 @@ endif
 all: $(TARGETS)
 	make -C plugins -j
 
+${USER_OBJS} ${KERNEL_OBJS} ${DIFF_OBJS} : $(BUILD_DIR)/trans_la.c.inc
+
+$(BUILD_DIR)/trans_la.c.inc: insns.decode
+	@mkdir -p $(BUILD_DIR)
+	python3 ./scripts/decodetree.py ./insns.decode -o $(BUILD_DIR)/decode-insns.c.inc
+	python3 ./scripts/emu_cpu_put_ic.py $(BUILD_DIR)/decode-insns.c.inc > $(BUILD_DIR)/trans_la.c.inc
+
 $(BUILD_DIR)/la_emu_user : ${USER_OBJS}
 	$(CC) $(USER_OBJS) -o $@ $(LDFLAGS)
 
@@ -100,7 +107,7 @@ $(BUILD_DIR)/%_diff.o : %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -rf build
+	rm -rf build $(BUILD_DIR)/trans_la.c.inc
 
 .EXTRA_PREREQS = Makefile
 -include $(USER_DEPS)
