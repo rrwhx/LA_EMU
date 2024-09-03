@@ -60,7 +60,9 @@ void my_emu_insn_before(void* env, uint64_t pc, uint32_t insn) {
 
     if (cur_interval_count == interval_size) {
         fprintf(bbv_file, "T");
-        for (auto &[k, v] : interval_id_cnt) {
+        for (auto i = interval_id_cnt.begin();i != interval_id_cnt.end();i ++) {
+            auto& k = i->first;
+            auto& v = i->second;
             if (k != 0) {
                 fprintf(bbv_file, ":%ld:%ld ", k, v);
             }
