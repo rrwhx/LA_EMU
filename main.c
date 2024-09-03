@@ -360,7 +360,9 @@ bool load_elf_user(const char* filename, uint64_t* entry_addr) {
     if (ehdr.e_type != ET_EXEC) {
         load_addr += 0x4000000;
     }
-
+    #ifndef MAP_FIXED_NOREPLACE
+    #define MAP_FIXED_NOREPLACE MAP_FIXED
+    #endif
     load_addr = (abi_ulong)mmap((void*)load_addr, (size_t)hiaddr - loaddr + 1, PROT_NONE,
                             MAP_PRIVATE | MAP_ANON | MAP_NORESERVE |
                             (ehdr.e_type == ET_EXEC ? MAP_FIXED_NOREPLACE : 0),
