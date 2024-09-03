@@ -93,6 +93,9 @@ abi_long do_brk(abi_ulong brk_val)
         return target_brk;
     }
 
+    #ifndef MAP_FIXED_NOREPLACE
+    #define MAP_FIXED_NOREPLACE MAP_FIXED
+    #endif
     mapped_addr = (size_t)mmap((void*)old_brk, new_brk - old_brk,
                               PROT_READ | PROT_WRITE,
                               MAP_FIXED_NOREPLACE | MAP_ANON | MAP_PRIVATE,
@@ -487,8 +490,10 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
             return do_mmap(arg1, arg2, arg3, arg4, arg5, arg6);
         case TARGET_NR_prlimit64:
             return get_errno(prlimit(arg1, arg2, (void*)arg3, (void*)arg4));
+        #ifdef __NR_renameat2
         case TARGET_NR_renameat2:
             return get_errno(renameat2(arg1, (void*)arg2, arg3, (void*)4, arg5));
+        #endif
         default:
             lsassertm(0, "unimplement syscall %d\n", num);
     }
