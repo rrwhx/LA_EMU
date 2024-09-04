@@ -167,6 +167,7 @@ char* kernel_filename;
 // for checkpoint restore
 char* ckpt_mem_filename;
 char* ckpt_cpu_filename;
+char* cpu_option;
 
 void usage(void) {
 #ifndef CONFIG_USER_ONLY
@@ -1038,6 +1039,7 @@ bool loongarch_cpu_has_irq(CPULoongArchState *env) {
 struct option long_options[] = {
     {"ckpt-mem", required_argument, 0, 0},
     {"ckpt-cpu", required_argument, 0, 0},
+    {"cpu", required_argument, 0, 0},
     {0, 0 ,0 ,0}
 };
 
@@ -1107,6 +1109,8 @@ int main(int argc, char** argv, char **envp) {
                     ckpt_mem_filename = optarg;
                 } else if (strcmp(long_options[long_option_idx].name, "ckpt-cpu") == 0) {
                     ckpt_cpu_filename = optarg;
+                } else if (strcmp(long_options[long_option_idx].name, "cpu") == 0) {
+                    cpu_option = optarg;
                 } else {
                     usage();
                     return 1;
@@ -1200,6 +1204,29 @@ int main(int argc, char** argv, char **envp) {
     cs->env = env;
     cpu_reset(cs);
     loongarch_core_initfn(env);
+    if (cpu_option) {
+        // "la464,+aaa,-bbb,+lsx,-alsx";
+        char* dot = strchr(cpu_option, ',');
+        if (dot) {
+            if (strncmp(cpu_option, "la464", dot - cpu_option) == 0) {
+                // loongarch_la464_initfn(env);
+            } else if (strncmp(cpu_option, "la664", dot - cpu_option) == 0) {
+                // loongarch_la664_initfn(env);
+            }
+            qemu_log("CPU:%s\n", cpu_option);
+            dot ++;
+            char* nextdot;
+            do {
+                nextdot = strchr(dot, ',');
+                cpu_set_feature(env, dot + 1, *dot == '+');
+                dot = nextdot + 1;
+            } while (nextdot);
+            fprintf(stderr, "lxy: %s:%d %s \n", __FILE__,__LINE__,__func__);
+        } else {
+            qemu_log("CPU:%s\n", cpu_option);
+            fprintf(stderr, "lxy: %s:%d %s \n", __FILE__,__LINE__,__func__);
+        }
+    }
     cpu_clear_tc(env);
     env->timer_counter = INT64_MAX;
 #ifndef CONFIG_USER_ONLY

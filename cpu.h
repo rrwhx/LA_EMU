@@ -265,6 +265,12 @@ FIELD(CPUCFG2, LBT_MIPS, 20, 1)
 FIELD(CPUCFG2, LSPW, 21, 1)
 FIELD(CPUCFG2, LAM, 22, 1)
 FIELD(CPUCFG2, HPTW, 24, 1)
+FIELD(CPUCFG2, FRECIPE, 25, 1)
+FIELD(CPUCFG2, DIV32, 26, 1)
+FIELD(CPUCFG2, LAM_BH, 27, 1)
+FIELD(CPUCFG2, LAMCAS, 28, 1)
+FIELD(CPUCFG2, LLACQ_SCREL, 29, 1)
+FIELD(CPUCFG2, SCQ, 30, 1)
 
 /* cpucfg[3] bits */
 FIELD(CPUCFG3, CCDMA, 0, 1)
@@ -814,6 +820,7 @@ bool loongarch_cpu_has_irq(CPULoongArchState *env);
 
 void loongarch_la464_initfn(CPULoongArchState* env);
 void loongarch_centaur320_initfn(CPULoongArchState* env);
+void cpu_set_feature(CPULoongArchState* env, char* feature, int value);
 
 static inline bool enable_hw_ptw(CPULoongArchState* env) {
     return hw_ptw ||

@@ -352,3 +352,18 @@ void loongarch_centaur320_initfn(CPULoongArchState* env) {
     ptw_hw_setVD = 0;
     fprintf(stderr, "warn:auto set ptw_hw_setVD=0\n");
 }
+void cpu_set_feature(CPULoongArchState* env, char* feature, int value) {
+            if (strncmp(feature, "lsx",         3) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LSX, value);        qemu_log("set lsx %d\n", value);
+    } else  if (strncmp(feature, "lasx",        4) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LASX, value);       qemu_log("set lasx %d\n", value);
+    } else  if (strncmp(feature, "lbt_x86",     7) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LBT_X86, value);    qemu_log("set lbt_x86 %d\n", value);
+    } else  if (strncmp(feature, "lbt_arm",     7) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LBT_ARM, value);    qemu_log("set lbt_arm %d\n", value);
+    } else  if (strncmp(feature, "lbt_mips",    8) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LBT_MIPS, value);   qemu_log("set lbt_mips %d\n", value);
+    } else  if (strncmp(feature, "hptw",        4) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, HPTW, value);       qemu_log("set hptw %d\n", value);
+    } else  if (strncmp(feature, "frecipe",     7) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, FRECIPE, value);    qemu_log("set frecipe %d\n", value);
+    } else  if (strncmp(feature, "div32",       5) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, DIV32, value);      qemu_log("set div32 %d\n", value);
+    } else  if (strncmp(feature, "lam_bh",      6) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LAM_BH, value);     qemu_log("set lam_bh %d\n", value);
+    } else  if (strncmp(feature, "lamcas",      6) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LAMCAS, value);     qemu_log("set lamcas %d\n", value);
+    } else  if (strncmp(feature, "llacq_screl",11) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, LLACQ_SCREL, value);qemu_log("set llacq_screl %d\n", value);
+    } else  if (strncmp(feature, "scq",         3) == 0){   env->cpucfg[2] = FIELD_DP32(env->cpucfg[2], CPUCFG2, SCQ, value);        qemu_log("set scq %d\n", value);
+    }
+}
