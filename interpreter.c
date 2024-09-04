@@ -5041,6 +5041,35 @@ static bool trans_amcas_h(DisasContext *env, arg_amcas_h *a) {return trans_amcas
 static bool trans_amcas_w(DisasContext *env, arg_amcas_w *a) {return trans_amcas_db_w(env, a);}
 static bool trans_amcas_d(DisasContext *env, arg_amcas_d *a) {return trans_amcas_db_d(env, a);}
 
+static bool trans_llacq_w(DisasContext *env, arg_llacq_w *a) {
+    CHECK_LLACQ_SCREL;
+    arg_rr_i tmp_a = {
+        .rd = a->rd, .rj = a->rj, .imm = 0
+    };
+    return trans_ll_w(env, &tmp_a);
+}
+static bool trans_llacq_d(DisasContext *env, arg_llacq_d *a) {
+    CHECK_LLACQ_SCREL;
+    arg_rr_i tmp_a = {
+        .rd = a->rd, .rj = a->rj, .imm = 0
+    };
+    return trans_ll_d(env, &tmp_a);
+}
+static bool trans_screl_w(DisasContext *env, arg_screl_w *a) {
+    CHECK_LLACQ_SCREL;
+    arg_rr_i tmp_a = {
+        .rd = a->rd, .rj = a->rj, .imm = 0
+    };
+    return trans_sc_w(env, &tmp_a);
+}
+static bool trans_screl_d(DisasContext *env, arg_screl_d *a) {
+    CHECK_LLACQ_SCREL;
+    arg_rr_i tmp_a = {
+        .rd = a->rd, .rj = a->rj, .imm = 0
+    };
+    return trans_sc_d(env, &tmp_a);
+}
+
 static bool trans_adc_b(DisasContext *env, arg_adc_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_d(DisasContext *env, arg_adc_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_h(DisasContext *env, arg_adc_h *a) {__NOT_IMPLEMENTED__}
@@ -5072,8 +5101,6 @@ static bool trans_gr2scr(DisasContext *env, arg_gr2scr *a) {__NOT_IMPLEMENTED__}
 static bool trans_grsel(DisasContext *env, arg_grsel *a) {__NOT_IMPLEMENTED__}
 static bool trans_jiscr0(DisasContext *env, arg_jiscr0 *a) {__NOT_IMPLEMENTED__}
 static bool trans_jiscr1(DisasContext *env, arg_jiscr1 *a) {__NOT_IMPLEMENTED__}
-static bool trans_llacq_d(DisasContext *env, arg_llacq_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_llacq_w(DisasContext *env, arg_llacq_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_max(DisasContext *env, arg_max *a) {__NOT_IMPLEMENTED__}
 static bool trans_maxu(DisasContext *env, arg_maxu *a) {__NOT_IMPLEMENTED__}
 static bool trans_maxwu(DisasContext *env, arg_maxwu *a) {__NOT_IMPLEMENTED__}
@@ -5100,8 +5127,6 @@ static bool trans_sbc_d(DisasContext *env, arg_sbc_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_sbc_h(DisasContext *env, arg_sbc_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_sbc_w(DisasContext *env, arg_sbc_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_scr2gr(DisasContext *env, arg_scr2gr *a) {__NOT_IMPLEMENTED__}
-static bool trans_screl_d(DisasContext *env, arg_screl_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_screl_w(DisasContext *env, arg_screl_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_setx86j(DisasContext *env, arg_setx86j *a) {__NOT_IMPLEMENTED__}
 static bool trans_slli_wu(DisasContext *env, arg_slli_wu *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfmaxn_d(DisasContext *env, arg_vfmaxn_d *a) {__NOT_IMPLEMENTED__}
