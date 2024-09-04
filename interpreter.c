@@ -58,6 +58,16 @@ static inline long long la_get_tval(CPULoongArchState *env){
         } else {lsassert(0);};                                                                                        \
     } while (0)
 #endif
+#define CHECK_LBT_X86     do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LBT_X86))     {return false;};} while (0)
+#define CHECK_LBT_ARM     do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LBT_ARM))     {return false;};} while (0)
+#define CHECK_LBT_MIPS    do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LBT_MIPS))    {return false;};} while (0)
+#define CHECK_HPTW        do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, HPTW))        {return false;};} while (0)
+#define CHECK_FRECIPE     do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, FRECIPE))     {return false;};} while (0)
+#define CHECK_DIV32       do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, DIV32))       {return false;};} while (0)
+#define CHECK_LAM_BH      do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LAM_BH))      {return false;};} while (0)
+#define CHECK_LAMCAS      do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LAMCAS))      {return false;};} while (0)
+#define CHECK_LLACQ_SCREL do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, LLACQ_SCREL)) {return false;};} while (0)
+#define CHECK_SCQ         do {   if (!FIELD_EX32(env->cpucfg[2], CPUCFG2, SCQ))         {return false;};} while (0)
 #ifdef CONFIG_DIFF
 #define __NOT_IMPLEMENTED__ __NOT_IMPLEMENTED_EXIT__
 #else
