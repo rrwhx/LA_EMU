@@ -4936,6 +4936,18 @@ gen_trans_vvvd(xvsubwod_q_du, 32, vsubwod_q_du)
 gen_trans_vvvd(xvsubwod_w_h, 32, vsubwod_w_h)
 gen_trans_vvvd(xvsubwod_w_hu, 32, vsubwod_w_hu)
 
+static bool trans_frecipe_d(DisasContext *env, arg_frecipe_d *a) {CHECK_FRECIPE; CHECK_FPE(8); return trans_frecip_d(env, a);}
+static bool trans_frecipe_s(DisasContext *env, arg_frecipe_s *a) {CHECK_FRECIPE; CHECK_FPE(8); return trans_frecip_s(env, a);}
+static bool trans_vfrecipe_d(DisasContext *env, arg_vfrecipe_d *a) {CHECK_FRECIPE; CHECK_FPE(16); return trans_vfrecip_d(env, a);}
+static bool trans_vfrecipe_s(DisasContext *env, arg_vfrecipe_s *a) {CHECK_FRECIPE; CHECK_FPE(16); return trans_vfrecip_s(env, a);}
+static bool trans_xvfrecipe_d(DisasContext *env, arg_xvfrecipe_d *a) {CHECK_FRECIPE; CHECK_FPE(32); return trans_xvfrecip_d(env, a);}
+static bool trans_xvfrecipe_s(DisasContext *env, arg_xvfrecipe_s *a) {CHECK_FRECIPE; CHECK_FPE(32); return trans_xvfrecip_s(env, a);}
+static bool trans_frsqrte_d(DisasContext *env, arg_frsqrte_d *a) {CHECK_FRECIPE; CHECK_FPE(8); return trans_frsqrt_d(env, a);}
+static bool trans_frsqrte_s(DisasContext *env, arg_frsqrte_s *a) {CHECK_FRECIPE; CHECK_FPE(8); return trans_frsqrt_s(env, a);}
+static bool trans_vfrsqrte_d(DisasContext *env, arg_vfrsqrte_d *a) {CHECK_FRECIPE; CHECK_FPE(16); return trans_vfrsqrt_d(env, a);}
+static bool trans_vfrsqrte_s(DisasContext *env, arg_vfrsqrte_s *a) {CHECK_FRECIPE; CHECK_FPE(16); return trans_vfrsqrt_s(env, a);}
+static bool trans_xvfrsqrte_d(DisasContext *env, arg_xvfrsqrte_d *a) {CHECK_FRECIPE; CHECK_FPE(32); return trans_xvfrsqrt_d(env, a);}
+static bool trans_xvfrsqrte_s(DisasContext *env, arg_xvfrsqrte_s *a) {CHECK_FRECIPE; CHECK_FPE(32); return trans_xvfrsqrt_s(env, a);}
 static bool trans_adc_b(DisasContext *env, arg_adc_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_d(DisasContext *env, arg_adc_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_h(DisasContext *env, arg_adc_h *a) {__NOT_IMPLEMENTED__}
@@ -4971,8 +4983,6 @@ static bool trans_fmaxn_d(DisasContext *env, arg_fmaxn_d *a) {__NOT_IMPLEMENTED_
 static bool trans_fmaxn_s(DisasContext *env, arg_fmaxn_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_fminn_d(DisasContext *env, arg_fminn_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_fminn_s(DisasContext *env, arg_fminn_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_frecipe_d(DisasContext *env, arg_frecipe_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_frecipe_s(DisasContext *env, arg_frecipe_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_frintirm_d(DisasContext *env, arg_frintirm_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_frintirm_s(DisasContext *env, arg_frintirm_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_frintirne_d(DisasContext *env, arg_frintirne_d *a) {__NOT_IMPLEMENTED__}
@@ -4981,8 +4991,6 @@ static bool trans_frintirp_d(DisasContext *env, arg_frintirp_d *a) {__NOT_IMPLEM
 static bool trans_frintirp_s(DisasContext *env, arg_frintirp_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_frintirz_d(DisasContext *env, arg_frintirz_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_frintirz_s(DisasContext *env, arg_frintirz_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_frsqrte_d(DisasContext *env, arg_frsqrte_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_frsqrte_s(DisasContext *env, arg_frsqrte_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_gr2scr(DisasContext *env, arg_gr2scr *a) {__NOT_IMPLEMENTED__}
 static bool trans_grsel(DisasContext *env, arg_grsel *a) {__NOT_IMPLEMENTED__}
 static bool trans_jiscr0(DisasContext *env, arg_jiscr0 *a) {__NOT_IMPLEMENTED__}
@@ -5023,8 +5031,6 @@ static bool trans_vfmaxn_d(DisasContext *env, arg_vfmaxn_d *a) {__NOT_IMPLEMENTE
 static bool trans_vfmaxn_s(DisasContext *env, arg_vfmaxn_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfminn_d(DisasContext *env, arg_vfminn_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfminn_s(DisasContext *env, arg_vfminn_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfrecipe_d(DisasContext *env, arg_vfrecipe_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfrecipe_s(DisasContext *env, arg_vfrecipe_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrintirm_d(DisasContext *env, arg_vfrintirm_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrintirm_s(DisasContext *env, arg_vfrintirm_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrintirne_d(DisasContext *env, arg_vfrintirne_d *a) {__NOT_IMPLEMENTED__}
@@ -5033,8 +5039,6 @@ static bool trans_vfrintirp_d(DisasContext *env, arg_vfrintirp_d *a) {__NOT_IMPL
 static bool trans_vfrintirp_s(DisasContext *env, arg_vfrintirp_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrintirz_d(DisasContext *env, arg_vfrintirz_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_vfrintirz_s(DisasContext *env, arg_vfrintirz_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfrsqrte_d(DisasContext *env, arg_vfrsqrte_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_vfrsqrte_s(DisasContext *env, arg_vfrsqrte_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_x86adc_b(DisasContext *env, arg_x86adc_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_x86adc_d(DisasContext *env, arg_x86adc_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_x86adc_h(DisasContext *env, arg_x86adc_h *a) {__NOT_IMPLEMENTED__}
@@ -5155,8 +5159,6 @@ static bool trans_xvfmaxn_d(DisasContext *env, arg_xvfmaxn_d *a) {__NOT_IMPLEMEN
 static bool trans_xvfmaxn_s(DisasContext *env, arg_xvfmaxn_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfminn_d(DisasContext *env, arg_xvfminn_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfminn_s(DisasContext *env, arg_xvfminn_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfrecipe_d(DisasContext *env, arg_xvfrecipe_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfrecipe_s(DisasContext *env, arg_xvfrecipe_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirm_d(DisasContext *env, arg_xvfrintirm_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirm_s(DisasContext *env, arg_xvfrintirm_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirne_d(DisasContext *env, arg_xvfrintirne_d *a) {__NOT_IMPLEMENTED__}
@@ -5165,8 +5167,6 @@ static bool trans_xvfrintirp_d(DisasContext *env, arg_xvfrintirp_d *a) {__NOT_IM
 static bool trans_xvfrintirp_s(DisasContext *env, arg_xvfrintirp_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirz_d(DisasContext *env, arg_xvfrintirz_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirz_s(DisasContext *env, arg_xvfrintirz_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfrsqrte_d(DisasContext *env, arg_xvfrsqrte_d *a) {__NOT_IMPLEMENTED__}
-static bool trans_xvfrsqrte_s(DisasContext *env, arg_xvfrsqrte_s *a) {__NOT_IMPLEMENTED__}
 
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic) {
     if (ic) {
