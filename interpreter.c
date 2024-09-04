@@ -4948,6 +4948,50 @@ static bool trans_vfrsqrte_d(DisasContext *env, arg_vfrsqrte_d *a) {CHECK_FRECIP
 static bool trans_vfrsqrte_s(DisasContext *env, arg_vfrsqrte_s *a) {CHECK_FRECIPE; CHECK_FPE(16); return trans_vfrsqrt_s(env, a);}
 static bool trans_xvfrsqrte_d(DisasContext *env, arg_xvfrsqrte_d *a) {CHECK_FRECIPE; CHECK_FPE(32); return trans_xvfrsqrt_d(env, a);}
 static bool trans_xvfrsqrte_s(DisasContext *env, arg_xvfrsqrte_s *a) {CHECK_FRECIPE; CHECK_FPE(32); return trans_xvfrsqrt_s(env, a);}
+
+static bool trans_amadd_db_b(DisasContext *env, arg_amadd_db_b *a) {
+    CHECK_LAM_BH;
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int32_t old_v = ram_ldb(ha);
+    int32_t new_v = env->gpr[a->rk] + old_v;
+    ram_stb(ha, new_v);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_amadd_db_h(DisasContext *env, arg_amadd_db_h *a) {
+    CHECK_LAM_BH;
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int32_t old_v = ram_ldh(ha);
+    int32_t new_v = env->gpr[a->rk] + old_v;
+    ram_sth(ha, new_v);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_amswap_db_b(DisasContext *env, arg_amswap_db_b *a) {
+    CHECK_LAM_BH;
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int32_t old_v = ram_ldb(ha);
+    ram_stb(ha, env->gpr[a->rk]);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_amswap_db_h(DisasContext *env, arg_amswap_db_h *a) {
+    CHECK_LAM_BH;
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    int32_t old_v = ram_ldh(ha);
+    ram_sth(ha, env->gpr[a->rk]);
+    env->gpr[a->rd] = (int64_t)old_v;
+    env->pc += 4;
+    return true;
+}
+static bool trans_amadd_b(DisasContext *env, arg_amadd_b *a) {return trans_amadd_db_b(env, a);}
+static bool trans_amadd_h(DisasContext *env, arg_amadd_h *a) {return trans_amadd_db_h(env, a);}
+static bool trans_amswap_b(DisasContext *env, arg_amswap_b *a) {return trans_amswap_db_b(env, a);}
+static bool trans_amswap_h(DisasContext *env, arg_amswap_h *a) {return trans_amswap_db_h(env, a);}
+
 static bool trans_adc_b(DisasContext *env, arg_adc_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_d(DisasContext *env, arg_adc_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_h(DisasContext *env, arg_adc_h *a) {__NOT_IMPLEMENTED__}
@@ -4956,10 +5000,6 @@ static bool trans_addu12i_d(DisasContext *env, arg_addu12i_d *a) {__NOT_IMPLEMEN
 static bool trans_addu12i_w(DisasContext *env, arg_addu12i_w *a) {__NOT_IMPLEMENTED__}
 static bool trans_add_wu(DisasContext *env, arg_add_wu *a) {__NOT_IMPLEMENTED__}
 static bool trans_alsl_uw(DisasContext *env, arg_alsl_uw *a) {__NOT_IMPLEMENTED__}
-static bool trans_amadd_b(DisasContext *env, arg_amadd_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_amadd_db_b(DisasContext *env, arg_amadd_db_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_amadd_db_h(DisasContext *env, arg_amadd_db_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_amadd_h(DisasContext *env, arg_amadd_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_amcas_b(DisasContext *env, arg_amcas_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_amcas_db_b(DisasContext *env, arg_amcas_db_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_amcas_db_d(DisasContext *env, arg_amcas_db_d *a) {__NOT_IMPLEMENTED__}
@@ -4968,10 +5008,6 @@ static bool trans_amcas_db_w(DisasContext *env, arg_amcas_db_w *a) {__NOT_IMPLEM
 static bool trans_amcas_d(DisasContext *env, arg_amcas_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_amcas_h(DisasContext *env, arg_amcas_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_amcas_w(DisasContext *env, arg_amcas_w *a) {__NOT_IMPLEMENTED__}
-static bool trans_amswap_b(DisasContext *env, arg_amswap_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_amswap_db_b(DisasContext *env, arg_amswap_db_b *a) {__NOT_IMPLEMENTED__}
-static bool trans_amswap_db_h(DisasContext *env, arg_amswap_db_h *a) {__NOT_IMPLEMENTED__}
-static bool trans_amswap_h(DisasContext *env, arg_amswap_h *a) {__NOT_IMPLEMENTED__}
 static bool trans_bitinv(DisasContext *env, arg_bitinv *a) {__NOT_IMPLEMENTED__}
 static bool trans_bitinvi(DisasContext *env, arg_bitinvi *a) {__NOT_IMPLEMENTED__}
 static bool trans_fcvt_d_ld(DisasContext *env, arg_fcvt_d_ld *a) {__NOT_IMPLEMENTED__}
