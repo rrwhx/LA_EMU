@@ -5269,6 +5269,7 @@ static bool trans_xvfrintirp_d(DisasContext *env, arg_xvfrintirp_d *a) {__NOT_IM
 static bool trans_xvfrintirp_s(DisasContext *env, arg_xvfrintirp_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirz_d(DisasContext *env, arg_xvfrintirz_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirz_s(DisasContext *env, arg_xvfrintirz_s *a) {__NOT_IMPLEMENTED__}
+static bool trans_sc_q(DisasContext *env , arg_sc_q *a) {__NOT_IMPLEMENTED__}
 
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic) {
     if (ic) {
