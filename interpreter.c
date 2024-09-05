@@ -1157,6 +1157,10 @@ static bool trans_stle_d(CPULoongArchState *env, arg_stle_d *restrict a) {__NOT_
 static bool trans_ll_w(CPULoongArchState *env, arg_ll_w *restrict a) {
     hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
     env->gpr[a->rd] = ram_ldw(ha);
+        // sc_q
+        hwaddr ha_aligned = ROUND_DOWN(ha, 16);
+        env->llval_lo = ram_ldd(ha_aligned);
+        env->llval_hi = ram_ldd(ha_aligned + 8);
     env->lladdr = ha;
     env->llval = env->gpr[a->rd];
     env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB, 1);
@@ -1178,6 +1182,10 @@ static bool trans_sc_w(CPULoongArchState *env, arg_sc_w *restrict a) {
 static bool trans_ll_d(CPULoongArchState *env, arg_ll_d *restrict a) {
     hwaddr ha = load_pa(env, env->gpr[a->rj] + a->imm);
     env->gpr[a->rd] = ram_ldd(ha);
+        // sc_q
+        hwaddr ha_aligned = ROUND_DOWN(ha, 16);
+        env->llval_lo = ram_ldd(ha_aligned);
+        env->llval_hi = ram_ldd(ha_aligned + 8);
     env->lladdr = ha;
     env->llval = env->gpr[a->rd];
     env->CSR_LLBCTL = FIELD_DP64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB, 1);
@@ -5070,6 +5078,22 @@ static bool trans_screl_d(DisasContext *env, arg_screl_d *a) {
     return trans_sc_d(env, &tmp_a);
 }
 
+static bool trans_sc_q(DisasContext *env , arg_sc_q *a) {
+    CHECK_SCQ;
+    hwaddr ha = store_pa(env, env->gpr[a->rj]);
+    if (FIELD_EX64(env->CSR_LLBCTL, CSR_LLBCTL, ROLLB) &&
+        ROUND_DOWN(env->lladdr, 16) == ha && env->llval_lo == ram_ldd(ha) &&
+        env->llval_hi == ram_ldd(ha + 8)) {
+        ram_std(ha, env->gpr[a->rd]);
+        ram_std(ha + 8, env->gpr[a->rk]);
+        env->gpr[a->rd] = 1;
+    } else {
+        env->gpr[a->rd] = 0;
+    }
+    env->pc += 4;
+    return true;
+}
+
 static bool trans_adc_b(DisasContext *env, arg_adc_b *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_d(DisasContext *env, arg_adc_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_adc_h(DisasContext *env, arg_adc_h *a) {__NOT_IMPLEMENTED__}
@@ -5269,7 +5293,6 @@ static bool trans_xvfrintirp_d(DisasContext *env, arg_xvfrintirp_d *a) {__NOT_IM
 static bool trans_xvfrintirp_s(DisasContext *env, arg_xvfrintirp_s *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirz_d(DisasContext *env, arg_xvfrintirz_d *a) {__NOT_IMPLEMENTED__}
 static bool trans_xvfrintirz_s(DisasContext *env, arg_xvfrintirz_s *a) {__NOT_IMPLEMENTED__}
-static bool trans_sc_q(DisasContext *env , arg_sc_q *a) {__NOT_IMPLEMENTED__}
 
 bool interpreter(CPULoongArchState *env, uint32_t insn, INSCache* ic) {
     if (ic) {
