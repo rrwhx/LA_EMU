@@ -412,6 +412,9 @@ typedef struct CPUArchState {
 
     uint64_t lladdr; /* LL virtual address compared against SC */
     uint64_t llval;
+    // sc_q
+    uint64_t llval_lo;
+    uint64_t llval_hi;
 
     uint64_t prev_pc;
     uint32_t insn;
