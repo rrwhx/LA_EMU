@@ -120,7 +120,11 @@ struct SerialState {
 };
 typedef struct SerialState SerialState;
 
-SerialState s;
+SerialState s = {
+    .iir = UART_IIR_NO_INT,
+    .lsr = UART_LSR_TEMT | UART_LSR_THRE,
+    .msr = UART_MSR_DCD | UART_MSR_DSR | UART_MSR_CTS,
+};
 char input = 'x';
 bool input_vaild;
 
