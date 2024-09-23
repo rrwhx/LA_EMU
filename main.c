@@ -1180,6 +1180,7 @@ int main(int argc, char** argv, char **envp) {
     //     fprintf(stderr, "%s\n", argv[i]);
     // }
 
+#ifndef CONFIG_USER_ONLY
     // check the combination of input workloads
     if (kernel_filename != NULL && (ckpt_mem_filename != NULL || ckpt_cpu_filename != NULL)) {
         fprintf(stderr, "cannot specify -k and --ckpt-mem/--ckpt-cpu at same time\n");
@@ -1196,7 +1197,6 @@ int main(int argc, char** argv, char **envp) {
         }
     }
 
-#ifndef CONFIG_USER_ONLY
     ram = alloc_ram(ram_size);
     qemu_log("pid:%d, ram_size:%lx kernel_filename:%s\n", getpid(), ram_size, kernel_filename);
 #endif
