@@ -164,10 +164,38 @@ char* ram;
 #endif
 uint64_t ram_size = SZ_4G;
 char* kernel_filename;
+#ifndef CONFIG_USER_ONLY
+uint64_t kernel_addr_low = UINT64_MAX;
+uint64_t kernel_addr_high = 0;
+char* initrd_filename;
+// default addr, change to kernel end address if not suitable
+uint64_t initrd_start = 0xa0000000;
+uint64_t kernel_arg_a1 = 0x100000;
+char* kernel_cmdline;
+char real_kernel_cmdline[0x1000];
+#endif
 // for checkpoint restore
 char* ckpt_mem_filename;
 char* ckpt_cpu_filename;
 char* cpu_option;
+
+#if !defined (CONFIG_USER_ONLY) && !defined (CONFIG_DIFF)
+static char* readfile(const char* filename, uint64_t* length) {
+    // int r;
+    char * buffer;
+    FILE * f = fopen (filename, "rb");
+    lsassertm(f, "can not open %s, error:%s", filename, strerror(errno));
+    fseek (f, 0, SEEK_END);
+    *length = ftell (f);
+    fseek (f, 0, SEEK_SET);
+    buffer = (char*)aligned_alloc(64, *length);
+    lsassert(buffer != NULL);
+    size_t r = fread(buffer, *length, 1, f);
+    lsassert(r == 1);
+    fclose (f);
+    return buffer;
+}
+#endif
 
 void usage(void) {
 #ifndef CONFIG_USER_ONLY
@@ -215,6 +243,18 @@ bool addr_in_ram(hwaddr pa) {
         (pa < SZ_256M) ||
         (pa >= SZ_2G + SZ_256M && pa < ram_size + SZ_2G) ||
         (pa >= 0x1c000000 && pa < 0x1c000000 + SZ_32M);
+}
+
+bool addr_range_in_ram(hwaddr begin, hwaddr end) {
+    return
+        (end <= SZ_256M)
+        ||
+        (begin >= SZ_2G + SZ_256M && end <= ram_size + SZ_2G);
+}
+
+void ram_copy_bytes(hwaddr pa, void* src, size_t size) {
+    lsassertm(addr_range_in_ram(pa, pa + size), "copy to ram addr:%lx, size:%lx failed\n", pa, size);
+    memcpy(ram + pa, src , size);
 }
 
 bool load_elf(const char* filename, uint64_t* entry_addr) {
@@ -273,6 +313,8 @@ bool load_elf(const char* filename, uint64_t* entry_addr) {
                 }
                 // ram_writen(ph->p_paddr & 0xfffffff, data, file_size);
                 memcpy(ram + (ph->p_paddr & 0xffffffffffff), data, file_size);
+                kernel_addr_low = MIN(kernel_addr_low, ph->p_paddr & 0xffffffffffff);
+                kernel_addr_high = MAX(kernel_addr_high, kernel_addr_low + mem_size);
                 qemu_log_mask(CPU_LOG_PAGE, "%lx, file_size:%lx mem_size:%lx, \n", ph->p_paddr, file_size, mem_size);
             }
             free((void*)data);
@@ -1040,6 +1082,9 @@ struct option long_options[] = {
     {"ckpt-mem", required_argument, 0, 0},
     {"ckpt-cpu", required_argument, 0, 0},
     {"cpu", required_argument, 0, 0},
+    {"kernel", required_argument, 0, 'k'},
+    {"initrd", required_argument, 0, 0},
+    {"append", required_argument, 0, 0},
     {0, 0 ,0 ,0}
 };
 
@@ -1111,6 +1156,11 @@ int main(int argc, char** argv, char **envp) {
                     ckpt_cpu_filename = optarg;
                 } else if (strcmp(long_options[long_option_idx].name, "cpu") == 0) {
                     cpu_option = optarg;
+                } else if (strcmp(long_options[long_option_idx].name, "initrd") == 0) {
+                    initrd_filename = optarg;
+                } else if (strcmp(long_options[long_option_idx].name, "append") == 0) {
+                    kernel_cmdline = optarg;
+                    strcpy(real_kernel_cmdline, kernel_cmdline);
                 } else {
                     usage();
                     return 1;
@@ -1255,6 +1305,57 @@ int main(int argc, char** argv, char **envp) {
         its.it_interval.tv_nsec = 5000000;
         lsassert(timer_settime(serial_timerid, 0, &its, NULL) == 0);
     }
+
+    qemu_log("kernel_addr: %lx-%lx\n", kernel_addr_low, kernel_addr_high);
+
+    if (initrd_filename) {
+        uint64_t initrd_size;
+        char* buffer = readfile(initrd_filename, &initrd_size);
+        if (initrd_start < kernel_addr_high) {
+            initrd_start = ROUND_UP(kernel_addr_high, 0x10000000);
+        }
+        ram_copy_bytes(initrd_start, buffer, initrd_size);
+        free(buffer);
+        if (kernel_cmdline) {
+            sprintf(real_kernel_cmdline, "initrd=0x%lx,%ld %s", initrd_start, initrd_size, kernel_cmdline);
+        } else {
+            sprintf(real_kernel_cmdline, "initrd=0x%lx,%ld ", initrd_start, initrd_size);
+        }
+        qemu_log("initrd_start: %lx-%lx\n", initrd_start, initrd_start + initrd_size);
+    }
+
+    if (real_kernel_cmdline[0]) {
+        if (new_abi) {
+            ram_copy_bytes(kernel_arg_a1, real_kernel_cmdline, strlen(real_kernel_cmdline));
+        } else {
+            size_t cmdlen = strlen(real_kernel_cmdline);
+            uint64_t arg_str_addr = kernel_arg_a1+ 0x1000;
+            char* token;
+            char* rest = real_kernel_cmdline;
+            char* words[512];
+            int count = 0;
+
+            token = strtok(rest, " ");
+            while (token != NULL) {
+                words[count++] = token;
+                token = strtok(NULL, " ");
+            }
+            ram_copy_bytes(arg_str_addr, real_kernel_cmdline, cmdlen);
+
+            uint64_t argv_addr = kernel_arg_a1 + 8;
+            printf("Found %d words:\n", count);
+            for (int i = 0; i < count; i++) {
+                printf("%s\n", words[i]);
+                ram_std(argv_addr, arg_str_addr + (words[i] - real_kernel_cmdline));
+                printf("argv %lx %lx\n", argv_addr, arg_str_addr + (words[i] - real_kernel_cmdline));
+                argv_addr += 8;
+            }
+            count ++;
+            env->gpr[4] = count;
+        }
+        env->gpr[5] = kernel_arg_a1;
+    }
+
 #endif
     env->pc = entry_addr;
 
