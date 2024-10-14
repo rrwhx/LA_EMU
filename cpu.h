@@ -9,6 +9,7 @@
 #define LOONGARCH_CPU_H
 
 #include "util.h"
+#include "qemu/osdep.h"
 #include "qemu/int128.h"
 #include "qemu/compiler.h"
 #include "hw/registerfields.h"
@@ -564,7 +565,7 @@ QEMU_BUILD_BUG_ON(offsetof(ArchCPU, env) != sizeof(CPUState));
  */
 static inline ArchCPU *env_archcpu(CPUArchState *env)
 {
-    return (void *)env - sizeof(CPUState);
+    return (ArchCPU *)((char *)env - sizeof(CPUState));
 }
 
 /**
@@ -575,7 +576,7 @@ static inline ArchCPU *env_archcpu(CPUArchState *env)
  */
 static inline CPUState *env_cpu(CPUArchState *env)
 {
-    return (void *)env - sizeof(CPUState);
+    return (CPUState *)((char *)env - sizeof(CPUState));
 }
 
 static inline CPUArchState *cpu_env(CPUState *cpu)

@@ -74,7 +74,11 @@
         int:(x) ? -1 : 1; \
     }
 
+#ifdef __cplusplus
+#define QEMU_BUILD_BUG_MSG(x, msg) static_assert(!(x), msg)
+#else
 #define QEMU_BUILD_BUG_MSG(x, msg) _Static_assert(!(x), msg)
+#endif
 
 #define QEMU_BUILD_BUG_ON(x) QEMU_BUILD_BUG_MSG(x, "not expecting: " #x)
 
